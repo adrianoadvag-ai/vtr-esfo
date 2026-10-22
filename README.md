@@ -38,6 +38,7 @@ npm run dev
 - Login por e-mail/senha ativado; Firestore em `southamerica-east1` (São Paulo), modo de produção
 - Regras de `firestore.rules` publicadas. Ao alterar o arquivo, publique de novo: `npx firebase-tools deploy --only firestore:rules`
 - A configuração do app da Web está em `src/firebase-config.js` (identifica o projeto; não é senha)
+- **App:** https://adrianoadvag-ai.github.io/vtr-esfo/
 - **Primeiro administrador**: quem criar o acesso com o e-mail definido em `EMAIL_ADMIN` já entra como administrador. Os demais entram como "aguardando liberação" e o coordenador libera na aba **Equipe**
 - Primeiro uso: em **Viaturas**, toque em **Usar as 10 VTR do relatório** e confira os dados
 
@@ -45,20 +46,12 @@ npm run dev
 
 Por padrão, as fotos vão comprimidas para o Firestore, que é gratuito no plano Spark. O Cloud Storage passou a exigir o plano Blaze (cartão vinculado) a partir de fev. 2026. Para usá-lo mesmo assim, ative o Storage no console e defina `VITE_USAR_STORAGE=1`.
 
-## Publicação automática (GitHub Actions)
+## Publicação automática (GitHub Pages)
 
-A cada alteração na branch `main`, o GitHub gera o app e o publica em **https://vtr-esfo.web.app**.
+A cada alteração na branch `main`, o GitHub gera o app e o publica em **https://adrianoadvag-ai.github.io/vtr-esfo/** (workflow `.github/workflows/pages.yml`, sem chaves). Mesmo esquema do SICAM e do Almox.
 
-Falta só a chave de publicação, que precisa ser criada por quem é dono da conta. É feita uma vez, no computador, dentro da pasta do projeto:
-
-```bash
-npx firebase-tools login
-npx firebase-tools init hosting:github
-```
-
-Responda: repositório `adrianoadvag-ai/vtr-esfo`; **não** para rodar build e **não** para criar workflows (eles já existem). O comando cria o secret `FIREBASE_SERVICE_ACCOUNT` no GitHub. Depois, em *Actions › Publicar no Firebase › Run workflow*, faça a primeira publicação.
-
-Para publicar direto do computador, sem o GitHub: `npm install && npm run build && npx firebase-tools deploy --only hosting`.
+- O domínio `adrianoadvag-ai.github.io` está nos *domínios autorizados* do Firebase Authentication.
+- Para publicar sem esperar um push: *Actions › Publicar no GitHub Pages › Run workflow*.
 
 ## Migrar para a conta da missão
 
