@@ -7,14 +7,17 @@ import { avaliar, exigida } from '../lib/vistoria'
 const SITUACAO = { manutencao: 'Em manutenção', baixada: 'Baixada' }
 
 export default function Hoje() {
-  const { viaturas, vistoria, hoje, ir, usuario, api } = useApp()
+  const { viaturas, vistoria, enviadasHoje, hoje, ir, usuario, api } = useApp()
   const registros = vistoria?.registros || {}
-  const enviada = vistoria?.status === 'enviada'
   const lista = viaturas.filter((v) => v.situacao !== 'baixada' || registros[v.id])
-  const exigidas = lista.filter(exigida)
   const avaliacoes = Object.fromEntries(lista.map((v) => [v.id, avaliar(v, registros[v.id], hoje)]))
-  const feitas = exigidas.filter((v) => avaliacoes[v.id].completo).length
-  const tudo = exigidas.length > 0 && feitas === exigidas.length
+  const concluidas = lista.filter((v) => registros[v.id] && avaliacoes[v.id].completo)
+  const exigidas = lista.filter(exigida)
+
+  // Em qual relatório de hoje cada VTR já foi enviada
+  const enviadaEm = {}
+  for (const r of enviadasHoje) for (const id of r.incluidas || Object.keys(r.registros || {})) enviadaEm[id] = r
+  const conferidasHoje = exigidas.filter((v) => enviadaEm[v.id] || (registros[v.id] && avaliacoes[v.id].completo)).length
 
   const sair = (
     <button className="acao" onClick={() => api.sair()} aria-label="Sair">
@@ -27,31 +30,39 @@ export default function Hoje() {
       <Cabecalho titulo={APP_NOME} sub={nomeCompleto(usuario)} acao={sair} />
       <main>
         <h2 className="tela-titulo">{dataCurta(hoje)}</h2>
-        {enviada ? (
-          <div className="bloco pad" style={{ marginBottom: 16 }}>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-              <Selo nivel="ok">
-                <Icone nome="Check" tamanho={14} /> Enviada
-              </Selo>
-              <span style={{ color: 'var(--tinta-2)', fontSize: 14 }}>
-                às {horaCurta(vistoria.enviadaEm)} por {vistoria.enviadaPor}
-              </span>
-            </div>
-            <button className="botao secundario cheio" style={{ marginTop: 12 }} onClick={() => ir(`relatorio/${hoje}`)}>
-              <Icone nome="MessageCircle" /> Ver relatório do dia
-            </button>
+        <div className="progresso">
+          <div style={{ color: 'var(--tinta-2)' }}>
+            {exigidas.length === 0 ? 'Nenhuma viatura cadastrada.' : `${conferidasHoje} de ${exigidas.length} viaturas conferidas hoje`}
           </div>
-        ) : (
-          <div className="progresso">
-            <div style={{ color: 'var(--tinta-2)' }}>
-              {exigidas.length === 0
-                ? 'Nenhuma viatura cadastrada.'
-                : `${feitas} de ${exigidas.length} viaturas conferidas`}
-            </div>
-            <div className="barra" aria-hidden="true">
-              <span style={{ width: `${exigidas.length ? (feitas / exigidas.length) * 100 : 0}%` }} />
-            </div>
+          <div className="barra" aria-hidden="true">
+            <span style={{ width: `${exigidas.length ? (conferidasHoje / exigidas.length) * 100 : 0}%` }} />
           </div>
+        </div>
+
+        {enviadasHoje.length > 0 && (
+          <ul className="bloco vtr-lista" style={{ marginBottom: 16 }} aria-label="Relatórios enviados hoje">
+            {enviadasHoje.map((r) => {
+              const n = (r.incluidas || Object.keys(r.registros || {})).length
+              return (
+                <li key={r.id}>
+                  <button className="vtr-linha" style={{ gridTemplateColumns: 'auto 1fr auto' }} onClick={() => ir(`relatorio/${r.id}`)}>
+                    <Selo nivel="ok">
+                      <Icone nome="Check" tamanho={14} /> Enviado
+                    </Selo>
+                    <span>
+                      <span className="modelo">
+                        {horaCurta(r.enviadaEm)} · {n} {n === 1 ? 'viatura' : 'viaturas'}
+                      </span>
+                      <span className="detalhe" style={{ display: 'block' }}>
+                        {r.enviadaPor}
+                      </span>
+                    </span>
+                    <Icone nome="ChevronRight" style={{ color: 'var(--tinta-2)' }} />
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
         )}
 
         {lista.length === 0 ? (
@@ -67,11 +78,12 @@ export default function Hoje() {
           <ul className="bloco vtr-lista">
             {lista.map((v) => {
               const a = avaliacoes[v.id]
-              const inativa = !exigida(v)
+              const temRegistro = Boolean(registros[v.id])
+              const ja = enviadaEm[v.id]
               return (
                 <li key={v.id}>
                   <button
-                    className={`vtr-linha ${inativa ? 'inativa' : ''}`}
+                    className={`vtr-linha ${!exigida(v) ? 'inativa' : ''}`}
                     onClick={() => ir(`vistoria/${v.id}`)}
                     aria-label={`Viatura ${v.prefixo}, ${v.modelo}`}
                   >
@@ -79,14 +91,10 @@ export default function Hoje() {
                     <span>
                       <span className="modelo">{v.modelo}</span>
                       <span className="detalhe" style={{ display: 'block' }}>
-                        {SITUACAO[v.situacao] ||
-                          (a.estado === 'andamento' ? `Falta: ${a.pendentes.slice(0, 2).join(', ')}${a.pendentes.length > 2 ? '…' : ''}` : '')}
-                        {a.completo && a.estado !== 'nao' && !a.achados.length && 'Sem alteração'}
-                        {a.completo && a.achados.length > 0 && a.achados.map((x) => x.item).join(', ')}
-                        {a.estado === 'nao' && 'Não vistoriada'}
+                        {detalhe(v, a, temRegistro, ja)}
                       </span>
                     </span>
-                    <Status a={a} />
+                    <Status a={a} temRegistro={temRegistro} ja={ja} />
                   </button>
                 </li>
               )
@@ -95,10 +103,12 @@ export default function Hoje() {
         )}
       </main>
 
-      {!enviada && podeVistoriar(usuario) && lista.length > 0 && (
+      {podeVistoriar(usuario) && lista.length > 0 && (
         <div className="rodape-fixo">
-          <button className="botao cheio" disabled={!tudo} onClick={() => ir('revisao')}>
-            {tudo ? 'Revisar e enviar relatório' : `Faltam ${exigidas.length - feitas} viaturas`}
+          <button className="botao cheio" disabled={concluidas.length === 0} onClick={() => ir('revisao')}>
+            {concluidas.length === 0
+              ? 'Conclua ao menos uma viatura para enviar'
+              : `Revisar e enviar (${concluidas.length} ${concluidas.length === 1 ? 'viatura' : 'viaturas'})`}
           </button>
         </div>
       )}
@@ -106,15 +116,31 @@ export default function Hoje() {
   )
 }
 
-function Status({ a }) {
-  if (a.completo && a.nivel) return <SeloNivel nivel={a.nivel} />
-  if (a.completo && a.estado === 'nao') return <Selo nivel="neutro">Justificada</Selo>
-  if (a.completo)
+function detalhe(v, a, temRegistro, ja) {
+  if (temRegistro && a.completo) {
+    if (a.estado === 'nao') return 'Não vistoriada (justificada)'
+    return a.achados.length ? a.achados.map((x) => x.item).join(', ') : 'Sem alteração · pronta para enviar'
+  }
+  if (temRegistro) return `Falta: ${a.pendentes.slice(0, 2).join(', ')}${a.pendentes.length > 2 ? '…' : ''}`
+  if (ja) return `Enviada às ${horaCurta(ja.enviadaEm)}`
+  return SITUACAO[v.situacao] || ''
+}
+
+function Status({ a, temRegistro, ja }) {
+  if (temRegistro && a.completo && a.nivel) return <SeloNivel nivel={a.nivel} />
+  if (temRegistro && a.completo && a.estado === 'nao') return <Selo nivel="neutro">Justificada</Selo>
+  if (temRegistro && a.completo)
     return (
       <Selo nivel="ok">
         <Icone nome="Check" tamanho={14} /> S/A
       </Selo>
     )
-  if (a.estado === 'andamento') return <Selo nivel="neutro">Em andamento</Selo>
+  if (temRegistro) return <Selo nivel="neutro">Em andamento</Selo>
+  if (ja)
+    return (
+      <Selo nivel="neutro">
+        <Icone nome="Send" tamanho={13} /> Enviada
+      </Selo>
+    )
   return <Icone nome="ChevronRight" style={{ color: 'var(--tinta-2)' }} />
 }

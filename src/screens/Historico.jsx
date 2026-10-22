@@ -3,8 +3,8 @@ import { Cabecalho, Icone, useCarregar } from '../components/base'
 import { dataCurta, horaCurta } from '../lib/formato'
 
 export default function Historico() {
-  const { api, ir, vistoria } = useApp()
-  const { dados, carregando, erro } = useCarregar(() => api.listarVistorias(), [vistoria?.status])
+  const { api, ir, enviadasHoje } = useApp()
+  const { dados, carregando, erro } = useCarregar(() => api.listarVistorias(), [enviadasHoje.length])
 
   return (
     <>
@@ -20,13 +20,14 @@ export default function Historico() {
           <ul className="bloco vtr-lista">
             {dados.map((v) => {
               const alteracoes = (v.relatorio.match(/^⚠️ \*Alterações \((\d+)\)/m) || [])[1]
+              const n = (v.relatorio.match(/^\d+\. /gm) || []).length
               return (
-                <li key={v.data}>
-                  <button className="vtr-linha" style={{ gridTemplateColumns: '1fr auto' }} onClick={() => ir(`relatorio/${v.data}`)}>
+                <li key={v.id}>
+                  <button className="vtr-linha" style={{ gridTemplateColumns: '1fr auto' }} onClick={() => ir(`relatorio/${v.id}`)}>
                     <span>
                       <span className="modelo">{dataCurta(v.data)}</span>
                       <span className="detalhe" style={{ display: 'block' }}>
-                        {horaCurta(v.enviadaEm)} · {v.enviadaPor}
+                        {horaCurta(v.enviadaEm)} · {n} VTR · {v.enviadaPor}
                         {alteracoes ? ` · ${alteracoes} ${alteracoes === '1' ? 'alteração' : 'alterações'}` : ' · sem alterações'}
                       </span>
                     </span>

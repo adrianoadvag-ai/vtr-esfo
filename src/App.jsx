@@ -3,6 +3,7 @@ import api from './data'
 import { Icone, Toast, brasaoEsfo } from './components/base'
 import { podeGerir } from './config'
 import { hojeISO } from './lib/formato'
+import { idRodada } from './lib/vistoria'
 import Login, { Aguardando } from './screens/Login'
 import Hoje from './screens/Hoje'
 import Vistoria from './screens/Vistoria'
@@ -38,7 +39,7 @@ export default function App() {
   const [usuario, setUsuario] = useState(undefined)
   const [rota, ir] = useRota()
   const [viaturas, setViaturas] = useState([])
-  const [vistoria, setVistoria] = useState(null)
+  const [rodadas, setRodadas] = useState([])
   const [ocorrencias, setOcorrencias] = useState([])
   const [toast, setToast] = useState('')
   const [hoje, setHoje] = useState(hojeISO())
@@ -60,8 +61,22 @@ export default function App() {
     if (!liberado) return
     recarregarViaturas()
     recarregarOcorrencias()
-    return api.observarVistoria(hoje, setVistoria)
+    return api.observarDia(hoje, setRodadas)
   }, [liberado, hoje, recarregarViaturas, recarregarOcorrencias])
+
+  // Rodada aberta do dia (rascunho) e relatórios já enviados hoje
+  const { vistoria, enviadasHoje } = useMemo(() => {
+    const seqDe = (r) => r.seq || 1
+    const enviadas = rodadas.filter((r) => r.status === 'enviada').sort((a, b) => (a.enviadaEm || 0) - (b.enviadaEm || 0))
+    const abertas = rodadas.filter((r) => r.status !== 'enviada').sort((a, b) => seqDe(b) - seqDe(a))
+    const maxSeq = rodadas.reduce((m, r) => Math.max(m, seqDe(r)), 0)
+    const aberta = abertas[0]
+    const seq = aberta ? seqDe(aberta) : maxSeq + 1
+    return {
+      vistoria: { registros: {}, ...aberta, id: aberta?.id || idRodada(hoje, seq), seq, data: hoje },
+      enviadasHoje: enviadas,
+    }
+  }, [rodadas, hoje])
 
   const ctx = useMemo(
     () => ({
@@ -70,13 +85,14 @@ export default function App() {
       hoje,
       viaturas,
       vistoria,
+      enviadasHoje,
       ocorrencias,
       ir,
       avisar: setToast,
       recarregarViaturas,
       recarregarOcorrencias,
     }),
-    [usuario, hoje, viaturas, vistoria, ocorrencias, ir, recarregarViaturas, recarregarOcorrencias],
+    [usuario, hoje, viaturas, vistoria, enviadasHoje, ocorrencias, ir, recarregarViaturas, recarregarOcorrencias],
   )
 
   if (usuario === undefined) {

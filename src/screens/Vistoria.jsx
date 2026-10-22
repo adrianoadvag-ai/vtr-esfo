@@ -16,6 +16,9 @@ export default function Vistoria({ vtrId }) {
   const carregado = useRef(null)
   const timer = useRef(null)
   const pendente = useRef(null)
+  // Rodada aberta no momento da gravação (muda depois de um envio)
+  const rodada = useRef(vistoria)
+  rodada.current = vistoria
 
   // Carrega o registro desta VTR uma vez por tela (depois o estado local manda)
   useEffect(() => {
@@ -36,7 +39,8 @@ export default function Vistoria({ vtrId }) {
     if (!r) return
     pendente.current = null
     const { por: _p, em: _e, ...limpo } = r
-    api.salvarRegistro(hoje, vtrId, limpo, nomeCompleto(usuario)).catch((e) => avisar(e.message))
+    const { id, seq } = rodada.current
+    api.salvarRegistro(id, hoje, seq, vtrId, limpo, nomeCompleto(usuario)).catch((e) => avisar(e.message))
   }
   useEffect(() => () => {
     clearTimeout(timer.current)
@@ -239,9 +243,27 @@ export default function Vistoria({ vtrId }) {
             {a.pendentes.length === 1 ? 'Falta' : `Faltam ${a.pendentes.length}`}: {a.pendentes.slice(0, 3).join(', ')}
             {a.pendentes.length > 3 ? '…' : ''}
           </div>}
-        <button className="botao cheio" onClick={proxima}>
-          {somenteLeitura ? 'Próxima viatura' : a.completo ? 'Salvar e ir para a próxima VTR' : 'Salvar e ir para a próxima'}
-        </button>
+        {a.completo && !somenteLeitura ? (
+          <div className="botoes" style={{ flexWrap: 'nowrap' }}>
+            <button
+              className="botao secundario"
+              onClick={() => {
+                clearTimeout(timer.current)
+                descarregar()
+                ir('revisao')
+              }}
+            >
+              <Icone nome="Send" /> Enviar
+            </button>
+            <button className="botao" style={{ flex: 2 }} onClick={proxima}>
+              Próxima VTR
+            </button>
+          </div>
+        ) : (
+          <button className="botao cheio" onClick={proxima}>
+            {somenteLeitura ? 'Próxima viatura' : 'Salvar e ir para a próxima'}
+          </button>
+        )}
       </div>
     </>
   )

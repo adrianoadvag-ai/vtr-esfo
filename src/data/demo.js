@@ -3,7 +3,7 @@
 import { VIATURAS_INICIAIS, USUARIOS_DEMO } from './seed'
 import { blobParaDataURL, comprimirFoto } from '../lib/foto'
 
-const CHAVE = 'vtr-esfo-demo-v1'
+const CHAVE = 'vtr-esfo-demo-v2'
 const memoria = { dados: null }
 
 function vazio() {
@@ -90,45 +90,39 @@ export async function carregarViaturasIniciais() {
   gravar()
 }
 
-export function observarVistoria(data, cb) {
-  const emitir = () => cb(copia(ler().vistorias[data]) || null)
+export function observarDia(data, cb) {
+  const emitir = () => cb(copia(Object.entries(ler().vistorias).filter(([, v]) => v.data === data).map(([k, v]) => ({ ...v, id: k }))))
   emitir()
   return ouvir(emitir)
 }
 
-export async function salvarRegistro(data, vtrId, reg, por) {
+export async function salvarRegistro(vid, data, seq, vtrId, reg, por) {
   const d = ler()
-  const v = (d.vistorias[data] ||= { data, status: 'rascunho', registros: {} })
-  if (v.status === 'enviada') throw new Error('Esta vistoria já foi enviada.')
+  const v = (d.vistorias[vid] ||= { data, seq, registros: {} })
+  if (v.status === 'enviada') throw new Error('Esta rodada já foi enviada.')
   v.registros[vtrId] = { ...reg, por, em: Date.now() }
   gravar()
 }
 
-export async function salvarMeta(data, patch) {
+export async function enviarVistoria(vid, data, { relatorio, responsaveis, limpeza, kms, novasOcorrencias, por, incluidas, restantes, proxima }) {
   const d = ler()
-  const v = (d.vistorias[data] ||= { data, status: 'rascunho', registros: {} })
-  Object.assign(v, patch)
-  gravar()
-}
-
-export async function enviarVistoria(data, { relatorio, responsaveis, limpeza, kms, novasOcorrencias, por }) {
-  const d = ler()
-  const v = d.vistorias[data]
+  const v = d.vistorias[vid]
   if (!v) throw new Error('Nada para enviar.')
-  if (v.status === 'enviada') throw new Error('Esta vistoria já foi enviada.')
-  Object.assign(v, { status: 'enviada', relatorio, responsaveis, limpeza, enviadaEm: Date.now(), enviadaPor: por })
-  for (const [vid, k] of Object.entries(kms)) {
-    const vtr = d.viaturas.find((x) => x.id === vid)
+  if (v.status === 'enviada') throw new Error('Esta rodada já foi enviada.')
+  Object.assign(v, { status: 'enviada', relatorio, responsaveis, limpeza, incluidas, enviadaEm: Date.now(), enviadaPor: por })
+  for (const [vtrId, k] of Object.entries(kms)) {
+    const vtr = d.viaturas.find((x) => x.id === vtrId)
     if (vtr && k > (vtr.kmAtual || 0)) vtr.kmAtual = k
   }
   for (const o of novasOcorrencias) d.ocorrencias.push({ ...o, id: id() })
+  if (Object.keys(restantes).length) d.vistorias[proxima.id] = { data, seq: proxima.seq, registros: restantes }
   gravar()
 }
 
 export async function listarVistorias() {
-  return copia(Object.values(ler().vistorias))
+  return copia(Object.entries(ler().vistorias).map(([k, v]) => ({ ...v, id: k })))
     .filter((v) => v.status === 'enviada')
-    .sort((a, b) => b.data.localeCompare(a.data))
+    .sort((a, b) => (b.enviadaEm || 0) - (a.enviadaEm || 0))
 }
 
 export async function listarOcorrencias() {

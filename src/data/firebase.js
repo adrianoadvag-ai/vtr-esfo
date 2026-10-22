@@ -104,40 +104,41 @@ export async function carregarViaturasIniciais() {
   await b.commit()
 }
 
-export function observarVistoria(data, cb) {
-  return onSnapshot(doc(db, 'vistorias', data), (s) => cb(s.exists() ? { ...s.data(), id: s.id } : null))
+// Todas as rodadas de vistoria de um dia (pode haver mais de um relatório por dia)
+export function observarDia(data, cb) {
+  return onSnapshot(query(collection(db, 'vistorias'), where('data', '==', data)), (snap) => cb(lista(snap)))
 }
 
-export async function salvarRegistro(data, vtrId, reg, por) {
+export async function salvarRegistro(vid, data, seq, vtrId, reg, por) {
   // mergeFields troca só o registro desta VTR, sem apagar o das outras
   await setDoc(
-    doc(db, 'vistorias', data),
-    { data, registros: { [vtrId]: { ...reg, por, em: Date.now() } } },
-    { mergeFields: ['data', new FieldPath('registros', vtrId)] },
+    doc(db, 'vistorias', vid),
+    { data, seq, registros: { [vtrId]: { ...reg, por, em: Date.now() } } },
+    { mergeFields: ['data', 'seq', new FieldPath('registros', vtrId)] },
   )
 }
 
-export const salvarMeta = (data, patch) => setDoc(doc(db, 'vistorias', data), { data, ...patch }, { merge: true })
-
-export async function enviarVistoria(data, { relatorio, responsaveis, limpeza, kms, novasOcorrencias, por, viaturas }) {
+export async function enviarVistoria(vid, data, { relatorio, responsaveis, limpeza, kms, novasOcorrencias, por, viaturas, incluidas, restantes, proxima }) {
   const b = writeBatch(db)
   b.set(
-    doc(db, 'vistorias', data),
-    { status: 'enviada', relatorio, responsaveis, limpeza, enviadaEm: Date.now(), enviadaPor: por },
+    doc(db, 'vistorias', vid),
+    { status: 'enviada', relatorio, responsaveis, limpeza, incluidas, enviadaEm: Date.now(), enviadaPor: por },
     { merge: true },
   )
-  for (const [vid, k] of Object.entries(kms)) {
-    const atual = viaturas.find((x) => x.id === vid)?.kmAtual || 0
-    if (k > atual) b.update(doc(db, 'viaturas', vid), { kmAtual: k, ultimaVistoria: data })
+  for (const [v, k] of Object.entries(kms)) {
+    const atual = viaturas.find((x) => x.id === v)?.kmAtual || 0
+    if (k > atual) b.update(doc(db, 'viaturas', v), { kmAtual: k, ultimaVistoria: data })
   }
   for (const o of novasOcorrencias) b.set(doc(collection(db, 'ocorrencias')), o)
+  // O que estava incompleto continua na próxima rodada do dia
+  if (Object.keys(restantes).length) b.set(doc(db, 'vistorias', proxima.id), { data, seq: proxima.seq, registros: restantes })
   await b.commit()
 }
 
 export async function listarVistorias() {
   // Ordena no aparelho: assim não é preciso criar índice composto no Firestore
   const q = query(collection(db, 'vistorias'), where('status', '==', 'enviada'))
-  return lista(await getDocs(q)).sort((a, b) => b.data.localeCompare(a.data))
+  return lista(await getDocs(q)).sort((a, b) => (b.enviadaEm || 0) - (a.enviadaEm || 0))
 }
 
 export async function listarOcorrencias() {

@@ -2,6 +2,9 @@
 import { ITENS, LIMITES, NIVEIS } from '../config'
 import { combustivelTexto, dataBR, dataExtensa, diasAte, km, saudacao } from './formato'
 
+// Identificador da rodada: a 1ª do dia é a própria data; as seguintes, data-2, data-3…
+export const idRodada = (data, seq) => (seq > 1 ? `${data}-${seq}` : data)
+
 export const itensDa = (vtr) => ITENS.filter((i) => !i.so || i.so(vtr))
 
 export const registroVazio = () => ({ itens: {} })
@@ -73,13 +76,14 @@ export function avaliar(vtr, reg = {}, hoje) {
 export const exigida = (vtr) => (vtr.situacao || 'ativa') === 'ativa'
 
 // Monta o texto do relatório no formato usado no WhatsApp
-export function montarRelatorio({ data, viaturas, registros, limpeza, responsaveis, pendenciasAbertas = [], agora = new Date() }) {
+export function montarRelatorio({ data, viaturas, registros, limpeza, responsaveis, pendenciasAbertas = [], totalFrota, agora = new Date() }) {
   const L = []
   L.push(`Com licença, Senhores. ${saudacao(agora)}`)
   L.push('')
-  L.push(`Segue o relatório das viaturas: ${dataExtensa(data)}`)
+  const lista = viaturas
+  const parcial = totalFrota && lista.length < totalFrota ? ` (${lista.length} de ${totalFrota} viaturas)` : ''
+  L.push(`Segue o relatório das viaturas: ${dataExtensa(data)}${parcial}`)
 
-  const lista = viaturas.filter((v) => exigida(v) || registros[v.id])
   const alteracoes = []
   for (const v of lista) {
     const a = avaliar(v, registros[v.id] || {}, data)

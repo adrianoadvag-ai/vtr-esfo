@@ -15,6 +15,7 @@ import {
   Disc,
   Droplet,
   Droplets,
+  FileDown,
   Fuel,
   Gauge,
   History,
@@ -40,7 +41,7 @@ import { fracao } from '../lib/formato'
 export { brasaoApmg, brasaoEsfo }
 
 // Só os ícones usados no app (importar todos deixaria o app 1 MB mais pesado)
-const ICONES = { Battery, Camera, CarFront, Check, ChevronLeft, ChevronRight, Circle, CircleDot, ClipboardCheck, Copy, CreditCard, Disc, Droplet, Droplets, Fuel, Gauge, History, LogOut, MessageCircle, OctagonAlert, Plus, Radio, Send, Share2, Siren, Sparkles, TriangleAlert, Users, Wrench, X }
+const ICONES = { Battery, Camera, CarFront, Check, ChevronLeft, ChevronRight, Circle, CircleDot, ClipboardCheck, Copy, CreditCard, Disc, Droplet, Droplets, FileDown, Fuel, Gauge, History, LogOut, MessageCircle, OctagonAlert, Plus, Radio, Send, Share2, Siren, Sparkles, TriangleAlert, Users, Wrench, X }
 
 export function Icone({ nome, tamanho = 20, ...resto }) {
   const C = ICONES[nome] || Circle
