@@ -1,6 +1,6 @@
-// Escolhe o modo: com as chaves do Firebase no arquivo .env, usa o Firebase; sem elas, modo demonstração.
-const temFirebase = Boolean(import.meta.env.VITE_FIREBASE_API_KEY)
+// Escolhe o modo: Firebase (padrão) ou demonstração (VITE_DEMO=1, usado na prévia).
+import { usarDemo } from '../firebase-config'
 
-const api = temFirebase ? await import('./firebase.js') : await import('./demo.js')
+const api = usarDemo ? await import('./demo.js') : await import('./firebase.js')
 
 export default api

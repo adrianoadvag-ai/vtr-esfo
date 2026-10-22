@@ -17,7 +17,6 @@ import {
   getDocs,
   initializeFirestore,
   onSnapshot,
-  orderBy,
   persistentLocalCache,
   persistentMultipleTabManager,
   query,
@@ -28,18 +27,11 @@ import {
 } from 'firebase/firestore'
 import { getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage'
 import { VIATURAS_INICIAIS } from './seed'
+import { EMAIL_ADMIN, firebaseConfig } from '../firebase-config'
 import { blobParaDataURL, comprimirFoto } from '../lib/foto'
 
-const config = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-}
 
-const app = initializeApp(config)
+const app = initializeApp(firebaseConfig)
 const auth = getAuth(app)
 // Cache local: o app continua funcionando sem sinal na garagem e sincroniza depois
 const db = initializeFirestore(app, {
@@ -81,7 +73,7 @@ export async function cadastrar({ email, senha, posto, nome }) {
     posto: posto.trim(),
     nome: nome.trim(),
     email: email.trim(),
-    perfil: 'pendente',
+    perfil: email.trim().toLowerCase() === EMAIL_ADMIN ? 'admin' : 'pendente',
     criadoEm: Date.now(),
   })
 }
@@ -143,8 +135,9 @@ export async function enviarVistoria(data, { relatorio, responsaveis, limpeza, k
 }
 
 export async function listarVistorias() {
-  const q = query(collection(db, 'vistorias'), where('status', '==', 'enviada'), orderBy('data', 'desc'))
-  return lista(await getDocs(q))
+  // Ordena no aparelho: assim não é preciso criar índice composto no Firestore
+  const q = query(collection(db, 'vistorias'), where('status', '==', 'enviada'))
+  return lista(await getDocs(q)).sort((a, b) => b.data.localeCompare(a.data))
 }
 
 export async function listarOcorrencias() {

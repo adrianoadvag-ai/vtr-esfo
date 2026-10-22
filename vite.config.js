@@ -19,7 +19,10 @@ export default defineConfig({
   build: previa
     ? { target: 'es2022', assetsInlineLimit: 1e8, cssCodeSplit: false, rolldownOptions: { output: { inlineDynamicImports: true } } }
     : { target: 'es2022' },
-  define: { 'import.meta.env.VITE_PREVIA': JSON.stringify(previa ? '1' : '') },
+  define: {
+    'import.meta.env.VITE_PREVIA': JSON.stringify(previa ? '1' : ''),
+    ...(previa ? { 'import.meta.env.VITE_DEMO': JSON.stringify('1') } : {}),
+  },
   plugins: [
     soDemo,
     react(),

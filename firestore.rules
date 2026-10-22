@@ -26,7 +26,10 @@ service cloud.firestore {
     match /usuarios/{uid} {
       allow read: if (logado() && request.auth.uid == uid) || membro();
       allow create: if logado() && request.auth.uid == uid
-        && request.resource.data.perfil == 'pendente';
+        && (request.resource.data.perfil == 'pendente'
+          // Primeiro administrador do app (dono do projeto) já entra liberado
+          || (request.resource.data.perfil == 'admin'
+            && request.auth.token.email == 'adriano.advag@gmail.com'));
       // O próprio usuário pode editar seus dados, menos o perfil
       allow update: if logado() && request.auth.uid == uid
         && request.resource.data.perfil == resource.data.perfil;
