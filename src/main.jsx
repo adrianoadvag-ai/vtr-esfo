@@ -13,3 +13,13 @@ createRoot(document.getElementById('root')).render(
     <App />
   </StrictMode>,
 )
+
+// Quando uma versão nova do app é publicada, recarrega uma vez para usá-la
+if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+  let recarregou = false
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (recarregou) return
+    recarregou = true
+    window.location.reload()
+  })
+}
