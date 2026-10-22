@@ -22,7 +22,7 @@ src/
   data/seed.js         as 10 VTR do relatório de 20 out. 2026
   screens/             telas: Hoje, Vistoria, Revisão, Relatório, Pendências, Histórico, Viaturas, Equipe
 firestore.rules        quem pode ler e escrever o quê
-.github/workflows/     publicação automática no Firebase Hosting
+.github/workflows/     publicação automática no GitHub Pages
 ```
 
 ## Rodar no computador
