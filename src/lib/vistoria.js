@@ -1,0 +1,165 @@
+// Regras da vistoria: o que falta preencher, gravidade dos achados e texto do relatório.
+import { ITENS, LIMITES, NIVEIS } from '../config'
+import { combustivelTexto, dataBR, dataExtensa, diasAte, km, saudacao } from './formato'
+
+export const itensDa = (vtr) => ITENS.filter((i) => !i.so || i.so(vtr))
+
+export const registroVazio = () => ({ itens: {} })
+
+const maior = (a, b) => (NIVEIS[a].ordem >= NIVEIS[b].ordem ? a : b)
+
+// Situação da troca de óleo da viatura (com o KM informado hoje, se houver)
+export function trocaDeOleo(vtr, kmHoje, hoje) {
+  if (vtr.nova) return { texto: 'VTR nova', alerta: false }
+  const kmRef = Number(kmHoje) || vtr.kmAtual || 0
+  const faltaKm = vtr.kmProxTroca ? vtr.kmProxTroca - kmRef : null
+  const faltaDias = vtr.dataProxTroca ? diasAte(vtr.dataProxTroca, hoje) : null
+  const alertaKm = faltaKm !== null && faltaKm <= LIMITES.kmParaTroca
+  const alertaDias = faltaDias !== null && faltaDias <= LIMITES.diasParaTroca
+  const partes = []
+  if (faltaKm !== null) partes.push(faltaKm < 0 ? `vencida há ${km(-faltaKm)} km` : `faltam ${km(faltaKm)} km`)
+  if (faltaDias !== null) partes.push(faltaDias < 0 ? `vencida há ${-faltaDias} dias` : `faltam ${faltaDias} dias`)
+  return { faltaKm, faltaDias, alerta: alertaKm || alertaDias, texto: partes.join(' · ') || 'Sem dados de troca' }
+}
+
+// Avalia o registro de uma VTR: completo? quais achados e qual a gravidade?
+export function avaliar(vtr, reg = {}, hoje) {
+  const itens = itensDa(vtr)
+  const pendentes = []
+  const achados = []
+
+  if (reg.naoVistoriada) {
+    return {
+      completo: Boolean(reg.motivoNao && reg.motivoNao.trim()),
+      pendentes: reg.motivoNao ? [] : ['Motivo da não vistoria'],
+      achados: [],
+      nivel: null,
+      estado: 'nao',
+    }
+  }
+
+  if (reg.km === undefined || reg.km === null || reg.km === '') pendentes.push('KM')
+  else if (vtr.kmAtual && Number(reg.km) < vtr.kmAtual) pendentes.push('KM menor que o último registrado')
+  if (reg.comb === undefined || reg.comb === null) pendentes.push('Combustível')
+  if (vtr.usaArla && (reg.arla === undefined || reg.arla === null)) pendentes.push('Arla')
+
+  for (const it of itens) {
+    const r = reg.itens?.[it.id]
+    if (!r || !r.estado) pendentes.push(it.nome)
+    else if (r.estado === 'alt') {
+      const opcoes = r.alts?.length ? r.alts : ['Com alteração']
+      const nivel = opcoes.reduce((n, o) => maior(n, it.niveis?.[o] || it.nivel), 'info')
+      achados.push({ nivel, itemId: it.id, item: it.nome, texto: `${it.nome}: ${opcoes.join(', ')}` })
+    }
+  }
+
+  const temAlt = achados.length > 0
+  if (temAlt && !(reg.obs && reg.obs.trim())) pendentes.push('Observação da alteração')
+
+  if (reg.comb !== undefined && reg.comb !== null && reg.comb <= LIMITES.combustivelAtencao) {
+    achados.push({ nivel: 'atencao', itemId: 'combustivel', item: 'Combustível', texto: `Combustível: ${combustivelTexto(reg.comb)}` })
+  }
+  if (vtr.usaArla && reg.arla !== undefined && reg.arla !== null && reg.arla <= LIMITES.combustivelAtencao) {
+    achados.push({ nivel: 'atencao', itemId: 'arla', item: 'Arla 32', texto: `Arla: ${combustivelTexto(reg.arla).replace(' de tanque', '')}` })
+  }
+  const troca = trocaDeOleo(vtr, reg.km, hoje)
+  if (troca.alerta) achados.push({ nivel: 'atencao', itemId: 'troca', item: 'Troca de óleo', texto: `Troca de óleo: ${troca.texto}` })
+
+  const nivel = achados.reduce((n, a) => (n ? maior(n, a.nivel) : a.nivel), null)
+  const estado = pendentes.length ? (Object.keys(reg.itens || {}).length || reg.km ? 'andamento' : 'pendente') : temAlt ? 'alt' : 'ok'
+  return { completo: pendentes.length === 0, pendentes, achados, nivel, estado }
+}
+
+export const exigida = (vtr) => (vtr.situacao || 'ativa') === 'ativa'
+
+// Monta o texto do relatório no formato usado no WhatsApp
+export function montarRelatorio({ data, viaturas, registros, limpeza, responsaveis, pendenciasAbertas = [], agora = new Date() }) {
+  const L = []
+  L.push(`Com licença, Senhores. ${saudacao(agora)}`)
+  L.push('')
+  L.push(`Segue o relatório das viaturas: ${dataExtensa(data)}`)
+
+  const lista = viaturas.filter((v) => exigida(v) || registros[v.id])
+  const alteracoes = []
+  for (const v of lista) {
+    const a = avaliar(v, registros[v.id] || {}, data)
+    for (const x of a.achados) alteracoes.push({ v, ...x })
+  }
+  alteracoes.sort((a, b) => NIVEIS[b.nivel].ordem - NIVEIS[a.nivel].ordem)
+
+  if (alteracoes.length) {
+    L.push('')
+    L.push(`⚠️ *Alterações (${alteracoes.length})*`)
+    for (const x of alteracoes) {
+      L.push(`- ${NIVEIS[x.nivel].nome.toUpperCase()} · ${x.v.prefixo} ${x.v.modelo}: ${x.texto}`)
+    }
+  }
+
+  const hojeIds = new Set(alteracoes.map((x) => `${x.v.id}:${x.itemId}`))
+  const antigas = pendenciasAbertas.filter((p) => !hojeIds.has(`${p.viaturaId}:${p.itemId}`))
+  if (antigas.length) {
+    L.push('')
+    L.push(`📌 *Pendências em aberto (${antigas.length})*`)
+    for (const p of antigas) L.push(`- ${p.prefixo}: ${p.texto} (desde ${dataBR(p.abertaEm)})`)
+  }
+
+  lista.forEach((v, i) => {
+    const r = registros[v.id] || {}
+    L.push('')
+    L.push(`${i + 1}. ${v.prefixo} - ${v.modelo}`)
+    L.push('')
+    if (r.naoVistoriada) {
+      L.push(`* Não vistoriada: ${r.motivoNao || ''}`)
+      return
+    }
+    if (v.situacao === 'manutencao') L.push('* Situação: em manutenção')
+    L.push(`* KM: ${km(r.km)}`)
+    if (v.nova) {
+      L.push('* Próx. troca: VTR nova')
+    } else {
+      const t = trocaDeOleo(v, r.km, data)
+      if (v.kmProxTroca) L.push(`* Próx. troca: ${km(v.kmProxTroca)}${t.faltaKm !== null ? ` (${t.faltaKm < 0 ? 'vencida' : `faltam ${km(t.faltaKm)} km`})` : ''}`)
+      if (v.dataProxTroca) L.push(`* Data da próx. troca: ${dataBR(v.dataProxTroca)}`)
+      if (!v.kmProxTroca && !v.dataProxTroca && v.dataUltimaTroca) L.push(`* Última troca: ${dataBR(v.dataUltimaTroca)}`)
+    }
+    if (v.usaArla) L.push(`* Arla: ${combustivelTexto(r.arla).replace(' de tanque', '')}`)
+    const it = Object.fromEntries(itensDa(v).map((x) => [x.id, x]))
+    const linha = (id) => {
+      const d = it[id]
+      if (!d) return
+      const s = r.itens?.[id]
+      L.push(`* ${d.rel}: ${s?.estado === 'alt' ? (s.alts?.length ? s.alts.join(', ') : 'Com alteração') : d.okTexto}`)
+    }
+    linha('oleo')
+    linha('fluidos')
+    L.push(`* Combustível: ${combustivelTexto(r.comb)}`)
+    linha('sinais')
+    linha('radio')
+    // Itens novos: uma linha só quando tudo está sem alteração
+    const compactos = itensDa(v).filter((x) => x.compacto)
+    const comAlt = compactos.filter((x) => r.itens?.[x.id]?.estado === 'alt')
+    for (const x of comAlt) linha(x.id)
+    const semAlt = compactos.filter((x) => !comAlt.includes(x))
+    if (semAlt.length) {
+      const t = juntar(semAlt.map((x) => x.rel.toLowerCase()))
+      L.push(`* ${t[0].toUpperCase()}${t.slice(1)}: S/A`)
+    }
+    if (r.obs && r.obs.trim()) L.push(`* Obs: ${r.obs.trim()}`)
+  })
+
+  L.push('')
+  L.push(
+    limpeza?.ok === false
+      ? `Condições gerais de limpeza: necessita limpeza${limpeza.obs ? ` (${limpeza.obs})` : ''}.`
+      : 'Condições gerais de limpeza: Limpeza realizada dentro do padrão.',
+  )
+  L.push('')
+  L.push('Responsável do dia:')
+  for (const n of responsaveis) L.push(n)
+  return L.join('\n')
+}
+
+function juntar(arr) {
+  if (arr.length <= 1) return arr.join('')
+  return `${arr.slice(0, -1).join(', ')} e ${arr.at(-1)}`
+}

@@ -1,0 +1,69 @@
+rules_version = '2';
+
+// Quem pode ler e escrever o quê no banco de dados do Missão Viaturas.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function logado() {
+      return request.auth != null;
+    }
+    function meuPerfil() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.perfil;
+    }
+    function membro() {
+      return logado()
+        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
+        && meuPerfil() != 'pendente';
+    }
+    function vistoriador() {
+      return membro() && meuPerfil() in ['vistoriador', 'coordenador', 'admin'];
+    }
+    function gestor() {
+      return membro() && meuPerfil() in ['coordenador', 'admin'];
+    }
+
+    // Cadastro: cada um cria o próprio perfil como "pendente"; o coordenador libera
+    match /usuarios/{uid} {
+      allow read: if (logado() && request.auth.uid == uid) || membro();
+      allow create: if logado() && request.auth.uid == uid
+        && request.resource.data.perfil == 'pendente';
+      // O próprio usuário pode editar seus dados, menos o perfil
+      allow update: if logado() && request.auth.uid == uid
+        && request.resource.data.perfil == resource.data.perfil;
+      // Coordenador libera e muda perfis, mas só o admin cria outro admin
+      allow update: if gestor() && request.auth.uid != uid
+        && (request.resource.data.perfil != 'admin' || meuPerfil() == 'admin')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['perfil']);
+      allow delete: if membro() && meuPerfil() == 'admin';
+    }
+
+    // Viaturas: o coordenador cadastra; quem vistoria só atualiza o KM ao enviar
+    match /viaturas/{id} {
+      allow read: if membro();
+      allow create, delete: if gestor();
+      allow update: if gestor()
+        || (vistoriador()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['kmAtual', 'ultimaVistoria']));
+    }
+
+    // Vistoria do dia (um documento por data): editável até ser enviada
+    match /vistorias/{data} {
+      allow read: if membro();
+      allow create: if vistoriador();
+      allow update: if vistoriador() && resource.data.get('status', 'rascunho') != 'enviada';
+    }
+
+    // Pendências: abertas no envio da vistoria, resolvidas pelo coordenador
+    match /ocorrencias/{id} {
+      allow read: if membro();
+      allow create: if vistoriador() && request.resource.data.status == 'aberta';
+      allow update: if gestor();
+    }
+
+    // Fotos comprimidas (até ~900 KB cada)
+    match /fotos/{id} {
+      allow read: if membro();
+      allow create: if vistoriador() && request.resource.data.imagem.size() < 1000000;
+    }
+  }
+}

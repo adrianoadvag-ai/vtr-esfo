@@ -1,0 +1,13 @@
+rules_version = '2';
+
+// Só é usado se as fotos forem para o Cloud Storage (VITE_USAR_STORAGE=1, exige plano Blaze).
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /vistorias/{data}/{vtr}/{arquivo} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.size < 3 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+  }
+}
