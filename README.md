@@ -7,6 +7,8 @@ App para a vistoria diária das viaturas da Escola de Formação de Oficiais (AP
 - Relatório gerado no formato do grupo, pronto para **copiar ou abrir no WhatsApp**, com as alterações no topo.
 - **Pendências** (ex.: freio da 16843) ficam abertas e reaparecem nos relatórios até o coordenador resolver.
 - Controle de **troca de óleo** por KM e por data, com alerta quando faltam 1.000 km ou 15 dias.
+- **Escala** de segunda a sexta (na segunda, dois cadetes), com supervisor e a rotina de manutenção do dia. O coordenador monta pelo app; todos veem e podem copiar para o WhatsApp. A escala de hoje aparece na tela inicial e preenche os responsáveis do relatório.
+- **Equipe**: lista dos integrantes com ficha (telefone, WhatsApp, e-mail, pelotão e próximos serviços). Depois de liberado, cada cadete completa os próprios dados em *Meus dados*.
 - Funciona como app no celular (PWA) e continua funcionando sem sinal na garagem.
 
 Com `VITE_DEMO=1`, o app abre em **modo demonstração**: os dados ficam só no aparelho.
@@ -20,7 +22,9 @@ src/
   data/firebase.js     login, banco (Firestore) e fotos
   data/demo.js         modo demonstração (localStorage)
   data/seed.js         as 10 VTR do relatório de 20 out. 2026
-  screens/             telas: Hoje, Vistoria, Revisão, Relatório, Pendências, Histórico, Viaturas, Equipe
+  lib/escala.js        regras da escala semanal
+  screens/             telas: Hoje, Vistoria, Revisão, Relatório, Pendências, Escala, Histórico, Viaturas, Equipe
+  assets/logo-viatura.svg  logo do app (os ícones em public/icons saem dele)
 firestore.rules        quem pode ler e escrever o quê
 .github/workflows/     publicação automática no GitHub Pages
 ```

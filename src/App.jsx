@@ -1,8 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import api from './data'
-import { Icone, Toast, brasaoEsfo } from './components/base'
+import { Icone, Toast, logoViatura } from './components/base'
 import { podeGerir } from './config'
-import { hojeISO } from './lib/formato'
+import { hojeISO, somarDias } from './lib/formato'
+import { semanaPadrao } from './lib/escala'
 import { idRodada } from './lib/vistoria'
 import Login, { Aguardando } from './screens/Login'
 import Hoje from './screens/Hoje'
@@ -12,7 +13,8 @@ import Relatorio from './screens/Relatorio'
 import Pendencias from './screens/Pendencias'
 import Historico from './screens/Historico'
 import Viaturas, { EditarViatura } from './screens/Viaturas'
-import Equipe from './screens/Equipe'
+import Equipe, { Integrante, MeusDados } from './screens/Equipe'
+import Escala from './screens/Escala'
 
 const Ctx = createContext(null)
 export const useApp = () => useContext(Ctx)
@@ -41,6 +43,8 @@ export default function App() {
   const [viaturas, setViaturas] = useState([])
   const [rodadas, setRodadas] = useState([])
   const [ocorrencias, setOcorrencias] = useState([])
+  const [usuarios, setUsuarios] = useState([])
+  const [escalas, setEscalas] = useState({})
   const [toast, setToast] = useState('')
   const [hoje, setHoje] = useState(hojeISO())
 
@@ -56,13 +60,24 @@ export default function App() {
 
   const recarregarViaturas = useCallback(() => api.listarViaturas().then(setViaturas).catch(() => {}), [])
   const recarregarOcorrencias = useCallback(() => api.listarOcorrencias().then(setOcorrencias).catch(() => {}), [])
+  const recarregarUsuarios = useCallback(() => api.listarUsuarios().then(setUsuarios).catch(() => {}), [])
 
   useEffect(() => {
     if (!liberado) return
     recarregarViaturas()
     recarregarOcorrencias()
+    recarregarUsuarios()
     return api.observarDia(hoje, setRodadas)
-  }, [liberado, hoje, recarregarViaturas, recarregarOcorrencias])
+  }, [liberado, hoje, recarregarViaturas, recarregarOcorrencias, recarregarUsuarios])
+
+  // Escala desta semana e da próxima (para "seu próximo serviço" e para o relatório)
+  const semanaAtual = semanaPadrao(hoje)
+  useEffect(() => {
+    if (!liberado) return
+    const semanas = [semanaAtual, somarDias(semanaAtual, 7)]
+    const paradas = semanas.map((s) => api.observarEscala(s, (e) => setEscalas((x) => ({ ...x, [s]: e }))))
+    return () => paradas.forEach((f) => f())
+  }, [liberado, semanaAtual])
 
   // Rodada aberta do dia (rascunho) e relatórios já enviados hoje
   const { vistoria, enviadasHoje } = useMemo(() => {
@@ -87,18 +102,22 @@ export default function App() {
       vistoria,
       enviadasHoje,
       ocorrencias,
+      usuarios,
+      escalas,
+      semanaAtual,
       ir,
       avisar: setToast,
       recarregarViaturas,
       recarregarOcorrencias,
+      recarregarUsuarios,
     }),
-    [usuario, hoje, viaturas, vistoria, enviadasHoje, ocorrencias, ir, recarregarViaturas, recarregarOcorrencias],
+    [usuario, hoje, viaturas, vistoria, enviadasHoje, ocorrencias, usuarios, escalas, semanaAtual, ir, recarregarViaturas, recarregarOcorrencias, recarregarUsuarios],
   )
 
   if (usuario === undefined) {
     return (
       <div className="carregando">
-        <img src={brasaoEsfo} alt="Carregando" />
+        <img src={logoViatura} alt="Carregando" />
       </div>
     )
   }
@@ -107,6 +126,7 @@ export default function App() {
 
   const [tela, param] = rota
   const abertas = ocorrencias.filter((o) => o.status === 'aberta').length
+  const aguardando = podeGerir(usuario) ? usuarios.filter((u) => u.perfil === 'pendente').length : 0
 
   let conteudo
   if (tela === 'vistoria') conteudo = <Vistoria vtrId={param} />
@@ -116,15 +136,19 @@ export default function App() {
   else if (tela === 'historico') conteudo = <Historico />
   else if (tela === 'viaturas') conteudo = <Viaturas />
   else if (tela === 'viatura') conteudo = <EditarViatura id={param} />
-  else if (tela === 'equipe' && podeGerir(usuario)) conteudo = <Equipe />
+  else if (tela === 'escala') conteudo = <Escala semana={param} />
+  else if (tela === 'equipe') conteudo = <Equipe />
+  else if (tela === 'integrante') conteudo = <Integrante id={param} />
+  else if (tela === 'meus-dados') conteudo = <MeusDados />
   else conteudo = <Hoje />
 
   const abas = [
     { id: 'hoje', nome: 'Hoje', icone: 'ClipboardCheck', ativa: ['hoje', 'vistoria', 'revisao'].includes(tela) || !tela },
+    { id: 'escala', nome: 'Escala', icone: 'CalendarDays' },
     { id: 'pendencias', nome: 'Pendências', icone: 'Wrench', contador: abertas },
     { id: 'historico', nome: 'Histórico', icone: 'History', ativa: ['historico', 'relatorio'].includes(tela) },
     { id: 'viaturas', nome: 'Viaturas', icone: 'CarFront', ativa: ['viaturas', 'viatura'].includes(tela) },
-    ...(podeGerir(usuario) ? [{ id: 'equipe', nome: 'Equipe', icone: 'Users' }] : []),
+    { id: 'equipe', nome: 'Equipe', icone: 'Users', ativa: ['equipe', 'integrante', 'meus-dados'].includes(tela), contador: aguardando },
   ]
 
   return (

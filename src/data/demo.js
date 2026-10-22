@@ -1,13 +1,13 @@
 // Modo demonstração: tudo fica guardado só neste aparelho (localStorage).
 // Serve para testar o app antes de ligar o Firebase.
-import { VIATURAS_INICIAIS, USUARIOS_DEMO } from './seed'
+import { VIATURAS_INICIAIS, USUARIOS_DEMO, escalaDemo } from './seed'
 import { blobParaDataURL, comprimirFoto } from '../lib/foto'
 
-const CHAVE = 'vtr-esfo-demo-v2'
+const CHAVE = 'vtr-esfo-demo-v3'
 const memoria = { dados: null }
 
 function vazio() {
-  return { usuarios: USUARIOS_DEMO, viaturas: VIATURAS_INICIAIS, vistorias: {}, ocorrencias: [], sessao: null }
+  return { usuarios: copia(USUARIOS_DEMO), viaturas: VIATURAS_INICIAIS, vistorias: {}, ocorrencias: [], escalas: escalaDemo(), sessao: null }
 }
 
 function ler() {
@@ -68,6 +68,27 @@ export async function listarUsuarios() {
 export async function definirPerfil(uid, perfil) {
   const u = ler().usuarios.find((x) => x.id === uid)
   if (u) u.perfil = perfil
+  gravar()
+}
+
+export async function salvarMeusDados(uid, dados) {
+  const u = ler().usuarios.find((x) => x.id === uid)
+  if (u) for (const k of ['posto', 'nome', 'nomeInteiro', 'pelotao', 'telefone']) u[k] = String(dados[k] || '').trim()
+  gravar()
+}
+
+export function observarEscala(semana, cb) {
+  const emitir = () => cb(copia((ler().escalas || {})[semana] || null))
+  emitir()
+  return ouvir(emitir)
+}
+
+export async function salvarEscalaDia(semana, dia, valor, por) {
+  const d = ler()
+  d.escalas ||= {}
+  const e = (d.escalas[semana] ||= { semana, dias: {} })
+  e.dias[dia] = valor
+  Object.assign(e, { atualizadoEm: Date.now(), atualizadoPor: por })
   gravar()
 }
 

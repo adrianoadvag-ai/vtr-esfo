@@ -3,6 +3,7 @@ import api from '../data'
 import {
   Battery,
   Camera,
+  CalendarDays,
   CarFront,
   Check,
   ChevronLeft,
@@ -20,8 +21,11 @@ import {
   Gauge,
   History,
   LogOut,
+  Mail,
   MessageCircle,
   OctagonAlert,
+  Pencil,
+  Phone,
   Plus,
   Radio,
   Send,
@@ -29,19 +33,30 @@ import {
   Siren,
   Sparkles,
   TriangleAlert,
+  UserRound,
   Users,
   Wrench,
   X,
 } from 'lucide-react'
 import brasaoApmg from '../assets/brasao-apmg.png'
 import brasaoEsfo from '../assets/brasao-esfo.png'
+import logoViatura from '../assets/logo-viatura.svg'
 import { NIVEIS } from '../config'
-import { fracao } from '../lib/formato'
+import { fracao, iniciais } from '../lib/formato'
 
-export { brasaoApmg, brasaoEsfo }
+export { brasaoApmg, brasaoEsfo, logoViatura }
+
+// Círculo com as iniciais do integrante
+export function Avatar({ u, grande }) {
+  return (
+    <span className={`avatar ${grande ? 'grande' : ''}`} aria-hidden="true">
+      {iniciais(u)}
+    </span>
+  )
+}
 
 // Só os ícones usados no app (importar todos deixaria o app 1 MB mais pesado)
-const ICONES = { Battery, Camera, CarFront, Check, ChevronLeft, ChevronRight, Circle, CircleDot, ClipboardCheck, Copy, CreditCard, Disc, Droplet, Droplets, FileDown, Fuel, Gauge, History, LogOut, MessageCircle, OctagonAlert, Plus, Radio, Send, Share2, Siren, Sparkles, TriangleAlert, Users, Wrench, X }
+const ICONES = { Battery, CalendarDays, Camera, CarFront, Check, ChevronLeft, ChevronRight, Circle, CircleDot, ClipboardCheck, Copy, CreditCard, Disc, Droplet, Droplets, FileDown, Fuel, Gauge, History, LogOut, Mail, MessageCircle, OctagonAlert, Pencil, Phone, Plus, Radio, Send, Share2, Siren, Sparkles, TriangleAlert, UserRound, Users, Wrench, X }
 
 export function Icone({ nome, tamanho = 20, ...resto }) {
   const C = ICONES[nome] || Circle

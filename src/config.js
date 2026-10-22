@@ -116,3 +116,21 @@ export const PERFIS = {
 
 export const podeGerir = (u) => u && (u.perfil === 'coordenador' || u.perfil === 'admin')
 export const podeVistoriar = (u) => u && ['vistoriador', 'coordenador', 'admin'].includes(u.perfil)
+
+// Escala da missão: segunda a sexta. Na segunda são dois cadetes de serviço.
+export const ESCALA = {
+  dias: [1, 2, 3, 4, 5], // 1 = segunda … 5 = sexta
+  vagas: { 1: 2, 2: 1, 3: 1, 4: 1, 5: 1 },
+}
+
+// Rotina de manutenção das VTR (planilha da missão), por dia da semana
+export const ROTINA = {
+  1: 'Funcionamento dos motores, verificar a água, óleo, palhetas, lataria, KM, pneus e limpeza.',
+  2: 'Verificar a limpeza externa/interna.',
+  3: 'Funcionamento dos motores e verificar a limpeza externa/interna.',
+  4: 'Verificar a limpeza externa/interna.',
+  5: 'Funcionamento dos motores e verificar a limpeza externa/interna.',
+}
+
+// Dados que cada integrante preenche depois de liberado
+export const dadosCompletos = (u) => Boolean(u?.nomeInteiro?.trim() && u?.telefone?.trim() && u?.pelotao?.trim())

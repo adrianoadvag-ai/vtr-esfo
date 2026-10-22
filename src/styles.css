@@ -188,8 +188,10 @@ main {
   background: none;
   border: 0;
   color: #9fb0cc;
-  padding: 8px 2px 9px;
-  font-size: 12px;
+  padding: 8px 1px 9px;
+  font-size: 11.5px;
+  min-width: 0;
+  white-space: nowrap;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -984,4 +986,267 @@ textarea:focus,
   background: var(--papel);
   border-radius: 8px;
   font-size: 14px;
+}
+
+/* Equipe: integrantes */
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--noite-2);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-family: var(--fonte-num);
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.03em;
+  flex: none;
+  border: 2px solid var(--ouro);
+}
+.avatar.grande {
+  width: 72px;
+  height: 72px;
+  font-size: 28px;
+}
+.pessoa {
+  width: 100%;
+  background: none;
+  border: 0;
+  text-align: left;
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  min-height: 62px;
+}
+button.pessoa:active,
+.linha-botao:active {
+  background: var(--azul-claro);
+}
+.pessoa .nome {
+  display: block;
+  font-weight: 500;
+}
+.pessoa .detalhe {
+  display: block;
+  font-size: 13px;
+  color: var(--tinta-2);
+}
+.pessoa .nome .detalhe {
+  display: inline;
+}
+.ficha-pessoa {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin: 4px 0 16px;
+}
+.botao.icone-so {
+  min-height: 44px;
+  width: 44px;
+  padding: 0;
+  color: var(--azul);
+}
+.linha-botao {
+  width: 100%;
+  background: none;
+  border: 0;
+  text-align: left;
+}
+.rotulo a {
+  color: var(--azul);
+}
+
+/* Escala */
+.semana-nav {
+  display: grid;
+  grid-template-columns: 48px 1fr 48px;
+  align-items: center;
+  padding: 6px;
+  margin-bottom: 4px;
+}
+.semana-titulo {
+  text-align: center;
+  line-height: 1.15;
+}
+.semana-titulo strong {
+  display: block;
+  font-family: var(--fonte-num);
+  font-size: 24px;
+  font-weight: 600;
+}
+.semana-titulo span {
+  font-size: 13px;
+  color: var(--tinta-2);
+}
+.acao-redonda {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 0;
+  background: none;
+  color: var(--tinta);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  flex: none;
+}
+.acao-redonda:active {
+  background: var(--azul-claro);
+}
+.dia-escala {
+  margin-top: 12px;
+  padding: 12px 14px 6px;
+}
+.dia-escala.hoje {
+  border-color: var(--azul);
+  box-shadow: 0 0 0 1px var(--azul);
+}
+.dia-escala.passado {
+  opacity: 0.7;
+}
+.dia-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.dia-topo strong {
+  font-family: var(--fonte-num);
+  font-weight: 600;
+  font-size: 20px;
+}
+.dia-topo .data {
+  color: var(--tinta-2);
+  font-variant-numeric: tabular-nums;
+}
+.dia-rotina {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 13px;
+  color: var(--tinta-2);
+  margin: 4px 0 6px;
+  text-align: left;
+}
+.dia-rotina svg {
+  flex: none;
+  margin-top: 2px;
+}
+.dia-linha {
+  display: grid;
+  grid-template-columns: 104px 1fr;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--linha);
+}
+.dia-rotulo {
+  font-size: 13px;
+  color: var(--tinta-2);
+}
+.dia-nomes {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.dia-nomes .entrada {
+  padding: 8px 10px;
+  min-height: 42px;
+}
+.nome-escala {
+  font-weight: 500;
+}
+.nome-escala.link {
+  background: none;
+  border: 0;
+  padding: 0;
+  text-align: left;
+  color: var(--azul);
+}
+.a-definir {
+  color: var(--tinta-2);
+  font-style: italic;
+}
+.seletor-texto {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+/* Hoje: aviso de dados e cartão da escala */
+.aviso-dados {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  text-align: left;
+  background: var(--atencao-fundo);
+  color: var(--atencao);
+  border: 1px solid currentColor;
+  border-radius: var(--raio);
+  padding: 12px 14px;
+  margin: 8px 0 12px;
+}
+.aviso-dados strong {
+  display: block;
+}
+.aviso-dados small {
+  display: block;
+  color: var(--tinta);
+  font-size: 13px;
+}
+.cartao-escala {
+  width: 100%;
+  display: block;
+  text-align: left;
+  padding: 0;
+  margin: 8px 0 14px;
+  color: inherit;
+}
+.cartao-escala .linha-escala {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px 14px;
+  align-items: start;
+  padding: 12px 14px 4px;
+}
+.cartao-escala .linha-escala svg {
+  color: var(--azul);
+  margin-top: 2px;
+}
+.cartao-escala .linha-escala span {
+  font-weight: 500;
+}
+.cartao-escala small {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--tinta-2);
+}
+.cartao-escala .dia-rotina {
+  padding: 0 14px 10px;
+  margin: 0;
+}
+.cartao-escala .proximo-servico {
+  font-size: 13px;
+  color: var(--tinta-2);
+  padding: 10px 14px;
+  border-top: 1px solid var(--linha);
+}
+.cartao-escala .proximo-servico:first-child {
+  border-top: 0;
+}
+.cartao-escala.meu {
+  border-color: var(--ouro);
+}
+.faixa-servico {
+  background: var(--noite);
+  color: var(--ouro);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 7px 14px;
 }

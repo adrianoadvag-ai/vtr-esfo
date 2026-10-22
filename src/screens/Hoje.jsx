@@ -1,13 +1,14 @@
 import { useApp } from '../App'
 import { Cabecalho, Icone, Selo, SeloNivel } from '../components/base'
-import { APP_NOME, podeGerir, podeVistoriar } from '../config'
+import { APP_NOME, dadosCompletos, podeGerir, podeVistoriar } from '../config'
+import { escalaDoDia, juntar, papelNoDia, proximosServicos, rotinaDo } from '../lib/escala'
 import { dataCurta, horaCurta, nomeCompleto } from '../lib/formato'
 import { avaliar, exigida } from '../lib/vistoria'
 
 const SITUACAO = { manutencao: 'Em manutenção', baixada: 'Baixada' }
 
 export default function Hoje() {
-  const { viaturas, vistoria, enviadasHoje, hoje, ir, usuario, api } = useApp()
+  const { viaturas, vistoria, enviadasHoje, hoje, ir, usuario, api, escalas, usuarios } = useApp()
   const registros = vistoria?.registros || {}
   const lista = viaturas.filter((v) => v.situacao !== 'baixada' || registros[v.id])
   const avaliacoes = Object.fromEntries(lista.map((v) => [v.id, avaliar(v, registros[v.id], hoje)]))
@@ -30,6 +31,17 @@ export default function Hoje() {
       <Cabecalho titulo={APP_NOME} sub={nomeCompleto(usuario)} acao={sair} />
       <main>
         <h2 className="tela-titulo">{dataCurta(hoje)}</h2>
+        {!dadosCompletos(usuario) && (
+          <button className="aviso-dados" onClick={() => ir('meus-dados')}>
+            <Icone nome="UserRound" />
+            <span>
+              <strong>Complete seus dados</strong>
+              <small>Telefone, pelotão e nome completo para a lista da equipe.</small>
+            </span>
+            <Icone nome="ChevronRight" />
+          </button>
+        )}
+        <CartaoEscala hoje={hoje} escalas={escalas} usuarios={usuarios} usuario={usuario} ir={ir} />
         <div className="progresso">
           <div style={{ color: 'var(--tinta-2)' }}>
             {exigidas.length === 0 ? 'Nenhuma viatura cadastrada.' : `${conferidasHoje} de ${exigidas.length} viaturas conferidas hoje`}
@@ -143,4 +155,44 @@ function Status({ a, temRegistro, ja }) {
       </Selo>
     )
   return <Icone nome="ChevronRight" style={{ color: 'var(--tinta-2)' }} />
+}
+
+// Quem está de serviço hoje, a rotina do dia e o próximo serviço de quem está usando
+function CartaoEscala({ hoje, escalas, usuarios, usuario, ir }) {
+  const d = escalaDoDia(escalas, hoje, usuarios)
+  const papel = papelNoDia(d, usuario)
+  const rotina = rotinaDo(hoje)
+  const proximo = proximosServicos(Object.values(escalas), usuario, hoje).find((s) => s.dia > hoje)
+  if (!rotina && !proximo) return null
+  const resp = (d?.responsaveis || []).map((p) => p.nome).filter(Boolean)
+  return (
+    <button className={`bloco cartao-escala ${papel ? 'meu' : ''}`} onClick={() => ir('escala')}>
+      {papel && <div className="faixa-servico">{papel === 'responsavel' ? 'Você está de serviço hoje' : 'Você supervisiona hoje'}</div>}
+      {rotina && (
+        <>
+          <div className="linha-escala">
+            <Icone nome="CalendarDays" tamanho={18} />
+            <span>
+              <small>{resp.length > 1 ? 'Responsáveis' : 'Responsável'} hoje</small>
+              {juntar(resp) || 'A definir'}
+            </span>
+            <span>
+              <small>Supervisor</small>
+              {d?.supervisor?.nome || 'A definir'}
+            </span>
+          </div>
+          <div className="dia-rotina">
+            <Icone nome="Wrench" tamanho={15} />
+            <span>{rotina}</span>
+          </div>
+        </>
+      )}
+      {proximo && (
+        <div className="proximo-servico">
+          Seu próximo serviço: <strong>{dataCurta(proximo.dia)}</strong>
+          {proximo.papel === 'supervisor' ? ' (supervisor)' : ''}
+        </div>
+      )}
+    </button>
+  )
 }

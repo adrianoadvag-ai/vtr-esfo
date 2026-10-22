@@ -5,12 +5,17 @@ import { NIVEIS } from '../config'
 import { dataExtensa, nomeCompleto } from '../lib/formato'
 import { ocorrenciasDoDia } from '../lib/ocorrencias'
 import { avaliar, exigida, idRodada, montarRelatorio } from '../lib/vistoria'
+import { escalaDoDia } from '../lib/escala'
 
 export default function Revisao() {
-  const { viaturas, vistoria, hoje, ir, api, usuario, ocorrencias, avisar, recarregarViaturas, recarregarOcorrencias } = useApp()
+  const { viaturas, vistoria, hoje, ir, api, usuario, ocorrencias, avisar, recarregarViaturas, recarregarOcorrencias, escalas, usuarios: equipe } = useApp()
   const registros = vistoria?.registros || {}
   const eu = nomeCompleto(usuario)
-  const [responsaveis, setResponsaveis] = useState(vistoria?.responsaveis?.length ? vistoria.responsaveis : [eu])
+  // Escalados de hoje (se quem envia está na escala); senão, quem está enviando
+  const escalados = (escalaDoDia(escalas, hoje, equipe)?.responsaveis || []).map((p) => p.nome).filter(Boolean)
+  const [responsaveis, setResponsaveis] = useState(
+    vistoria?.responsaveis?.length ? vistoria.responsaveis : escalados.includes(eu) ? escalados : [eu],
+  )
   const [limpeza, setLimpeza] = useState(vistoria?.limpeza || { ok: true, obs: '' })
   const [verTexto, setVerTexto] = useState(false)
   const [enviando, setEnviando] = useState(false)
@@ -40,7 +45,7 @@ export default function Revisao() {
     totalFrota: viaturas.filter(exigida).length,
   })
 
-  const nomes = Array.from(new Set([eu, ...(usuarios || []).filter((u) => u.perfil !== 'pendente').map(nomeCompleto)]))
+  const nomes = Array.from(new Set([eu, ...escalados, ...(usuarios || []).filter((u) => u.perfil !== 'pendente').map(nomeCompleto)]))
   const alternar = (n) => setResponsaveis((r) => (r.includes(n) ? r.filter((x) => x !== n) : [...r, n]))
   const alternarVtr = (id) => setFora((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id]))
 

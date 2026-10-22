@@ -87,6 +87,30 @@ export async function listarUsuarios() {
 
 export const definirPerfil = (uid, perfil) => updateDoc(doc(db, 'usuarios', uid), { perfil })
 
+// Dados do próprio integrante (as regras não deixam mudar o perfil por aqui)
+const CAMPOS_PESSOAIS = ['posto', 'nome', 'nomeInteiro', 'pelotao', 'telefone']
+export async function salvarMeusDados(uid, dados) {
+  const limpo = Object.fromEntries(CAMPOS_PESSOAIS.map((k) => [k, String(dados[k] || '').trim()]))
+  await updateDoc(doc(db, 'usuarios', uid), { ...limpo, dadosEm: Date.now() })
+}
+
+// Escala: um documento por semana, com o id da segunda-feira (2026-10-12)
+export function observarEscala(semana, cb) {
+  return onSnapshot(
+    doc(db, 'escalas', semana),
+    (s) => cb(s.exists() ? s.data() : null),
+    () => cb(null),
+  )
+}
+
+export async function salvarEscalaDia(semana, dia, valor, por) {
+  await setDoc(
+    doc(db, 'escalas', semana),
+    { semana, dias: { [dia]: valor }, atualizadoEm: Date.now(), atualizadoPor: por },
+    { mergeFields: ['semana', new FieldPath('dias', dia), 'atualizadoEm', 'atualizadoPor'] },
+  )
+}
+
 export async function listarViaturas() {
   return lista(await getDocs(collection(db, 'viaturas'))).sort((a, b) => (a.ordem || 99) - (b.ordem || 99))
 }

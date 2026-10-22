@@ -84,3 +84,52 @@ export function nomeCompleto(u) {
   if (!u) return ''
   return [u.posto, u.nome].filter(Boolean).join(' ')
 }
+
+// Segunda-feira da semana de uma data (AAAA-MM-DD)
+export function segundaDa(iso) {
+  const { a, m, d } = partes(iso)
+  const dt = new Date(a, m - 1, d)
+  const dia = dt.getDay() || 7
+  dt.setDate(dt.getDate() - (dia - 1))
+  return hojeISO(dt)
+}
+
+export function somarDias(iso, n) {
+  const { a, m, d } = partes(iso)
+  return hojeISO(new Date(a, m - 1, d + n))
+}
+
+export function diaDaSemana(iso) {
+  const { a, m, d } = partes(iso)
+  return new Date(a, m - 1, d).getDay()
+}
+
+// "12/10"
+export function diaMes(iso) {
+  const { m, d } = partes(iso)
+  return `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`
+}
+
+export const NOMES_DIAS = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado']
+
+// Telefone: só dígitos, sem o 55
+export function soDigitos(t) {
+  const n = String(t || '').replace(/\D/g, '')
+  return n.startsWith('55') && n.length > 11 ? n.slice(2) : n
+}
+
+// "(41) 99999-9999"
+export function telefoneBR(t) {
+  const n = soDigitos(t)
+  if (n.length === 11) return `(${n.slice(0, 2)}) ${n.slice(2, 7)}-${n.slice(7)}`
+  if (n.length === 10) return `(${n.slice(0, 2)}) ${n.slice(2, 6)}-${n.slice(6)}`
+  return t || ''
+}
+
+export const linkWhatsApp = (t) => `https://wa.me/55${soDigitos(t)}`
+
+// Iniciais para o avatar: "Cad. Romeiro" -> "R"; "Vitor Luiz" -> "VL"
+export function iniciais(u) {
+  const base = (u?.nome || u?.nomeInteiro || '?').trim().split(/\s+/)
+  return (base.length > 1 ? base[0][0] + base[base.length - 1][0] : base[0].slice(0, 2)).toUpperCase()
+}
