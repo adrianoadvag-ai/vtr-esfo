@@ -12,6 +12,7 @@ import {
   FieldPath,
   addDoc,
   collection,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -20,6 +21,7 @@ import {
   persistentLocalCache,
   persistentMultipleTabManager,
   query,
+  runTransaction,
   setDoc,
   updateDoc,
   where,
@@ -29,6 +31,7 @@ import { getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage'
 import { VIATURAS_INICIAIS } from './seed'
 import { EMAIL_ADMIN, firebaseConfig } from '../firebase-config'
 import { blobParaDataURL, comprimirFoto } from '../lib/foto'
+import { travaAtiva } from '../lib/vistoria'
 
 
 const app = initializeApp(firebaseConfig)
@@ -140,6 +143,55 @@ export async function salvarRegistro(vid, data, seq, vtrId, reg, por) {
     { data, seq, registros: { [vtrId]: { ...reg, por, em: Date.now() } } },
     { mergeFields: ['data', 'seq', new FieldPath('registros', vtrId)] },
   )
+}
+
+// Trava: só um cadete por vez mexe em cada VTR. Devolve { ok, trava } (trava = de quem é, se não deu)
+export async function travarViatura(vid, data, seq, vtrId, eu, forcar = false) {
+  const ref = doc(db, 'vistorias', vid)
+  const minha = { uid: eu.uid, nome: eu.nome, em: Date.now() }
+  const gravarTrava = (escrever) =>
+    escrever(ref, { data, seq, travas: { [vtrId]: minha } }, { mergeFields: ['data', 'seq', new FieldPath('travas', vtrId)] })
+  try {
+    return await runTransaction(db, async (tx) => {
+      const s = await tx.get(ref)
+      const d = s.exists() ? s.data() : {}
+      if (d.status === 'enviada') return { ok: false, enviada: true }
+      const t = d.travas?.[vtrId]
+      if (!forcar && travaAtiva(t) && t.uid !== eu.uid) return { ok: false, trava: t }
+      gravarTrava((r, v, o) => tx.set(r, v, o))
+      return { ok: true }
+    })
+  } catch (e) {
+    // Sem sinal na garagem a transação não roda: segue sem trava para não parar a vistoria
+    if (e?.code === 'unavailable' || !navigator.onLine) {
+      gravarTrava(setDoc).catch(() => {})
+      return { ok: true, offline: true }
+    }
+    throw e
+  }
+}
+
+export async function liberarViatura(vid, vtrId, uid) {
+  const ref = doc(db, 'vistorias', vid)
+  try {
+    await runTransaction(db, async (tx) => {
+      const s = await tx.get(ref)
+      if (!s.exists() || s.data().status === 'enviada') return
+      if (s.data().travas?.[vtrId]?.uid !== uid) return
+      tx.update(ref, new FieldPath('travas', vtrId), deleteField())
+    })
+  } catch {
+    // Se não liberar agora, a trava expira sozinha
+  }
+}
+
+// Cancela a vistoria de uma VTR: apaga o registro dela nesta rodada e libera a trava
+export async function cancelarRegistro(vid, vtrId) {
+  const ref = doc(db, 'vistorias', vid)
+  const s = await getDoc(ref)
+  if (!s.exists()) return
+  if (s.data().status === 'enviada') throw new Error('Esta rodada já foi enviada.')
+  await updateDoc(ref, new FieldPath('registros', vtrId), deleteField(), new FieldPath('travas', vtrId), deleteField())
 }
 
 export async function enviarVistoria(vid, data, { relatorio, responsaveis, limpeza, kms, novasOcorrencias, por, viaturas, incluidas, restantes, proxima }) {

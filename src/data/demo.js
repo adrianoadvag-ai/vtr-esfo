@@ -2,6 +2,7 @@
 // Serve para testar o app antes de ligar o Firebase.
 import { VIATURAS_INICIAIS, USUARIOS_DEMO, escalaDemo } from './seed'
 import { blobParaDataURL, comprimirFoto } from '../lib/foto'
+import { travaAtiva } from '../lib/vistoria'
 
 const CHAVE = 'vtr-esfo-demo-v3'
 const memoria = { dados: null }
@@ -122,6 +123,33 @@ export async function salvarRegistro(vid, data, seq, vtrId, reg, por) {
   const v = (d.vistorias[vid] ||= { data, seq, registros: {} })
   if (v.status === 'enviada') throw new Error('Esta rodada já foi enviada.')
   v.registros[vtrId] = { ...reg, por, em: Date.now() }
+  gravar()
+}
+
+export async function travarViatura(vid, data, seq, vtrId, eu, forcar = false) {
+  const d = ler()
+  const v = (d.vistorias[vid] ||= { data, seq, registros: {} })
+  if (v.status === 'enviada') return { ok: false, enviada: true }
+  const t = v.travas?.[vtrId]
+  if (!forcar && travaAtiva(t) && t.uid !== eu.uid) return { ok: false, trava: copia(t) }
+  v.travas = { ...v.travas, [vtrId]: { uid: eu.uid, nome: eu.nome, em: Date.now() } }
+  gravar()
+  return { ok: true }
+}
+
+export async function liberarViatura(vid, vtrId, uid) {
+  const v = ler().vistorias[vid]
+  if (!v || v.status === 'enviada' || v.travas?.[vtrId]?.uid !== uid) return
+  delete v.travas[vtrId]
+  gravar()
+}
+
+export async function cancelarRegistro(vid, vtrId) {
+  const v = ler().vistorias[vid]
+  if (!v) return
+  if (v.status === 'enviada') throw new Error('Esta rodada já foi enviada.')
+  delete v.registros?.[vtrId]
+  delete v.travas?.[vtrId]
   gravar()
 }
 

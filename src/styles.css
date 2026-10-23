@@ -382,6 +382,13 @@ h2.secao {
 .botao.perigo {
   background: var(--critico);
 }
+.botao.texto.perigo {
+  background: none;
+  color: var(--critico);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
 .botao:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -1249,4 +1256,22 @@ button.pessoa:active,
   font-weight: 600;
   font-size: 14px;
   padding: 7px 14px;
+}
+
+/* Viatura sendo vistoriada por outro cadete */
+.aviso-trava {
+  background: var(--cartao);
+  border: 1px solid var(--atencao);
+  border-left-width: 4px;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: var(--tinta);
+}
+.aviso-trava .botao.texto {
+  display: block;
+  margin-top: 6px;
+  padding: 0;
+  min-height: 0;
 }

@@ -1,17 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useApp } from '../App'
 import { Cabecalho, FotoMini, Icone, ItemTique, Marcador } from '../components/base'
-import { LIMITES, podeVistoriar } from '../config'
+import { LIMITES, podeGerir, podeVistoriar } from '../config'
 import { km, nomeCompleto } from '../lib/formato'
-import { avaliar, exigida, itensDa, trocaDeOleo } from '../lib/vistoria'
+import { avaliar, exigida, itensDa, travaDeOutro, trocaDeOleo } from '../lib/vistoria'
 
 export default function Vistoria({ vtrId }) {
   const { viaturas, vistoria, hoje, ir, api, usuario, avisar } = useApp()
   const vtr = viaturas.find((v) => v.id === vtrId)
   const enviada = vistoria?.status === 'enviada'
-  const somenteLeitura = enviada || !podeVistoriar(usuario)
+  const pode = !enviada && podeVistoriar(usuario)
+  const eu = useMemo(() => ({ uid: usuario.id, nome: nomeCompleto(usuario) }), [usuario])
 
-  const [reg, setReg] = useState(null)
+  // Trava: 'verificando' | 'minha' | 'outra'. Só quem tem a trava edita esta VTR.
+  const [posse, setPosse] = useState('verificando')
+  const posseRef = useRef(posse)
+  posseRef.current = posse
+  const [, setTique] = useState(0)
+  const cancelada = useRef(false)
+  const doOutro = travaDeOutro(vistoria, vtrId, usuario.id)
+  const somenteLeitura = !pode || posse !== 'minha'
+
+  let [reg, setReg] = useState(null)
   const [enviandoFoto, setEnviandoFoto] = useState(false)
   const carregado = useRef(null)
   const timer = useRef(null)
@@ -28,6 +38,52 @@ export default function Vistoria({ vtrId }) {
     setReg(vistoria?.registros?.[vtrId] || { itens: {} })
   }, [vtrId, vistoria])
 
+  // Pega a trava ao abrir, renova a cada minuto e solta ao sair
+  const tentarTravar = async (forcar = false) => {
+    const { id, seq } = rodada.current
+    try {
+      const r = await api.travarViatura(id, hoje, seq, vtrId, eu, forcar)
+      if (r.ok) {
+        if (posseRef.current !== 'minha') {
+          // Recarrega a ficha: pode ter mudado enquanto outro cadete mexia
+          setReg(rodada.current?.registros?.[vtrId] || { itens: {} })
+        }
+        setPosse('minha')
+      } else if (!r.enviada) {
+        if (posseRef.current === 'minha') {
+          pendente.current = null
+          avisar(`${r.trava?.nome || 'Outro cadete'} assumiu esta viatura.`)
+        }
+        setPosse('outra')
+      }
+    } catch (e) {
+      avisar(e.message)
+    }
+  }
+  useEffect(() => {
+    if (!pode) return
+    cancelada.current = false
+    setPosse('verificando')
+    tentarTravar()
+    const renovar = setInterval(() => posseRef.current === 'minha' && tentarTravar(), 60000)
+    return () => {
+      clearInterval(renovar)
+      if (posseRef.current === 'minha' && !cancelada.current) api.liberarViatura(rodada.current.id, vtrId, usuario.id)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vtrId, pode, vistoria?.id])
+
+  // Enquanto outro tem a trava, confere de 30 em 30 s se ela foi solta ou expirou
+  useEffect(() => {
+    if (posse !== 'outra') return
+    const t = setInterval(() => setTique((n) => n + 1), 30000)
+    return () => clearInterval(t)
+  }, [posse])
+  useEffect(() => {
+    if (pode && posse === 'outra' && !doOutro) tentarTravar()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pode, posse, doOutro])
+
   // Salva sozinho 400 ms depois da última mudança, e ao sair da tela
   const gravar = (r) => {
     pendente.current = r
@@ -38,6 +94,7 @@ export default function Vistoria({ vtrId }) {
     const r = pendente.current
     if (!r) return
     pendente.current = null
+    if (posseRef.current !== 'minha') return
     const { por: _p, em: _e, ...limpo } = r
     const { id, seq } = rodada.current
     api.salvarRegistro(id, hoje, seq, vtrId, limpo, nomeCompleto(usuario)).catch((e) => avisar(e.message))
@@ -68,6 +125,21 @@ export default function Vistoria({ vtrId }) {
     })
   }
 
+  async function cancelar() {
+    if (!window.confirm('Cancelar a vistoria desta viatura? Tudo o que foi marcado nela será apagado.')) return
+    clearTimeout(timer.current)
+    pendente.current = null
+    cancelada.current = true
+    try {
+      await api.cancelarRegistro(rodada.current.id, vtrId)
+      avisar(`Vistoria da VTR ${vtr.prefixo} cancelada.`)
+      ir('hoje')
+    } catch (e) {
+      cancelada.current = false
+      avisar(e.message)
+    }
+  }
+
   const ordem = useMemo(() => viaturas.filter((v) => v.situacao !== 'baixada'), [viaturas])
 
   if (!vtr) {
@@ -79,6 +151,9 @@ export default function Vistoria({ vtrId }) {
     )
   }
   if (!reg) return <Cabecalho titulo={`VTR ${vtr.prefixo}`} voltar={() => ir('hoje')} />
+  // Sem a trava, mostra a ficha ao vivo (o que o colega está marcando)
+  if (posse !== 'minha') reg = vistoria?.registros?.[vtrId] || { itens: {} }
+  const comecada = Boolean(vistoria?.registros?.[vtrId]) || Object.keys(reg).some((k) => k !== 'itens') || Object.keys(reg.itens || {}).length > 0
 
   const a = avaliar(vtr, reg, hoje)
   const troca = trocaDeOleo(vtr, reg.km, hoje)
@@ -130,6 +205,21 @@ export default function Vistoria({ vtrId }) {
         <div className="vtr-info">
           Último KM {km(vtr.kmAtual) || '—'} · Troca de óleo: {troca.texto}
         </div>
+
+        {pode && posse === 'outra' && (
+          <div className="aviso-trava" role="status">
+            <strong>Em vistoria por {doOutro?.nome || 'outro cadete'}.</strong> Você só pode ver. A viatura fica livre quando ele sair da tela
+            ou depois de 3 min sem uso.
+            {podeGerir(usuario) && (
+              <button
+                className="botao texto"
+                onClick={() => window.confirm('Assumir esta viatura? O cadete que está nela passa a só ver.') && tentarTravar(true)}
+              >
+                Assumir a vistoria desta viatura
+              </button>
+            )}
+          </div>
+        )}
 
         {reg.naoVistoriada ? (
           <div className="bloco obs">
@@ -235,6 +325,12 @@ export default function Vistoria({ vtrId }) {
               </button>
             )}
           </>
+        )}
+
+        {!somenteLeitura && comecada && (
+          <button className="botao texto perigo" style={{ marginTop: 4 }} onClick={cancelar}>
+            <Icone nome="X" /> Cancelar a vistoria desta viatura
+          </button>
         )}
       </main>
 

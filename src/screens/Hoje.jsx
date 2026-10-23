@@ -3,7 +3,7 @@ import { Cabecalho, Icone, Selo, SeloNivel } from '../components/base'
 import { APP_NOME, dadosCompletos, podeGerir, podeVistoriar } from '../config'
 import { escalaDoDia, juntar, papelNoDia, proximosServicos, rotinaDo } from '../lib/escala'
 import { dataCurta, horaCurta, nomeCompleto } from '../lib/formato'
-import { avaliar, exigida } from '../lib/vistoria'
+import { avaliar, exigida, travaDeOutro } from '../lib/vistoria'
 
 const SITUACAO = { manutencao: 'Em manutenção', baixada: 'Baixada' }
 
@@ -103,7 +103,9 @@ export default function Hoje() {
                     <span>
                       <span className="modelo">{v.modelo}</span>
                       <span className="detalhe" style={{ display: 'block' }}>
-                        {detalhe(v, a, temRegistro, ja)}
+                        {travaDeOutro(vistoria, v.id, usuario.id)
+                          ? `Em vistoria por ${travaDeOutro(vistoria, v.id, usuario.id).nome}`
+                          : detalhe(v, a, temRegistro, ja)}
                       </span>
                     </span>
                     <Status a={a} temRegistro={temRegistro} ja={ja} />

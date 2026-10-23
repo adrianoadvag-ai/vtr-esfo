@@ -2,6 +2,8 @@
 
 App para a vistoria diária das viaturas da Escola de Formação de Oficiais (APMG). Ele substitui o relatório digitado no WhatsApp.
 
+- **Uma viatura, um cadete**: quem abre a VTR fica com ela; os outros veem "Em vistoria por Cad. X" e só leem. A trava se solta ao sair da tela ou após 3 min sem uso, e o coordenador pode assumir.
+- **Cancelar a vistoria de uma VTR**: apaga o que foi marcado nela e a libera.
 - Checklist por tiques: **um toque = S/A**. O botão de alerta abre as opções de alteração e exige observação.
 - Combustível e Arla numa **barra de 8 partes**, como o marcador do painel.
 - Relatório gerado no formato do grupo, pronto para **copiar ou abrir no WhatsApp**, com as alterações no topo.

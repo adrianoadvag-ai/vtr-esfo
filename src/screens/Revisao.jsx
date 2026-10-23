@@ -4,7 +4,7 @@ import { Cabecalho, Icone, SeloNivel, useCarregar } from '../components/base'
 import { NIVEIS } from '../config'
 import { dataExtensa, nomeCompleto } from '../lib/formato'
 import { ocorrenciasDoDia } from '../lib/ocorrencias'
-import { avaliar, exigida, idRodada, montarRelatorio } from '../lib/vistoria'
+import { avaliar, exigida, idRodada, montarRelatorio, travaDeOutro } from '../lib/vistoria'
 import { escalaDoDia } from '../lib/escala'
 
 export default function Revisao() {
@@ -23,8 +23,10 @@ export default function Revisao() {
   const { dados: usuarios } = useCarregar(() => api.listarUsuarios(), [])
 
   const comRegistro = viaturas.filter((v) => registros[v.id])
-  const concluidas = comRegistro.filter((v) => avaliar(v, registros[v.id], hoje).completo)
-  const incompletas = comRegistro.filter((v) => !concluidas.includes(v))
+  // VTR que outro cadete ainda está vistoriando não entra neste relatório
+  const emUso = comRegistro.filter((v) => travaDeOutro(vistoria, v.id, usuario.id))
+  const concluidas = comRegistro.filter((v) => !emUso.includes(v) && avaliar(v, registros[v.id], hoje).completo)
+  const incompletas = comRegistro.filter((v) => !emUso.includes(v) && !concluidas.includes(v))
   const incluidas = concluidas.filter((v) => !fora.includes(v.id))
   const regsIncluidos = Object.fromEntries(incluidas.map((v) => [v.id, registros[v.id]]))
   const achados = incluidas
@@ -120,6 +122,12 @@ export default function Revisao() {
             </button>
           ))}
         </div>
+        {emUso.length > 0 && (
+          <p className="tela-sub" style={{ margin: '10px 0 0' }}>
+            Ainda em vistoria, ficam para depois:{' '}
+            {emUso.map((v) => `${v.prefixo} (${travaDeOutro(vistoria, v.id, usuario.id).nome})`).join(', ')}
+          </p>
+        )}
         {incompletas.length > 0 && (
           <p className="tela-sub" style={{ margin: '10px 0 0' }}>
             Incompletas, ficam para depois:{' '}

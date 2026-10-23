@@ -3,6 +3,14 @@ import { ITENS, LIMITES, NIVEIS } from '../config'
 import { combustivelTexto, dataBR, dataExtensa, diasAte, km, saudacao } from './formato'
 
 // Identificador da rodada: a 1ª do dia é a própria data; as seguintes, data-2, data-3…
+// Trava de VTR: vale enquanto o celular de quem vistoria der sinal de vida (renova a cada minuto)
+export const TRAVA_MS = 3 * 60 * 1000
+export const travaAtiva = (t, agora = Date.now()) => Boolean(t && agora - (t.em || 0) < TRAVA_MS)
+export const travaDeOutro = (rodada, vtrId, uid) => {
+  const t = rodada?.travas?.[vtrId]
+  return travaAtiva(t) && t.uid !== uid ? t : null
+}
+
 export const idRodada = (data, seq) => (seq > 1 ? `${data}-${seq}` : data)
 
 export const itensDa = (vtr) => ITENS.filter((i) => !i.so || i.so(vtr))
