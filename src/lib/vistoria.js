@@ -84,7 +84,7 @@ export function avaliar(vtr, reg = {}, hoje) {
 export const exigida = (vtr) => (vtr.situacao || 'ativa') === 'ativa'
 
 // Monta o texto do relatório no formato usado no WhatsApp
-export function montarRelatorio({ data, viaturas, registros, limpeza, responsaveis, pendenciasAbertas = [], totalFrota, agora = new Date() }) {
+export function montarRelatorio({ data, viaturas, registros, limpeza, responsaveis, supervisor, pendenciasAbertas = [], totalFrota, agora = new Date() }) {
   const L = []
   L.push(`Com licença, Senhores. ${saudacao(agora)}`)
   L.push('')
@@ -120,8 +120,10 @@ export function montarRelatorio({ data, viaturas, registros, limpeza, responsave
     L.push('')
     L.push(`${i + 1}. ${v.prefixo} - ${v.modelo}`)
     L.push('')
+    const por = r.por ? `* Vistoriada por: ${r.por}` : null
     if (r.naoVistoriada) {
       L.push(`* Não vistoriada: ${r.motivoNao || ''}`)
+      if (r.por) L.push(`* Registrado por: ${r.por}`)
       return
     }
     if (v.situacao === 'manutencao') L.push('* Situação: em manutenção')
@@ -157,6 +159,7 @@ export function montarRelatorio({ data, viaturas, registros, limpeza, responsave
       L.push(`* ${t[0].toUpperCase()}${t.slice(1)}: S/A`)
     }
     if (r.obs && r.obs.trim()) L.push(`* Obs: ${r.obs.trim()}`)
+    if (por) L.push(por)
   })
 
   L.push('')
@@ -168,6 +171,11 @@ export function montarRelatorio({ data, viaturas, registros, limpeza, responsave
   L.push('')
   L.push('Responsável do dia:')
   for (const n of responsaveis) L.push(n)
+  if (supervisor) {
+    L.push('')
+    L.push('Supervisor:')
+    L.push(supervisor)
+  }
   return L.join('\n')
 }
 

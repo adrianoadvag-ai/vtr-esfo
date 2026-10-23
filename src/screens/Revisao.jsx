@@ -12,7 +12,9 @@ export default function Revisao() {
   const registros = vistoria?.registros || {}
   const eu = nomeCompleto(usuario)
   // Escalados de hoje (se quem envia está na escala); senão, quem está enviando
-  const escalados = (escalaDoDia(escalas, hoje, equipe)?.responsaveis || []).map((p) => p.nome).filter(Boolean)
+  const escalaHoje = escalaDoDia(escalas, hoje, equipe)
+  const escalados = (escalaHoje?.responsaveis || []).map((p) => p.nome).filter(Boolean)
+  const supervisor = escalaHoje?.supervisor?.nome || ''
   const [responsaveis, setResponsaveis] = useState(
     vistoria?.responsaveis?.length ? vistoria.responsaveis : escalados.includes(eu) ? escalados : [eu],
   )
@@ -43,6 +45,7 @@ export default function Revisao() {
     registros: regsIncluidos,
     limpeza,
     responsaveis,
+    supervisor,
     pendenciasAbertas: abertasDestas,
     totalFrota: viaturas.filter(exigida).length,
   })
