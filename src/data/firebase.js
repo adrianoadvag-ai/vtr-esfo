@@ -1,12 +1,15 @@
 // Modo Firebase: login individual, dados no Cloud Firestore e fotos no Cloud Storage.
 import { initializeApp } from 'firebase/app'
 import {
+  EmailAuthProvider,
   createUserWithEmailAndPassword,
   getAuth,
   onAuthStateChanged,
+  reauthenticateWithCredential,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
+  updatePassword,
 } from 'firebase/auth'
 import {
   FieldPath,
@@ -83,6 +86,25 @@ export async function cadastrar({ email, senha, posto, nome }) {
 
 export const redefinirSenha = (email) => sendPasswordResetEmail(auth, email.trim())
 export const sair = () => signOut(auth)
+
+// Troca de senha dentro do app: confirma a senha atual e grava a nova
+export async function alterarSenha(atual, nova) {
+  const u = auth.currentUser
+  if (!u) throw new Error('Entre de novo no app para trocar a senha.')
+  try {
+    await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, atual))
+    await updatePassword(u, nova)
+  } catch (e) {
+    const msgs = {
+      'auth/invalid-credential': 'A senha atual está incorreta.',
+      'auth/wrong-password': 'A senha atual está incorreta.',
+      'auth/weak-password': 'A nova senha precisa ter pelo menos 6 caracteres.',
+      'auth/too-many-requests': 'Muitas tentativas. Aguarde alguns minutos.',
+      'auth/network-request-failed': 'Sem conexão com a internet.',
+    }
+    throw new Error(msgs[e?.code] || e?.message || 'Não foi possível trocar a senha.')
+  }
+}
 
 export async function listarUsuarios() {
   return lista(await getDocs(collection(db, 'usuarios'))).sort((a, b) => (a.nome || '').localeCompare(b.nome || ''))

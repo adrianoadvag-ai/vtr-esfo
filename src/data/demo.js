@@ -57,6 +57,10 @@ export async function entrarDemo(uid) {
   gravar()
 }
 
+export async function alterarSenha() {
+  // No modo demonstração não há senha
+}
+
 export async function sair() {
   ler().sessao = null
   gravar()

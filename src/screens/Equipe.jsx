@@ -321,10 +321,62 @@ export function MeusDados() {
             {ocupado ? 'Salvando…' : 'Salvar'}
           </button>
         </form>
+        {api.modo !== 'demo' && <AlterarSenha />}
         <button className="botao texto cheio" style={{ marginTop: 12 }} onClick={() => api.sair()}>
           <Icone nome="LogOut" tamanho={18} /> Sair do app
         </button>
       </main>
+    </>
+  )
+}
+
+function AlterarSenha() {
+  const { api, avisar } = useApp()
+  const vazio = { atual: '', nova: '', repetir: '' }
+  const [f, setF] = useState(vazio)
+  const [erro, setErro] = useState('')
+  const [ocupado, setOcupado] = useState(false)
+  const mudar = (k) => (e) => setF({ ...f, [k]: e.target.value })
+
+  async function trocar(e) {
+    e.preventDefault()
+    setErro('')
+    if (f.nova.length < 6) return setErro('A nova senha precisa ter pelo menos 6 caracteres.')
+    if (f.nova !== f.repetir) return setErro('As duas senhas novas não são iguais.')
+    if (f.nova === f.atual) return setErro('A nova senha é igual à atual.')
+    setOcupado(true)
+    try {
+      await api.alterarSenha(f.atual, f.nova)
+      setF(vazio)
+      avisar('Senha alterada.')
+    } catch (x) {
+      setErro(x.message)
+    } finally {
+      setOcupado(false)
+    }
+  }
+
+  return (
+    <>
+      <h2 className="secao">Alterar senha</h2>
+      <form className="bloco pad form" onSubmit={trocar}>
+        <label>
+          Senha atual
+          <input className="entrada" type="password" value={f.atual} onChange={mudar('atual')} autoComplete="current-password" required />
+        </label>
+        <label>
+          Nova senha
+          <input className="entrada" type="password" value={f.nova} onChange={mudar('nova')} autoComplete="new-password" required />
+        </label>
+        <label>
+          Repita a nova senha
+          <input className="entrada" type="password" value={f.repetir} onChange={mudar('repetir')} autoComplete="new-password" required />
+        </label>
+        {erro && <div className="erro-form">{erro}</div>}
+        <button className="botao cheio secundario" disabled={ocupado}>
+          {ocupado ? 'Alterando…' : 'Alterar senha'}
+        </button>
+      </form>
     </>
   )
 }
