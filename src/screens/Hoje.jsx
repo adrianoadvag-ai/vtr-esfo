@@ -1,6 +1,6 @@
 import { useApp } from '../App'
 import { Cabecalho, Icone, Selo, SeloNivel } from '../components/base'
-import { APP_NOME, dadosCompletos, podeGerir, podeVistoriar } from '../config'
+import { APP_NOME, dadosCompletos, podeGerirViaturas, podeVistoriar } from '../config'
 import { escalaDoDia, juntar, papelNoDia, proximosServicos, rotinaDo } from '../lib/escala'
 import { dataCurta, horaCurta, nomeCompleto } from '../lib/formato'
 import { avaliar, exigida, travaDeOutro } from '../lib/vistoria'
@@ -80,7 +80,7 @@ export default function Hoje() {
         {lista.length === 0 ? (
           <div className="bloco vazio">
             <p>Cadastre as viaturas para começar a vistoria.</p>
-            {podeGerir(usuario) && (
+            {podeGerirViaturas(usuario) && (
               <button className="botao" onClick={() => ir('viaturas')}>
                 Cadastrar viaturas
               </button>

@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useApp } from '../App'
 import { Cabecalho, FotoMini, Icone, ItemTique, Marcador } from '../components/base'
-import { LIMITES, podeGerir, podeVistoriar } from '../config'
+import { LIMITES, podeGerirViaturas, podeVistoriar } from '../config'
 import { km, nomeCompleto } from '../lib/formato'
 import { avaliar, exigida, itensDa, travaDeOutro, trocaDeOleo } from '../lib/vistoria'
+import { atuaComoSupervisor, escalaDoDia } from '../lib/escala'
 
 export default function Vistoria({ vtrId }) {
-  const { viaturas, vistoria, hoje, ir, api, usuario, avisar } = useApp()
+  const { viaturas, vistoria, hoje, ir, api, usuario, avisar, escalas, usuarios } = useApp()
   const vtr = viaturas.find((v) => v.id === vtrId)
   const enviada = vistoria?.status === 'enviada'
   const pode = !enviada && podeVistoriar(usuario)
@@ -97,7 +98,10 @@ export default function Vistoria({ vtrId }) {
     if (posseRef.current !== 'minha') return
     const { por: _p, em: _e, ...limpo } = r
     const { id, seq } = rodada.current
-    api.salvarRegistro(id, hoje, seq, vtrId, limpo, nomeCompleto(usuario)).catch((e) => avisar(e.message))
+    // O supervisor que vistoria continua identificado como supervisor no relatório
+    const sup = atuaComoSupervisor(escalaDoDia(escalas, hoje, usuarios), usuario)
+    const por = `${nomeCompleto(usuario)}${sup ? ' (supervisor)' : ''}`
+    api.salvarRegistro(id, hoje, seq, vtrId, limpo, por).catch((e) => avisar(e.message))
   }
   useEffect(() => () => {
     clearTimeout(timer.current)
@@ -210,7 +214,7 @@ export default function Vistoria({ vtrId }) {
           <div className="aviso-trava" role="status">
             <strong>Em vistoria por {doOutro?.nome || 'outro cadete'}.</strong> Você só pode ver. A viatura fica livre quando ele sair da tela
             ou depois de 3 min sem uso.
-            {podeGerir(usuario) && (
+            {podeGerirViaturas(usuario) && (
               <button
                 className="botao texto"
                 onClick={() => window.confirm('Assumir esta viatura? O cadete que está nela passa a só ver.') && tentarTravar(true)}

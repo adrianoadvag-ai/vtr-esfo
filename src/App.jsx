@@ -15,6 +15,8 @@ import Historico from './screens/Historico'
 import Viaturas, { EditarViatura } from './screens/Viaturas'
 import Equipe, { Integrante, MeusDados } from './screens/Equipe'
 import Escala from './screens/Escala'
+import FichaViatura from './screens/FichaViatura'
+import Mensal from './screens/Mensal'
 
 const Ctx = createContext(null)
 export const useApp = () => useContext(Ctx)
@@ -136,6 +138,8 @@ export default function App() {
   else if (tela === 'historico') conteudo = <Historico />
   else if (tela === 'viaturas') conteudo = <Viaturas />
   else if (tela === 'viatura') conteudo = <EditarViatura id={param} />
+  else if (tela === 'vtr') conteudo = <FichaViatura id={param} />
+  else if (tela === 'mensal') conteudo = <Mensal mes={param} />
   else if (tela === 'escala') conteudo = <Escala semana={param} />
   else if (tela === 'equipe') conteudo = <Equipe />
   else if (tela === 'integrante') conteudo = <Integrante id={param} />
@@ -146,8 +150,8 @@ export default function App() {
     { id: 'hoje', nome: 'Hoje', icone: 'ClipboardCheck', ativa: ['hoje', 'vistoria', 'revisao'].includes(tela) || !tela },
     { id: 'escala', nome: 'Escala', icone: 'CalendarDays' },
     { id: 'pendencias', nome: 'Pendências', icone: 'Wrench', contador: abertas },
-    { id: 'historico', nome: 'Histórico', icone: 'History', ativa: ['historico', 'relatorio'].includes(tela) },
-    { id: 'viaturas', nome: 'Viaturas', icone: 'CarFront', ativa: ['viaturas', 'viatura'].includes(tela) },
+    { id: 'historico', nome: 'Histórico', icone: 'History', ativa: ['historico', 'relatorio', 'mensal'].includes(tela) },
+    { id: 'viaturas', nome: 'Viaturas', icone: 'CarFront', ativa: ['viaturas', 'viatura', 'vtr'].includes(tela) },
     { id: 'equipe', nome: 'Equipe', icone: 'Users', ativa: ['equipe', 'integrante', 'meus-dados'].includes(tela), contador: aguardando },
   ]
 

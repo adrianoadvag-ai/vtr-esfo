@@ -10,6 +10,16 @@ export default function Historico() {
     <>
       <Cabecalho titulo="Histórico" sub="Relatórios enviados" />
       <main>
+        <button className="bloco linha-botao campo-linha" style={{ width: '100%', marginBottom: 12 }} onClick={() => ir('mensal')}>
+          <span className="icone-item">
+            <Icone nome="FileBarChart" />
+          </span>
+          <span className="rotulo" style={{ textAlign: 'left' }}>
+            Relatório mensal
+            <small>Escala cumprida, viaturas, pendências e trocas de óleo, em PDF</small>
+          </span>
+          <Icone nome="ChevronRight" style={{ color: 'var(--tinta-2)' }} />
+        </button>
         {carregando && !dados ? (
           <div className="vazio">Carregando…</div>
         ) : erro ? (

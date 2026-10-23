@@ -5,7 +5,7 @@ import { NIVEIS } from '../config'
 import { dataExtensa, nomeCompleto } from '../lib/formato'
 import { ocorrenciasDoDia } from '../lib/ocorrencias'
 import { avaliar, exigida, idRodada, montarRelatorio, travaDeOutro } from '../lib/vistoria'
-import { escalaDoDia } from '../lib/escala'
+import { atuaComoSupervisor, escalaDoDia } from '../lib/escala'
 
 export default function Revisao() {
   const { viaturas, vistoria, hoje, ir, api, usuario, ocorrencias, avisar, recarregarViaturas, recarregarOcorrencias, escalas, usuarios: equipe } = useApp()
@@ -14,10 +14,13 @@ export default function Revisao() {
   // Escalados de hoje (se quem envia está na escala); senão, quem está enviando
   const escalaHoje = escalaDoDia(escalas, hoje, equipe)
   const escalados = (escalaHoje?.responsaveis || []).map((p) => p.nome).filter(Boolean)
-  const supervisor = escalaHoje?.supervisor?.nome || ''
+  const supervisorEscala = escalaHoje?.supervisor?.nome || ''
+  // Supervisor que faz a vistoria assina como supervisor, não como responsável do dia
+  const souSupervisor = atuaComoSupervisor(escalaHoje, usuario)
   const [responsaveis, setResponsaveis] = useState(
-    vistoria?.responsaveis?.length ? vistoria.responsaveis : escalados.includes(eu) ? escalados : [eu],
+    vistoria?.responsaveis?.length ? vistoria.responsaveis : escalados.includes(eu) || souSupervisor ? escalados : [eu],
   )
+  const [supervisor, setSupervisor] = useState(vistoria?.supervisor ?? (souSupervisor ? eu : supervisorEscala))
   const [limpeza, setLimpeza] = useState(vistoria?.limpeza || { ok: true, obs: '' })
   const [verTexto, setVerTexto] = useState(false)
   const [enviando, setEnviando] = useState(false)
@@ -37,7 +40,7 @@ export default function Revisao() {
   const idsIncluidos = new Set(incluidas.map((v) => v.id))
   const abertas = ocorrencias.filter((o) => o.status === 'aberta')
   const abertasDestas = abertas.filter((o) => idsIncluidos.has(o.viaturaId))
-  const pronto = incluidas.length > 0 && responsaveis.length > 0 && (limpeza.ok || limpeza.obs?.trim())
+  const pronto = incluidas.length > 0 && (responsaveis.length > 0 || supervisor) && (limpeza.ok || limpeza.obs?.trim())
 
   const texto = montarRelatorio({
     data: hoje,
@@ -51,6 +54,10 @@ export default function Revisao() {
   })
 
   const nomes = Array.from(new Set([eu, ...escalados, ...(usuarios || []).filter((u) => u.perfil !== 'pendente').map(nomeCompleto)]))
+  // Supervisor: o da escala, quem está enviando (se atua como supervisor) e quem tem o perfil Supervisão
+  const supervisores = Array.from(
+    new Set([supervisorEscala, souSupervisor && eu, ...(usuarios || []).filter((u) => u.perfil === 'supervisao').map(nomeCompleto)].filter(Boolean)),
+  )
   const alternar = (n) => setResponsaveis((r) => (r.includes(n) ? r.filter((x) => x !== n) : [...r, n]))
   const alternarVtr = (id) => setFora((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id]))
 
@@ -67,6 +74,7 @@ export default function Revisao() {
       await api.enviarVistoria(vistoria.id, hoje, {
         relatorio: texto,
         responsaveis,
+        supervisor,
         limpeza,
         kms,
         novasOcorrencias,
@@ -209,6 +217,21 @@ export default function Revisao() {
             </button>
           ))}
         </div>
+
+        <h2 className="secao">Supervisor</h2>
+        <div className="chips">
+          {supervisores.map((n) => (
+            <button key={n} className={`opcao ${supervisor === n ? 'marcada' : ''}`} onClick={() => setSupervisor(supervisor === n ? '' : n)}>
+              {n}
+            </button>
+          ))}
+          {supervisores.length === 0 && <span className="tela-sub">Nenhum supervisor na escala de hoje.</span>}
+        </div>
+        {responsaveis.length === 0 && supervisor && (
+          <p className="tela-sub" style={{ margin: '8px 0 0' }}>
+            Sem responsável marcado: o relatório sai assinado só pelo supervisor.
+          </p>
+        )}
 
         <h2 className="secao">Relatório</h2>
         <div className="bloco">

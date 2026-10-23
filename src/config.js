@@ -114,8 +114,14 @@ export const PERFIS = {
   admin: 'Administrador',
 }
 
-export const podeGerir = (u) => u && (u.perfil === 'coordenador' || u.perfil === 'admin')
-export const podeVistoriar = (u) => u && ['vistoriador', 'coordenador', 'admin'].includes(u.perfil)
+// Coordenador e administrador: escala, equipe e perfis
+export const podeGerir = (u) => Boolean(u) && (u.perfil === 'coordenador' || u.perfil === 'admin')
+// Supervisão, coordenador e administrador: cadastrar, editar, excluir e mudar a situação das viaturas,
+// registrar troca de óleo e resolver pendências
+export const podeGerirViaturas = (u) => Boolean(u) && ['supervisao', 'coordenador', 'admin'].includes(u.perfil)
+export const podeVistoriar = (u) => Boolean(u) && ['vistoriador', 'supervisao', 'coordenador', 'admin'].includes(u.perfil)
+
+export const SITUACOES = { ativa: 'Ativa', manutencao: 'Em manutenção', baixada: 'Baixada' }
 
 // Escala da missão: segunda a sexta. Na segunda são dois cadetes de serviço.
 export const ESCALA = {

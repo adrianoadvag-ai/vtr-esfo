@@ -1,15 +1,13 @@
 import { useState } from 'react'
 import { useApp } from '../App'
 import { Cabecalho, Icone, Selo } from '../components/base'
-import { podeGerir } from '../config'
-import { dataBR, hojeISO, km } from '../lib/formato'
+import { SITUACOES, podeGerirViaturas } from '../config'
+import { dataBR, hojeISO, km, nomeCompleto } from '../lib/formato'
 import { trocaDeOleo } from '../lib/vistoria'
-
-const SITUACOES = { ativa: 'Ativa', manutencao: 'Em manutenção', baixada: 'Baixada' }
 
 export default function Viaturas() {
   const { viaturas, ir, usuario, api, recarregarViaturas, avisar, hoje } = useApp()
-  const gestor = podeGerir(usuario)
+  const gestor = podeGerirViaturas(usuario)
 
   async function carregar() {
     await api.carregarViaturasIniciais()
@@ -51,7 +49,7 @@ export default function Viaturas() {
               const t = trocaDeOleo(v, null, hoje)
               return (
                 <li key={v.id}>
-                  <button className="vtr-linha com-num" onClick={() => gestor && ir(`viatura/${v.id}`)} disabled={!gestor} style={{ cursor: gestor ? 'pointer' : 'default' }}>
+                  <button className={`vtr-linha com-num ${v.situacao === 'baixada' ? 'inativa' : ''}`} onClick={() => ir(`vtr/${v.id}`)}>
                     <span className="num">{i + 1}</span>
                     <span className="prefixo">{v.prefixo}</span>
                     <span>
@@ -60,8 +58,8 @@ export default function Viaturas() {
                         {km(v.kmAtual)} km · {t.texto}
                       </span>
                     </span>
-                    {v.situacao !== 'ativa' ? (
-                      <Selo nivel="neutro">{SITUACOES[v.situacao]}</Selo>
+                    {(v.situacao || 'ativa') !== 'ativa' ? (
+                      <Selo nivel={v.situacao === 'manutencao' ? 'atencao' : 'neutro'}>{SITUACOES[v.situacao]}</Selo>
                     ) : t.alerta ? (
                       <Selo nivel="atencao">Troca de óleo</Selo>
                     ) : null}
@@ -85,8 +83,9 @@ export function EditarViatura({ id }) {
   )
   const [troca, setTroca] = useState(null)
   const [erro, setErro] = useState('')
+  const voltar = () => ir(nova ? 'viaturas' : `vtr/${id}`)
 
-  if (!podeGerir(usuario)) return null
+  if (!podeGerirViaturas(usuario)) return null
   if (!nova && !atual) {
     return (
       <>
@@ -108,10 +107,26 @@ export function EditarViatura({ id }) {
     if (!String(f.prefixo).trim() || !String(f.modelo).trim()) return setErro('Informe prefixo e modelo.')
     if (nova && viaturas.some((v) => v.prefixo === String(f.prefixo).trim())) return setErro('Já existe uma viatura com este prefixo.')
     const limpo = Object.fromEntries(Object.entries({ ...f, prefixo: String(f.prefixo).trim() }).filter(([, v]) => v !== '' && v !== undefined))
-    await api.salvarViatura(limpo)
+    const salva = await api.salvarViatura(limpo)
     await recarregarViaturas()
     avisar('Viatura salva.')
-    ir('viaturas')
+    ir(`vtr/${salva.id}`)
+  }
+
+  async function excluir() {
+    const ok = window.confirm(
+      `Excluir a VTR ${f.prefixo} do app?\n\nOs relatórios já enviados continuam no histórico, mas ela some da vistoria e da ficha. ` +
+        'Se ela só saiu de uso, prefira a situação "Baixada".',
+    )
+    if (!ok) return
+    try {
+      await api.excluirViatura(id)
+      await recarregarViaturas()
+      avisar(`VTR ${f.prefixo} excluída.`)
+      ir('viaturas')
+    } catch {
+      avisar('Não foi possível excluir. Verifique a conexão.')
+    }
   }
 
   async function registrarTroca() {
@@ -121,6 +136,8 @@ export function EditarViatura({ id }) {
       ...f,
       nova: false,
       dataUltimaTroca: hojeISO(),
+      // Histórico das trocas (aparece na ficha e no relatório mensal)
+      trocas: [...(f.trocas || []), { data: hojeISO(), km: kmTroca, por: nomeCompleto(usuario) }],
       kmProxTroca: kmTroca + Number(troca.intervalo || 10000),
       dataProxTroca: troca.data || undefined,
       kmAtual: Math.max(Number(f.kmAtual) || 0, kmTroca),
@@ -135,7 +152,7 @@ export function EditarViatura({ id }) {
 
   return (
     <>
-      <Cabecalho titulo={nova ? 'Nova viatura' : `VTR ${f.prefixo}`} sub={nova ? '' : f.modelo} voltar={() => ir('viaturas')} />
+      <Cabecalho titulo={nova ? 'Nova viatura' : `Editar VTR ${f.prefixo}`} sub={nova ? '' : f.modelo} voltar={voltar} />
       <main>
         <form className="bloco pad form" onSubmit={salvar}>
           <div className="dupla">
@@ -245,6 +262,12 @@ export function EditarViatura({ id }) {
               </div>
             )}
           </div>
+        )}
+
+        {!nova && (
+          <button className="botao texto perigo cheio" style={{ marginTop: 16 }} onClick={excluir}>
+            <Icone nome="Trash2" /> Excluir viatura
+          </button>
         )}
       </main>
     </>

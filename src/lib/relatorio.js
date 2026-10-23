@@ -5,7 +5,7 @@ const OK = /^(S\/A|Normal|Operante|VTR nova)$/i
 const NEUTROS = /^(KM|Combustível|Arla|Próx\. troca|Data da próx\. troca|Última troca|Situação)$/i
 
 export function estruturar(texto = '') {
-  const r = { saudacao: '', titulo: '', alteracoes: [], pendencias: [], vtrs: [], limpeza: '', responsaveis: [] }
+  const r = { saudacao: '', titulo: '', alteracoes: [], pendencias: [], vtrs: [], limpeza: '', responsaveis: [], supervisor: [] }
   let secao = null
   let vtr = null
   for (const bruta of texto.split('\n')) {
@@ -24,6 +24,8 @@ export function estruturar(texto = '') {
       r.limpeza = l.replace(/^Condições gerais de limpeza:\s*/, '')
       secao = null
     } else if (l.startsWith('Responsável do dia')) secao = 'resp'
+    else if (/^Supervisor:?$/.test(l)) secao = 'sup'
+    else if (secao === 'sup') r.supervisor.push(l)
     else if (secao === 'alt' && l.startsWith('- ')) {
       const t = l.slice(2)
       const nivel = /^CRÍTICO/i.test(t) ? 'critico' : /^ATENÇÃO/i.test(t) ? 'atencao' : 'info'
@@ -216,6 +218,18 @@ export async function gerarPdf({ texto, data, enviadaEm, enviadaPor, brasoes, no
     y += 5
     fonte('normal', 10)
     for (const n of r.responsaveis) {
+      pdf.text(limpar(n), L, y)
+      y += 5
+    }
+  }
+  if (r.supervisor.length) {
+    garantir(6 + r.supervisor.length * 5)
+    y += 2
+    fonte('bold', 10)
+    pdf.text('Supervisor:', L, y)
+    y += 5
+    fonte('normal', 10)
+    for (const n of r.supervisor) {
       pdf.text(limpar(n), L, y)
       y += 5
     }

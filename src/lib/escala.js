@@ -22,6 +22,14 @@ export function papelNoDia(diaEsc, u) {
   return null
 }
 
+// Quem vistoria como supervisor: o supervisor escalado no dia ou quem tem o perfil Supervisão
+// (desde que não esteja escalado como responsável naquele dia)
+export function atuaComoSupervisor(diaEsc, u) {
+  const papel = papelNoDia(diaEsc, u)
+  if (papel === 'responsavel') return false
+  return papel === 'supervisor' || u?.perfil === 'supervisao'
+}
+
 export const nomesResponsaveis = (diaEsc) => (diaEsc?.responsaveis || []).filter((p) => p?.nome).map((p) => p.nome)
 
 export function juntar(nomes) {

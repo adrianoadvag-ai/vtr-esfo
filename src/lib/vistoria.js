@@ -168,9 +168,11 @@ export function montarRelatorio({ data, viaturas, registros, limpeza, responsave
       ? `Condições gerais de limpeza: necessita limpeza${limpeza.obs ? ` (${limpeza.obs})` : ''}.`
       : 'Condições gerais de limpeza: Limpeza realizada dentro do padrão.',
   )
-  L.push('')
-  L.push('Responsável do dia:')
-  for (const n of responsaveis) L.push(n)
+  if (responsaveis.length) {
+    L.push('')
+    L.push('Responsável do dia:')
+    for (const n of responsaveis) L.push(n)
+  }
   if (supervisor) {
     L.push('')
     L.push('Supervisor:')

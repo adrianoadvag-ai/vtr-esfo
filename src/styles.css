@@ -1287,3 +1287,131 @@ button.pessoa:active,
   padding: 0;
   min-height: 0;
 }
+
+/* Ficha da viatura */
+.ficha-dados dd.num-grande {
+  font-family: var(--fonte-num);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+.detalhe-linha {
+  display: block;
+  font-size: 14px;
+  color: var(--tinta-2);
+}
+.linha-simples {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+}
+.linha-simples + .linha-simples {
+  border-top: 1px solid var(--linha);
+}
+.linha-simples .detalhe {
+  color: var(--tinta-2);
+  font-size: 14px;
+  text-align: right;
+}
+.grafico-km {
+  margin: 0;
+}
+.grafico-km figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin-bottom: 6px;
+}
+.grafico-km figcaption strong {
+  font-family: var(--fonte-num);
+  font-size: 22px;
+}
+.grafico-km figcaption span {
+  flex-basis: 100%;
+  font-size: 13px;
+  color: var(--tinta-2);
+}
+.grafico-km svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.grafico-km .linha {
+  fill: none;
+  stroke: var(--azul);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.grafico-km .ponto {
+  fill: var(--azul);
+  stroke: var(--cartao);
+  stroke-width: 2;
+}
+.grafico-km .ponto.sel {
+  fill: var(--cartao);
+  stroke: var(--azul);
+  stroke-width: 2.5;
+}
+.grafico-km .eixo {
+  stroke: var(--linha);
+  stroke-width: 1;
+}
+.grafico-km .guia {
+  stroke: var(--linha);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+.grafico-km .rotulo-eixo {
+  fill: var(--tinta-2);
+  font-size: 11px;
+  font-family: var(--fonte);
+}
+
+/* Relatório mensal */
+.numeros {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.numeros > div {
+  background: var(--cartao);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra);
+  padding: 12px 14px;
+}
+.numeros strong {
+  display: block;
+  font-family: var(--fonte-num);
+  font-size: 30px;
+  line-height: 1;
+}
+.numeros span {
+  font-size: 13px;
+  color: var(--tinta-2);
+}
+.seletor-mes {
+  display: grid;
+  grid-template-columns: 48px 1fr 48px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.seletor-mes strong {
+  text-align: center;
+  font-size: 18px;
+}
+.seletor-mes button {
+  height: 44px;
+  border-radius: 8px;
+  border: 1px solid var(--linha);
+  background: var(--cartao);
+  color: var(--tinta);
+  display: grid;
+  place-items: center;
+}
+.seletor-mes button:disabled {
+  opacity: 0.35;
+}

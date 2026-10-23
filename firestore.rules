@@ -16,10 +16,15 @@ service cloud.firestore {
         && meuPerfil() != 'pendente';
     }
     function vistoriador() {
-      return membro() && meuPerfil() in ['vistoriador', 'coordenador', 'admin'];
+      return membro() && meuPerfil() in ['vistoriador', 'supervisao', 'coordenador', 'admin'];
     }
+    // Escala, equipe e perfis
     function gestor() {
       return membro() && meuPerfil() in ['coordenador', 'admin'];
+    }
+    // Viaturas e pendências: a supervisão também administra
+    function gestorViaturas() {
+      return membro() && meuPerfil() in ['supervisao', 'coordenador', 'admin'];
     }
 
     // Cadastro: cada um cria o próprio perfil como "pendente"; o coordenador libera
@@ -40,11 +45,11 @@ service cloud.firestore {
       allow delete: if membro() && meuPerfil() == 'admin';
     }
 
-    // Viaturas: o coordenador cadastra; quem vistoria só atualiza o KM ao enviar
+    // Viaturas: supervisão e coordenador cadastram; quem vistoria só atualiza o KM ao enviar
     match /viaturas/{id} {
       allow read: if membro();
-      allow create, delete: if gestor();
-      allow update: if gestor()
+      allow create, delete: if gestorViaturas();
+      allow update: if gestorViaturas()
         || (vistoriador()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['kmAtual', 'ultimaVistoria']));
     }
@@ -56,11 +61,11 @@ service cloud.firestore {
       allow update: if vistoriador() && resource.data.get('status', 'rascunho') != 'enviada';
     }
 
-    // Pendências: abertas no envio da vistoria, resolvidas pelo coordenador
+    // Pendências: abertas no envio da vistoria, resolvidas pela supervisão ou pelo coordenador
     match /ocorrencias/{id} {
       allow read: if membro();
       allow create: if vistoriador() && request.resource.data.status == 'aberta';
-      allow update: if gestor();
+      allow update: if gestorViaturas();
     }
 
     // Escala semanal (um documento por semana, id = segunda-feira): todos veem, o coordenador monta

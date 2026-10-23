@@ -88,6 +88,10 @@ export function observarEscala(semana, cb) {
   return ouvir(emitir)
 }
 
+export async function lerEscala(semana) {
+  return copia((ler().escalas || {})[semana] || null)
+}
+
 export async function salvarEscalaDia(semana, dia, valor, por) {
   const d = ler()
   d.escalas ||= {}
@@ -109,6 +113,12 @@ export async function salvarViatura(v) {
   else d.viaturas.push(vtr)
   gravar()
   return vtr
+}
+
+export async function excluirViatura(vid) {
+  const d = ler()
+  d.viaturas = d.viaturas.filter((x) => x.id !== vid)
+  gravar()
 }
 
 export async function carregarViaturasIniciais() {
@@ -157,12 +167,12 @@ export async function cancelarRegistro(vid, vtrId) {
   gravar()
 }
 
-export async function enviarVistoria(vid, data, { relatorio, responsaveis, limpeza, kms, novasOcorrencias, por, incluidas, restantes, proxima }) {
+export async function enviarVistoria(vid, data, { relatorio, responsaveis, supervisor, limpeza, kms, novasOcorrencias, por, incluidas, restantes, proxima }) {
   const d = ler()
   const v = d.vistorias[vid]
   if (!v) throw new Error('Nada para enviar.')
   if (v.status === 'enviada') throw new Error('Esta rodada já foi enviada.')
-  Object.assign(v, { status: 'enviada', relatorio, responsaveis, limpeza, incluidas, enviadaEm: Date.now(), enviadaPor: por })
+  Object.assign(v, { status: 'enviada', relatorio, responsaveis, supervisor: supervisor || '', limpeza, incluidas, enviadaEm: Date.now(), enviadaPor: por })
   for (const [vtrId, k] of Object.entries(kms)) {
     const vtr = d.viaturas.find((x) => x.id === vtrId)
     if (vtr && k > (vtr.kmAtual || 0)) vtr.kmAtual = k

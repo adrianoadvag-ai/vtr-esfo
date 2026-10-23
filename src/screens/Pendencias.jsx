@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useApp } from '../App'
 import { Cabecalho, Selo, SeloNivel } from '../components/base'
-import { NIVEIS, podeGerir } from '../config'
+import { NIVEIS, podeGerirViaturas } from '../config'
 import { dataBR, diasAte, nomeCompleto } from '../lib/formato'
 
 export default function Pendencias() {
@@ -57,7 +57,7 @@ export default function Pendencias() {
                     {o.obs && <span style={{ display: 'block', marginTop: 4 }}>{o.obs}</span>}
                     {o.notaResolucao && <span style={{ display: 'block', marginTop: 4 }}>Solução: {o.notaResolucao}</span>}
                     {o.status === 'aberta' &&
-                      podeGerir(usuario) &&
+                      podeGerirViaturas(usuario) &&
                       (resolvendo === o.id ? (
                         <span style={{ display: 'grid', gap: 8, marginTop: 8 }}>
                           <textarea

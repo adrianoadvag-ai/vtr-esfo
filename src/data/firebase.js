@@ -15,6 +15,7 @@ import {
   FieldPath,
   addDoc,
   collection,
+  deleteDoc,
   deleteField,
   doc,
   getDoc,
@@ -128,6 +129,12 @@ export function observarEscala(semana, cb) {
   )
 }
 
+// Lê a escala de uma semana uma vez (para o relatório mensal)
+export async function lerEscala(semana) {
+  const s = await getDoc(doc(db, 'escalas', semana))
+  return s.exists() ? s.data() : null
+}
+
 export async function salvarEscalaDia(semana, dia, valor, por) {
   await setDoc(
     doc(db, 'escalas', semana),
@@ -146,6 +153,9 @@ export async function salvarViatura(v) {
   await setDoc(doc(db, 'viaturas', vid), dados)
   return { ...dados, id: vid }
 }
+
+// Apaga o cadastro da viatura. Os relatórios já enviados continuam no histórico.
+export const excluirViatura = (vid) => deleteDoc(doc(db, 'viaturas', vid))
 
 export async function carregarViaturasIniciais() {
   const b = writeBatch(db)
@@ -216,11 +226,11 @@ export async function cancelarRegistro(vid, vtrId) {
   await updateDoc(ref, new FieldPath('registros', vtrId), deleteField(), new FieldPath('travas', vtrId), deleteField())
 }
 
-export async function enviarVistoria(vid, data, { relatorio, responsaveis, limpeza, kms, novasOcorrencias, por, viaturas, incluidas, restantes, proxima }) {
+export async function enviarVistoria(vid, data, { relatorio, responsaveis, supervisor, limpeza, kms, novasOcorrencias, por, viaturas, incluidas, restantes, proxima }) {
   const b = writeBatch(db)
   b.set(
     doc(db, 'vistorias', vid),
-    { status: 'enviada', relatorio, responsaveis, limpeza, incluidas, enviadaEm: Date.now(), enviadaPor: por },
+    { status: 'enviada', relatorio, responsaveis, supervisor: supervisor || '', limpeza, incluidas, enviadaEm: Date.now(), enviadaPor: por },
     { merge: true },
   )
   for (const [v, k] of Object.entries(kms)) {

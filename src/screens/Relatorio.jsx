@@ -198,6 +198,14 @@ function Formatado({ r }) {
             ))}
           </div>
         )}
+        {r.supervisor.length > 0 && (
+          <div style={{ marginTop: 8 }}>
+            <strong>Supervisor:</strong>
+            {r.supervisor.map((n) => (
+              <div key={n}>{n}</div>
+            ))}
+          </div>
+        )}
       </div>
     </>
   )
