@@ -3,7 +3,7 @@ import { useApp } from '../App'
 import { Cabecalho, Icone, Selo, useCarregar } from '../components/base'
 import { FUNCOES, funcaoDe, podeMontarEscala } from '../config'
 import { diasDa, papelNoDia, rotinaDo, semanaPadrao, textoEscala, totaisEscala, vagasAuxiliar, vagasDo } from '../lib/escala'
-import { NOMES_DIAS, dataExtensa, diaDaSemana, diaMes, hojeISO, horaCurta, nomeCompleto, somarDias } from '../lib/formato'
+import { NOMES_DIAS, mensagemErro, dataExtensa, diaDaSemana, diaMes, hojeISO, horaCurta, nomeCompleto, somarDias } from '../lib/formato'
 
 export default function Escala({ semana: semanaRota }) {
   const { api, usuario, usuarios, hoje, ir, avisar, enviadasHoje } = useApp()
@@ -50,7 +50,7 @@ export default function Escala({ semana: semanaRota }) {
     try {
       await api.salvarEscalaDia(semana, dia, valor, nomeCompleto(usuario))
     } catch (e) {
-      avisar(e.message || 'Não foi possível salvar a escala.')
+      avisar(mensagemErro(e, 'Não foi possível salvar a escala.'))
     }
   }
 

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useApp } from '../App'
 import { Cabecalho, Icone, SeloNivel, brasaoApmg, brasaoEsfo, useCarregar } from '../components/base'
 import { podeExcluirRelatorio } from '../config'
-import { dataBR, dataExtensa, horaCurta } from '../lib/formato'
+import { dataBR, dataExtensa, horaCurta, mensagemErro } from '../lib/formato'
 import { planoExclusao } from '../lib/frota'
 import { estruturar, gerarPdf } from '../lib/relatorio'
 
@@ -35,8 +35,8 @@ export default function Relatorio({ data: id }) {
       await Promise.all([recarregarOcorrencias(), recarregarViaturas()])
       avisar('Relatório excluído.')
       ir('historico')
-    } catch {
-      avisar('Não foi possível excluir. Verifique a conexão.')
+    } catch (e) {
+      avisar(mensagemErro(e, 'Não foi possível excluir.'))
       setExcluindo(false)
     }
   }

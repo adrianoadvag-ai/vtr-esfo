@@ -133,3 +133,12 @@ export function iniciais(u) {
   const base = (u?.nome || u?.nomeInteiro || '?').trim().split(/\s+/)
   return (base.length > 1 ? base[0][0] + base[base.length - 1][0] : base[0].slice(0, 2)).toUpperCase()
 }
+
+// Mensagem de erro clara: separa "sem permissão no banco" de "sem conexão"
+export function mensagemErro(e, padrao = 'Não foi possível concluir.') {
+  const c = e?.code || ''
+  if (c === 'permission-denied' || /insufficient permissions/i.test(e?.message || ''))
+    return 'O banco recusou a alteração: as regras do Firebase precisam ser atualizadas (ou você não tem essa permissão).'
+  if (c === 'unavailable' || (typeof navigator !== 'undefined' && !navigator.onLine)) return 'Sem conexão com a internet. Tente de novo.'
+  return padrao
+}

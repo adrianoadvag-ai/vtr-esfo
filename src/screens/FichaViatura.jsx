@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useApp } from '../App'
 import { Cabecalho, Icone, Selo, SeloNivel, useCarregar } from '../components/base'
 import { SITUACOES, podeGerirViaturas } from '../config'
-import { combustivelTexto, dataBR, dataCurta, km } from '../lib/formato'
+import { combustivelTexto, dataBR, dataCurta, km, mensagemErro } from '../lib/formato'
 import { leiturasDa, recorrencias, serieKm, trocasDa } from '../lib/frota'
 import { trocaDeOleo } from '../lib/vistoria'
 
@@ -47,8 +47,8 @@ export default function FichaViatura({ id }) {
       await api.salvarViatura({ ...vtr, situacao: nova })
       await recarregarViaturas()
       avisar(`VTR ${vtr.prefixo}: ${SITUACOES[nova].toLowerCase()}.`)
-    } catch {
-      avisar('Não foi possível mudar a situação. Verifique a conexão.')
+    } catch (e) {
+      avisar(mensagemErro(e, 'Não foi possível mudar a situação.'))
     } finally {
       setMudando(false)
     }

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useApp } from '../App'
 import { Cabecalho, Icone, Selo } from '../components/base'
 import { SITUACOES, podeGerirViaturas } from '../config'
-import { dataBR, hojeISO, km, nomeCompleto } from '../lib/formato'
+import { dataBR, hojeISO, km, mensagemErro, nomeCompleto } from '../lib/formato'
 import { trocaDeOleo } from '../lib/vistoria'
 
 export default function Viaturas() {
@@ -124,8 +124,8 @@ export function EditarViatura({ id }) {
       await recarregarViaturas()
       avisar(`VTR ${f.prefixo} excluída.`)
       ir('viaturas')
-    } catch {
-      avisar('Não foi possível excluir. Verifique a conexão.')
+    } catch (e) {
+      avisar(mensagemErro(e, 'Não foi possível excluir.'))
     }
   }
 

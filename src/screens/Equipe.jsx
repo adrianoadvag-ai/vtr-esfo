@@ -3,7 +3,7 @@ import { useApp } from '../App'
 import { Avatar, Cabecalho, Icone, Selo } from '../components/base'
 import { FUNCOES, PERFIS, dadosCompletos, funcaoDe, perfilPara, podeGerir } from '../config'
 import { proximosServicos } from '../lib/escala'
-import { dataCurta, linkWhatsApp, nomeCompleto, soDigitos, telefoneBR } from '../lib/formato'
+import { dataCurta, linkWhatsApp, mensagemErro, nomeCompleto, soDigitos, telefoneBR } from '../lib/formato'
 
 const PELOTOES = ['1º Pelotão Alfa', '1º Pelotão Bravo', '1º Pelotão Charlie', '2º Pelotão Alfa', '2º Pelotão Bravo', '2º Pelotão Charlie']
 const porNome = (a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR')
@@ -29,8 +29,8 @@ export default function Equipe() {
       await api.definirFuncao(u.id, { perfil: perfilPara(u, funcao), funcao })
       await recarregarUsuarios()
       avisar(`${nomeCompleto(u)} liberado como ${FUNCOES[funcao].nome.toLowerCase()}.`)
-    } catch {
-      avisar('Não foi possível liberar. Verifique a conexão.')
+    } catch (e) {
+      avisar(mensagemErro(e, 'Não foi possível liberar.'))
     }
   }
 
@@ -165,8 +165,8 @@ export function Integrante({ id }) {
       await api.definirFuncao(u.id, proprio ? { funcao } : { perfil: perfilPara(u, funcao), funcao })
       await recarregarUsuarios()
       avisar(`${nomeCompleto(u)}: ${FUNCOES[funcao].nome.toLowerCase()}.`)
-    } catch {
-      avisar('Não foi possível mudar a função. Verifique a conexão.')
+    } catch (e) {
+      avisar(mensagemErro(e, 'Não foi possível mudar a função.'))
     }
   }
 
@@ -176,8 +176,8 @@ export function Integrante({ id }) {
       await api.definirFuncao(u.id, { perfil: admin ? 'admin' : funcao === 'coordenador' ? 'coordenador' : 'vistoriador' })
       await recarregarUsuarios()
       avisar(admin ? `${nomeCompleto(u)} agora é administrador do app.` : `${nomeCompleto(u)} deixou de ser administrador.`)
-    } catch {
-      avisar('Não foi possível mudar o acesso.')
+    } catch (e) {
+      avisar(mensagemErro(e, 'Não foi possível mudar o acesso.'))
     }
   }
 
