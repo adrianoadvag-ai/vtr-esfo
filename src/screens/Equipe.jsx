@@ -7,6 +7,13 @@ import { dataCurta, linkWhatsApp, nomeCompleto, soDigitos, telefoneBR } from '..
 
 const PELOTOES = ['1º Pelotão Alfa', '1º Pelotão Bravo', '1º Pelotão Charlie', '2º Pelotão Alfa', '2º Pelotão Bravo', '2º Pelotão Charlie']
 const porNome = (a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR')
+
+// A lista de integrantes sai separada por função
+const GRUPOS = [
+  { nome: 'Coordenação', perfis: ['admin', 'coordenador'] },
+  { nome: 'Supervisão', perfis: ['supervisao'] },
+  { nome: 'Vistoriadores', perfis: ['vistoriador'] },
+]
 const voltarOu = (rota) => (window.history.length > 1 ? window.history.back() : (window.location.hash = `/${rota}`))
 
 // Lista de integrantes: todos veem; o coordenador também libera os acessos aqui
@@ -60,24 +67,37 @@ export default function Equipe() {
           </>
         )}
 
-        <h2 className="secao">Integrantes</h2>
-        <ul className="bloco vtr-lista">
-          {ativos.map((u) => (
-            <li key={u.id}>
-              <button className="pessoa" onClick={() => ir(`integrante/${u.id}`)}>
-                <Avatar u={u} />
-                <span>
-                  <span className="nome">
-                    {nomeCompleto(u)}
-                    {u.id === usuario.id && <span className="detalhe"> (você)</span>}
-                  </span>
-                  <span className="detalhe">{[u.pelotao, u.perfil !== 'vistoriador' && PERFIS[u.perfil]].filter(Boolean).join(' · ') || 'Dados não preenchidos'}</span>
-                </span>
-                <Icone nome="ChevronRight" style={{ color: 'var(--tinta-2)' }} />
-              </button>
-            </li>
-          ))}
-        </ul>
+        {GRUPOS.map((g) => {
+          const membros = ativos.filter((u) => g.perfis.includes(u.perfil))
+          if (!membros.length) return null
+          return (
+            <section key={g.nome}>
+              <h2 className="secao">
+                {g.nome} ({membros.length})
+              </h2>
+              <ul className="bloco vtr-lista">
+                {membros.map((u) => (
+                  <li key={u.id}>
+                    <button className="pessoa" onClick={() => ir(`integrante/${u.id}`)}>
+                      <Avatar u={u} />
+                      <span>
+                        <span className="nome">
+                          {nomeCompleto(u)}
+                          {u.id === usuario.id && <span className="detalhe"> (você)</span>}
+                        </span>
+                        <span className="detalhe">
+                          {/* Na coordenação, distingue o administrador do coordenador */}
+                          {[u.pelotao, u.perfil === 'admin' && PERFIS.admin].filter(Boolean).join(' · ') || 'Dados não preenchidos'}
+                        </span>
+                      </span>
+                      <Icone nome="ChevronRight" style={{ color: 'var(--tinta-2)' }} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )
+        })}
 
         {api.modo === 'demo' && gestor && (
           <button
