@@ -88,17 +88,18 @@ export default function Hoje() {
           </div>
         ) : (
           <ul className="bloco vtr-lista">
-            {lista.map((v) => {
+            {lista.map((v, i) => {
               const a = avaliacoes[v.id]
               const temRegistro = Boolean(registros[v.id])
               const ja = enviadaEm[v.id]
               return (
                 <li key={v.id}>
                   <button
-                    className={`vtr-linha ${!exigida(v) ? 'inativa' : ''}`}
+                    className={`vtr-linha com-num ${!exigida(v) ? 'inativa' : ''}`}
                     onClick={() => ir(`vistoria/${v.id}`)}
-                    aria-label={`Viatura ${v.prefixo}, ${v.modelo}`}
+                    aria-label={`${i + 1}. Viatura ${v.prefixo}, ${v.modelo}`}
                   >
+                    <span className="num">{i + 1}</span>
                     <span className="prefixo">{v.prefixo}</span>
                     <span>
                       <span className="modelo">{v.modelo}</span>

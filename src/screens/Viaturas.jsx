@@ -47,11 +47,12 @@ export default function Viaturas() {
           </div>
         ) : (
           <ul className="bloco vtr-lista">
-            {viaturas.map((v) => {
+            {viaturas.map((v, i) => {
               const t = trocaDeOleo(v, null, hoje)
               return (
                 <li key={v.id}>
-                  <button className="vtr-linha" onClick={() => gestor && ir(`viatura/${v.id}`)} disabled={!gestor} style={{ cursor: gestor ? 'pointer' : 'default' }}>
+                  <button className="vtr-linha com-num" onClick={() => gestor && ir(`viatura/${v.id}`)} disabled={!gestor} style={{ cursor: gestor ? 'pointer' : 'default' }}>
+                    <span className="num">{i + 1}</span>
                     <span className="prefixo">{v.prefixo}</span>
                     <span>
                       <span className="modelo">{v.modelo}</span>
