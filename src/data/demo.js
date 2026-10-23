@@ -4,7 +4,7 @@ import { VIATURAS_INICIAIS, USUARIOS_DEMO, escalaDemo } from './seed'
 import { blobParaDataURL, comprimirFoto } from '../lib/foto'
 import { travaAtiva } from '../lib/vistoria'
 
-const CHAVE = 'vtr-esfo-demo-v3'
+const CHAVE = 'vtr-esfo-demo-v4'
 const memoria = { dados: null }
 
 function vazio() {
@@ -76,6 +76,12 @@ export async function definirPerfil(uid, perfil) {
   gravar()
 }
 
+export async function definirFuncao(uid, mudanca) {
+  const u = ler().usuarios.find((x) => x.id === uid)
+  if (u) Object.assign(u, mudanca)
+  gravar()
+}
+
 export async function salvarMeusDados(uid, dados) {
   const u = ler().usuarios.find((x) => x.id === uid)
   if (u) for (const k of ['posto', 'nome', 'nomeInteiro', 'pelotao', 'telefone']) u[k] = String(dados[k] || '').trim()
@@ -86,6 +92,10 @@ export function observarEscala(semana, cb) {
   const emitir = () => cb(copia((ler().escalas || {})[semana] || null))
   emitir()
   return ouvir(emitir)
+}
+
+export async function listarEscalas() {
+  return copia(Object.entries(ler().escalas || {}).map(([k, v]) => ({ ...v, id: k })))
 }
 
 export async function lerEscala(semana) {
@@ -167,12 +177,12 @@ export async function cancelarRegistro(vid, vtrId) {
   gravar()
 }
 
-export async function enviarVistoria(vid, data, { relatorio, responsaveis, supervisor, limpeza, kms, novasOcorrencias, por, incluidas, restantes, proxima }) {
+export async function enviarVistoria(vid, data, { relatorio, responsaveis, auxiliares, supervisor, limpeza, kms, novasOcorrencias, por, incluidas, restantes, proxima }) {
   const d = ler()
   const v = d.vistorias[vid]
   if (!v) throw new Error('Nada para enviar.')
   if (v.status === 'enviada') throw new Error('Esta rodada já foi enviada.')
-  Object.assign(v, { status: 'enviada', relatorio, responsaveis, supervisor: supervisor || '', limpeza, incluidas, enviadaEm: Date.now(), enviadaPor: por })
+  Object.assign(v, { status: 'enviada', relatorio, responsaveis, auxiliares: auxiliares || [], supervisor: supervisor || '', limpeza, incluidas, enviadaEm: Date.now(), enviadaPor: por })
   for (const [vtrId, k] of Object.entries(kms)) {
     const vtr = d.viaturas.find((x) => x.id === vtrId)
     if (vtr && k > (vtr.kmAtual || 0)) vtr.kmAtual = k
@@ -186,6 +196,17 @@ export async function listarVistorias() {
   return copia(Object.entries(ler().vistorias).map(([k, v]) => ({ ...v, id: k })))
     .filter((v) => v.status === 'enviada')
     .sort((a, b) => (b.enviadaEm || 0) - (a.enviadaEm || 0))
+}
+
+export async function excluirRelatorio(vid, { ocorrencias = [], kms = {} }) {
+  const d = ler()
+  delete d.vistorias[vid]
+  d.ocorrencias = d.ocorrencias.filter((o) => !ocorrencias.includes(o.id))
+  for (const [v, k] of Object.entries(kms)) {
+    const vtr = d.viaturas.find((x) => x.id === v)
+    if (vtr) vtr.kmAtual = k
+  }
+  gravar()
 }
 
 export async function listarOcorrencias() {

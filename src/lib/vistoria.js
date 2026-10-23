@@ -84,7 +84,7 @@ export function avaliar(vtr, reg = {}, hoje) {
 export const exigida = (vtr) => (vtr.situacao || 'ativa') === 'ativa'
 
 // Monta o texto do relatório no formato usado no WhatsApp
-export function montarRelatorio({ data, viaturas, registros, limpeza, responsaveis, supervisor, pendenciasAbertas = [], totalFrota, agora = new Date() }) {
+export function montarRelatorio({ data, viaturas, registros, limpeza, responsaveis, auxiliares = [], supervisor, pendenciasAbertas = [], totalFrota, agora = new Date() }) {
   const L = []
   L.push(`Com licença, Senhores. ${saudacao(agora)}`)
   L.push('')
@@ -172,6 +172,11 @@ export function montarRelatorio({ data, viaturas, registros, limpeza, responsave
     L.push('')
     L.push('Responsável do dia:')
     for (const n of responsaveis) L.push(n)
+  }
+  if (auxiliares.length) {
+    L.push('')
+    L.push('Auxiliar do responsável:')
+    for (const n of auxiliares) L.push(n)
   }
   if (supervisor) {
     L.push('')

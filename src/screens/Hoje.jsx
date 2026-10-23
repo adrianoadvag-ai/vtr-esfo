@@ -170,7 +170,11 @@ function CartaoEscala({ hoje, escalas, usuarios, usuario, ir }) {
   const resp = (d?.responsaveis || []).map((p) => p.nome).filter(Boolean)
   return (
     <button className={`bloco cartao-escala ${papel ? 'meu' : ''}`} onClick={() => ir('escala')}>
-      {papel && <div className="faixa-servico">{papel === 'responsavel' ? 'Você está de serviço hoje' : 'Você supervisiona hoje'}</div>}
+      {papel && (
+        <div className="faixa-servico">
+          {papel === 'responsavel' ? 'Você é o responsável de hoje' : papel === 'auxiliar' ? 'Você é o auxiliar de hoje' : 'Você supervisiona hoje'}
+        </div>
+      )}
       {rotina && (
         <>
           <div className="linha-escala">
@@ -178,6 +182,10 @@ function CartaoEscala({ hoje, escalas, usuarios, usuario, ir }) {
             <span>
               <small>{resp.length > 1 ? 'Responsáveis' : 'Responsável'} hoje</small>
               {juntar(resp) || 'A definir'}
+            </span>
+            <span>
+              <small>Auxiliar</small>
+              {juntar((d?.auxiliares || []).map((p) => p.nome).filter(Boolean)) || 'A definir'}
             </span>
             <span>
               <small>Supervisor</small>
@@ -193,7 +201,7 @@ function CartaoEscala({ hoje, escalas, usuarios, usuario, ir }) {
       {proximo && (
         <div className="proximo-servico">
           Seu próximo serviço: <strong>{dataCurta(proximo.dia)}</strong>
-          {proximo.papel === 'supervisor' ? ' (supervisor)' : ''}
+          {proximo.papel === 'supervisor' ? ' (supervisor)' : proximo.papel === 'auxiliar' ? ' (auxiliar)' : ''}
         </div>
       )}
     </button>

@@ -1228,7 +1228,7 @@ button.pessoa:active,
 }
 .cartao-escala .linha-escala {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto repeat(3, minmax(0, 1fr));
   gap: 10px 14px;
   align-items: start;
   padding: 12px 14px 4px;
@@ -1414,4 +1414,81 @@ button.pessoa:active,
 }
 .seletor-mes button:disabled {
   opacity: 0.35;
+}
+
+/* Liberar acesso escolhendo a função */
+.liberar {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+}
+.liberar + .liberar {
+  border-top: 1px solid var(--linha);
+}
+.liberar-acoes {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+/* Escala: aviso de nome repetido e total de escalas */
+.aviso-escala {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 14px 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--atencao-fundo);
+  color: var(--atencao);
+  font-size: 14px;
+}
+.totais-escala {
+  display: grid;
+  gap: 12px;
+}
+@media (min-width: 640px) {
+  .totais-escala {
+    grid-template-columns: repeat(3, 1fr);
+    align-items: start;
+  }
+}
+.totais-escala .bloco + .bloco {
+  margin-top: 0;
+}
+.totais-escala h3 {
+  margin: 0;
+  padding: 10px 14px;
+  font-size: 15px;
+  color: #fff;
+  background: var(--noite-2);
+  border-radius: var(--raio) var(--raio) 0 0;
+}
+.totais-escala ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.totais-escala li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+}
+.totais-escala li + li {
+  border-top: 1px solid var(--linha);
+}
+.totais-escala li strong {
+  font-family: var(--fonte-num);
+  font-size: 20px;
+}
+.totais-escala .link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--tinta);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }

@@ -112,6 +112,8 @@ export async function listarUsuarios() {
 }
 
 export const definirPerfil = (uid, perfil) => updateDoc(doc(db, 'usuarios', uid), { perfil })
+// Liberação e função na missão (perfil e função mudam juntos)
+export const definirFuncao = (uid, mudanca) => updateDoc(doc(db, 'usuarios', uid), mudanca)
 
 // Dados do próprio integrante (as regras não deixam mudar o perfil por aqui)
 const CAMPOS_PESSOAIS = ['posto', 'nome', 'nomeInteiro', 'pelotao', 'telefone']
@@ -127,6 +129,11 @@ export function observarEscala(semana, cb) {
     (s) => cb(s.exists() ? s.data() : null),
     () => cb(null),
   )
+}
+
+// Todas as escalas (para o total de escalas de cada um)
+export async function listarEscalas() {
+  return lista(await getDocs(collection(db, 'escalas')))
 }
 
 // Lê a escala de uma semana uma vez (para o relatório mensal)
@@ -226,11 +233,11 @@ export async function cancelarRegistro(vid, vtrId) {
   await updateDoc(ref, new FieldPath('registros', vtrId), deleteField(), new FieldPath('travas', vtrId), deleteField())
 }
 
-export async function enviarVistoria(vid, data, { relatorio, responsaveis, supervisor, limpeza, kms, novasOcorrencias, por, viaturas, incluidas, restantes, proxima }) {
+export async function enviarVistoria(vid, data, { relatorio, responsaveis, auxiliares, supervisor, limpeza, kms, novasOcorrencias, por, viaturas, incluidas, restantes, proxima }) {
   const b = writeBatch(db)
   b.set(
     doc(db, 'vistorias', vid),
-    { status: 'enviada', relatorio, responsaveis, supervisor: supervisor || '', limpeza, incluidas, enviadaEm: Date.now(), enviadaPor: por },
+    { status: 'enviada', relatorio, responsaveis, auxiliares: auxiliares || [], supervisor: supervisor || '', limpeza, incluidas, enviadaEm: Date.now(), enviadaPor: por },
     { merge: true },
   )
   for (const [v, k] of Object.entries(kms)) {
@@ -247,6 +254,16 @@ export async function listarVistorias() {
   // Ordena no aparelho: assim não é preciso criar índice composto no Firestore
   const q = query(collection(db, 'vistorias'), where('status', '==', 'enviada'))
   return lista(await getDocs(q)).sort((a, b) => (b.enviadaEm || 0) - (a.enviadaEm || 0))
+}
+
+// Exclui um relatório enviado (ex.: teste), as pendências e fotos que ele criou, e corrige o KM das VTR
+export async function excluirRelatorio(vid, { ocorrencias = [], fotos = [], kms = {} }) {
+  const b = writeBatch(db)
+  b.delete(doc(db, 'vistorias', vid))
+  for (const o of ocorrencias) b.delete(doc(db, 'ocorrencias', o))
+  for (const f of fotos) if (f?.startsWith('fs:')) b.delete(doc(db, 'fotos', f.slice(3)))
+  for (const [v, k] of Object.entries(kms)) b.update(doc(db, 'viaturas', v), { kmAtual: k })
+  await b.commit()
 }
 
 export async function listarOcorrencias() {

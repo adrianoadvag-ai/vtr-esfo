@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useApp } from '../App'
-import { Cabecalho, Icone, Selo } from '../components/base'
-import { podeGerir } from '../config'
-import { diasDa, papelNoDia, rotinaDo, semanaPadrao, textoEscala, vagasDo } from '../lib/escala'
+import { Cabecalho, Icone, Selo, useCarregar } from '../components/base'
+import { FUNCOES, funcaoDe, podeMontarEscala } from '../config'
+import { diasDa, papelNoDia, rotinaDo, semanaPadrao, textoEscala, totaisEscala, vagasAuxiliar, vagasDo } from '../lib/escala'
 import { NOMES_DIAS, dataExtensa, diaDaSemana, diaMes, hojeISO, horaCurta, nomeCompleto, somarDias } from '../lib/formato'
 
 export default function Escala({ semana: semanaRota }) {
-  const { api, usuario, usuarios, hoje, ir, avisar } = useApp()
+  const { api, usuario, usuarios, hoje, ir, avisar, enviadasHoje } = useApp()
   const atual = semanaPadrao(hoje)
   const semana = /^\d{4}-\d{2}-\d{2}$/.test(semanaRota || '') ? semanaRota : atual
   const [escala, setEscala] = useState(undefined)
-  const gestor = podeGerir(usuario)
+  const gestor = podeMontarEscala(usuario)
   const dias = diasDa(semana)
   const ativos = usuarios.filter((u) => u.perfil !== 'pendente').sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR'))
 
@@ -30,7 +30,11 @@ export default function Escala({ semana: semanaRota }) {
     dias: Object.fromEntries(
       Object.entries(escala.dias || {}).map(([d, v]) => [
         d,
-        { responsaveis: (v.responsaveis || []).map((p) => p && { ...p, nome: nomeDe(p) }), supervisor: v.supervisor && { ...v.supervisor, nome: nomeDe(v.supervisor) } },
+        {
+          responsaveis: (v.responsaveis || []).map((p) => p && { ...p, nome: nomeDe(p) }),
+          auxiliares: (v.auxiliares || []).map((p) => p && { ...p, nome: nomeDe(p) }),
+          supervisor: v.supervisor && { ...v.supervisor, nome: nomeDe(v.supervisor) },
+        },
       ]),
     ),
   }
@@ -39,6 +43,7 @@ export default function Escala({ semana: semanaRota }) {
     const antes = escala?.dias?.[dia] || {}
     const valor = {
       responsaveis: Array.from({ length: vagasDo(dia) }, (_, i) => antes.responsaveis?.[i] || null),
+      auxiliares: Array.from({ length: vagasAuxiliar() }, (_, i) => antes.auxiliares?.[i] || null),
       supervisor: antes.supervisor || null,
       ...mudanca,
     }
@@ -93,6 +98,7 @@ export default function Escala({ semana: semanaRota }) {
             const vagas = vagasDo(dia)
             const papel = papelNoDia(d, usuario)
             const ehHoje = dia === hoje
+            const dobrados = repetidos(d)
             return (
               <section key={dia} className={`bloco dia-escala ${ehHoje ? 'hoje' : ''} ${dia < hoje ? 'passado' : ''}`} aria-label={`${NOMES_DIAS[diaDaSemana(dia)]}, ${diaMes(dia)}`}>
                 <div className="dia-topo">
@@ -108,29 +114,40 @@ export default function Escala({ semana: semanaRota }) {
                   <Icone nome="Wrench" tamanho={15} />
                   <span>{rotinaDo(dia)}</span>
                 </div>
-                <div className="dia-linha">
-                  <span className="dia-rotulo">{vagas > 1 ? 'Responsáveis' : 'Responsável'}</span>
-                  <div className="dia-nomes">
-                    {Array.from({ length: vagas }, (_, i) => {
-                      const p = d?.responsaveis?.[i]
-                      return gestor ? (
-                        <SeletorPessoa
-                          key={i}
-                          valor={p}
-                          ativos={ativos}
-                          rotulo={`${vagas > 1 ? `Responsável ${i + 1}` : 'Responsável'} de ${NOMES_DIAS[diaDaSemana(dia)]}`}
-                          onChange={(novo) => {
-                            const r = Array.from({ length: vagas }, (_, j) => d?.responsaveis?.[j] || null)
-                            r[i] = novo
-                            salvar(dia, { responsaveis: r })
-                          }}
-                        />
-                      ) : (
-                        <NomePessoa key={i} p={p} ir={ir} />
-                      )
-                    })}
+                {dobrados.length > 0 && (
+                  <div className="aviso-escala">
+                    <Icone nome="TriangleAlert" tamanho={16} /> {dobrados.join(', ')} {dobrados.length > 1 ? 'aparecem' : 'aparece'} duas vezes neste dia.
                   </div>
-                </div>
+                )}
+                {[
+                  { chave: 'auxiliares', funcao: 'auxiliar', rotulo: 'Auxiliar', vagas: vagasAuxiliar() },
+                  { chave: 'responsaveis', funcao: 'responsavel', rotulo: vagas > 1 ? 'Responsáveis' : 'Responsável', vagas },
+                ].map((col) => (
+                  <div className="dia-linha" key={col.chave}>
+                    <span className="dia-rotulo">{col.rotulo}</span>
+                    <div className="dia-nomes">
+                      {Array.from({ length: col.vagas }, (_, i) => {
+                        const p = d?.[col.chave]?.[i]
+                        return gestor ? (
+                          <SeletorPessoa
+                            key={i}
+                            valor={p}
+                            ativos={ativos}
+                            funcao={col.funcao}
+                            rotulo={`${col.vagas > 1 ? `${col.rotulo} ${i + 1}` : col.rotulo} de ${NOMES_DIAS[diaDaSemana(dia)]}`}
+                            onChange={(novo) => {
+                              const r = Array.from({ length: col.vagas }, (_, j) => d?.[col.chave]?.[j] || null)
+                              r[i] = novo
+                              salvar(dia, { [col.chave]: r })
+                            }}
+                          />
+                        ) : (
+                          <NomePessoa key={i} p={p} ir={ir} />
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
                 <div className="dia-linha">
                   <span className="dia-rotulo">Supervisor</span>
                   <div className="dia-nomes">
@@ -138,6 +155,7 @@ export default function Escala({ semana: semanaRota }) {
                       <SeletorPessoa
                         valor={d?.supervisor}
                         ativos={ativos}
+                        funcao="supervisor"
                         rotulo={`Supervisor de ${NOMES_DIAS[diaDaSemana(dia)]}`}
                         onChange={(novo) => salvar(dia, { supervisor: novo })}
                       />
@@ -166,10 +184,78 @@ export default function Escala({ semana: semanaRota }) {
         )}
         {!gestor && (
           <p className="tela-sub" style={{ fontSize: 13, textAlign: 'center' }}>
-            Trocas de serviço: fale com o coordenador da missão.
+            Trocas de serviço: fale com os responsáveis da missão.
           </p>
         )}
+
+        <TotalEscalas api={api} usuarios={usuarios} escala={escala} enviadasHoje={enviadasHoje} ir={ir} />
       </main>
+    </>
+  )
+}
+
+// Mesma pessoa em mais de uma vaga no mesmo dia
+function repetidos(d) {
+  if (!d) return []
+  const todos = [...(d.responsaveis || []), ...(d.auxiliares || []), d.supervisor].filter((p) => p?.nome)
+  const vistos = []
+  const dobrados = new Set()
+  for (const p of todos) {
+    if (vistos.some((q) => (p.id ? q.id === p.id : !q.id && q.nome === p.nome))) dobrados.add(p.nome)
+    vistos.push(p)
+  }
+  return [...dobrados]
+}
+
+// Total de escalas de cada um (como na planilha), a partir do primeiro relatório enviado
+function TotalEscalas({ api, usuarios, escala, enviadasHoje, ir }) {
+  const { dados } = useCarregar(async () => {
+    const [escalas, vistorias] = await Promise.all([api.listarEscalas(), api.listarVistorias()])
+    const inicio = vistorias.map((v) => v.data).sort()[0] || null
+    return { escalas, inicio }
+  }, [escala?.atualizadoEm, enviadasHoje.length])
+  if (!dados) return null
+  const grupos = totaisEscala(dados.escalas, dados.inicio, usuarios)
+
+  return (
+    <>
+      <h2 className="secao">Total de escalas</h2>
+      {!dados.inicio ? (
+        <div className="bloco vazio">A contagem começa no dia do primeiro relatório enviado.</div>
+      ) : (
+        <>
+          <p className="tela-sub" style={{ margin: '0 0 10px' }}>
+            Desde {dataExtensa(dados.inicio)}, contando as semanas já lançadas.
+          </p>
+          <div className="totais-escala">
+            {grupos.map((g) => (
+              <section className="bloco" key={g.papel} aria-label={`Total de escalas: ${g.nome}`}>
+                <h3>{g.nome}</h3>
+                {g.lista.length === 0 ? (
+                  <p className="vazio" style={{ padding: 12 }}>
+                    Ninguém com essa função.
+                  </p>
+                ) : (
+                  <ul>
+                    {g.lista.map((p) => (
+                      <li key={p.id || p.nome}>
+                        {p.id ? (
+                          <button className="link" onClick={() => ir(`integrante/${p.id}`)}>
+                            {p.nome}
+                          </button>
+                        ) : (
+                          <span>{p.nome}</span>
+                        )}
+                        <strong>{p.total}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            ))}
+          </div>
+        </>
+      )}
     </>
   )
 }
@@ -193,7 +279,10 @@ function NomePessoa({ p, ir }) {
 }
 
 // Escolha do integrante: lista da equipe ou um nome digitado (quem ainda não tem acesso ao app)
-function SeletorPessoa({ valor, ativos, onChange, rotulo }) {
+function SeletorPessoa({ valor, ativos, onChange, rotulo, funcao }) {
+  // Primeiro quem tem a função da vaga; os demais ficam num grupo à parte (para trocas)
+  const daFuncao = ativos.filter((u) => funcaoDe(u) === funcao)
+  const outros = ativos.filter((u) => funcaoDe(u) !== funcao)
   const digitado = valor && !valor.id
   const [texto, setTexto] = useState(digitado ? valor.nome : '')
   const [digitando, setDigitando] = useState(Boolean(digitado))
@@ -248,11 +337,23 @@ function SeletorPessoa({ valor, ativos, onChange, rotulo }) {
       }}
     >
       <option value="">— a definir —</option>
-      {ativos.map((u) => (
-        <option key={u.id} value={u.id}>
-          {nomeCompleto(u)}
-        </option>
-      ))}
+      <optgroup label={FUNCOES[funcao]?.grupo || 'Equipe'}>
+        {daFuncao.map((u) => (
+          <option key={u.id} value={u.id}>
+            {nomeCompleto(u)}
+          </option>
+        ))}
+      </optgroup>
+      {outros.length > 0 && (
+        <optgroup label="Outros integrantes">
+          {outros.map((u) => (
+            <option key={u.id} value={u.id}>
+              {nomeCompleto(u)}
+              {funcaoDe(u) ? ` (${FUNCOES[funcaoDe(u)].nome.toLowerCase()})` : ''}
+            </option>
+          ))}
+        </optgroup>
+      )}
       <option value="__outro">Outro (digitar nome)…</option>
     </select>
   )

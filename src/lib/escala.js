@@ -1,5 +1,5 @@
 // Regras da escala semanal: dias, vagas, quem está de serviço e texto para o WhatsApp.
-import { ESCALA, ROTINA } from '../config'
+import { ESCALA, FUNCOES, ROTINA, funcaoDe } from '../config'
 import { NOMES_DIAS, dataCurta, diaDaSemana, diaMes, hojeISO, nomeCompleto, segundaDa, somarDias } from './formato'
 
 // No fim de semana, a tela já abre na semana seguinte
@@ -10,6 +10,7 @@ export function semanaPadrao(hoje = hojeISO()) {
 
 export const diasDa = (semana) => ESCALA.dias.map((n) => somarDias(semana, n - 1))
 export const vagasDo = (dia) => ESCALA.vagas[diaDaSemana(dia)] || 1
+export const vagasAuxiliar = () => ESCALA.auxiliares || 1
 export const rotinaDo = (dia) => ROTINA[diaDaSemana(dia)] || ''
 
 // Mesma pessoa: pelo id do cadastro, ou pelo nome quando foi digitado à mão
@@ -18,17 +19,20 @@ export const mesmaPessoa = (p, u) => Boolean(p && u && ((p.id && p.id === u.id) 
 export function papelNoDia(diaEsc, u) {
   if (!diaEsc || !u) return null
   if ((diaEsc.responsaveis || []).some((p) => mesmaPessoa(p, u))) return 'responsavel'
+  if ((diaEsc.auxiliares || []).some((p) => mesmaPessoa(p, u))) return 'auxiliar'
   if (mesmaPessoa(diaEsc.supervisor, u)) return 'supervisor'
   return null
 }
 
-// Quem vistoria como supervisor: o supervisor escalado no dia ou quem tem o perfil Supervisão
-// (desde que não esteja escalado como responsável naquele dia)
+// Quem vistoria como supervisor: o supervisor escalado no dia ou quem tem a função de supervisor
+// (desde que não esteja escalado como responsável ou auxiliar naquele dia)
 export function atuaComoSupervisor(diaEsc, u) {
   const papel = papelNoDia(diaEsc, u)
-  if (papel === 'responsavel') return false
-  return papel === 'supervisor' || u?.perfil === 'supervisao'
+  if (papel === 'responsavel' || papel === 'auxiliar') return false
+  return papel === 'supervisor' || funcaoDe(u) === 'supervisor'
 }
+
+export const nomesAuxiliares = (diaEsc) => (diaEsc?.auxiliares || []).filter((p) => p?.nome).map((p) => p.nome)
 
 export const nomesResponsaveis = (diaEsc) => (diaEsc?.responsaveis || []).filter((p) => p?.nome).map((p) => p.nome)
 
@@ -58,6 +62,7 @@ export function textoEscala(semana, escala) {
     const resp = nomesResponsaveis(d)
     L.push('', `*${NOMES_DIAS[diaDaSemana(dia)]} – ${diaMes(dia)}*`)
     L.push(`${resp.length > 1 ? 'Responsáveis' : 'Responsável'}: ${juntar(resp) || 'a definir'}`)
+    L.push(`Auxiliar: ${juntar(nomesAuxiliares(d)) || 'a definir'}`)
     L.push(`Supervisor: ${d?.supervisor?.nome || 'a definir'}`)
     L.push(`Rotina: ${rotinaDo(dia)}`)
   }
@@ -79,6 +84,53 @@ export function escalaDoDia(escalas, dia, usuarios) {
   if (!d) return null
   return {
     responsaveis: (d.responsaveis || []).filter(Boolean).map((p) => ({ ...p, nome: nomeAtual(p, usuarios) })),
+    auxiliares: (d.auxiliares || []).filter(Boolean).map((p) => ({ ...p, nome: nomeAtual(p, usuarios) })),
     supervisor: d.supervisor ? { ...d.supervisor, nome: nomeAtual(d.supervisor, usuarios) } : null,
   }
 }
+
+// Total de escalas de cada um, por papel, a partir do primeiro dia de missão com relatório
+// (como na planilha: inclui as semanas já lançadas)
+export const PAPEIS = [
+  { papel: 'responsavel', nome: 'Responsáveis', funcao: 'responsavel' },
+  { papel: 'auxiliar', nome: 'Auxiliares', funcao: 'auxiliar' },
+  { papel: 'supervisor', nome: 'Supervisores', funcao: 'supervisor' },
+]
+
+export function totaisEscala(escalas = [], inicio, usuarios = []) {
+  const totais = Object.fromEntries(PAPEIS.map((p) => [p.papel, new Map()]))
+  const chave = (p) => p.id || `nome:${p.nome}`
+  const somar = (papel, p) => {
+    if (!p?.nome && !p?.id) return
+    const t = totais[papel]
+    const k = chave(p)
+    const u = p.id && usuarios.find((x) => x.id === p.id)
+    const atual = t.get(k) || { id: p.id, nome: u ? nomeCompleto(u) : p.nome, total: 0 }
+    atual.total += 1
+    t.set(k, atual)
+  }
+  if (inicio) {
+    for (const e of escalas) {
+      for (const [dia, d] of Object.entries(e?.dias || {})) {
+        if (dia < inicio || !d) continue
+        for (const p of d.responsaveis || []) somar('responsavel', p)
+        for (const p of d.auxiliares || []) somar('auxiliar', p)
+        somar('supervisor', d.supervisor)
+      }
+    }
+  }
+  // Quem tem a função e ainda não foi escalado aparece com zero
+  for (const { papel, funcao } of PAPEIS) {
+    for (const u of usuarios) {
+      if (u.perfil === 'pendente' || funcaoDe(u) !== funcao) continue
+      if (!totais[papel].has(u.id)) totais[papel].set(u.id, { id: u.id, nome: nomeCompleto(u), total: 0 })
+    }
+  }
+  return PAPEIS.map((p) => ({
+    ...p,
+    lista: [...totais[p.papel].values()].sort((a, b) => b.total - a.total || a.nome.localeCompare(b.nome, 'pt-BR')),
+  }))
+}
+
+// Nomes das funções (para os rótulos)
+export const nomeFuncao = (f) => FUNCOES[f]?.nome || ''

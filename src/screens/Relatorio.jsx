@@ -1,15 +1,45 @@
 import { useState } from 'react'
 import { useApp } from '../App'
 import { Cabecalho, Icone, SeloNivel, brasaoApmg, brasaoEsfo, useCarregar } from '../components/base'
-import { dataExtensa, horaCurta } from '../lib/formato'
+import { podeExcluirRelatorio } from '../config'
+import { dataBR, dataExtensa, horaCurta } from '../lib/formato'
+import { planoExclusao } from '../lib/frota'
 import { estruturar, gerarPdf } from '../lib/relatorio'
 
 export default function Relatorio({ data: id }) {
-  const { api, ir, avisar, enviadasHoje } = useApp()
+  const { api, ir, avisar, enviadasHoje, usuario, ocorrencias, viaturas, recarregarOcorrencias, recarregarViaturas } = useApp()
   const { dados: vistorias, carregando } = useCarregar(() => api.listarVistorias(), [id, enviadasHoje.length])
   const doc = enviadasHoje.find((v) => v.id === id) || vistorias?.find((v) => v.id === id)
   const [verTexto, setVerTexto] = useState(false)
   const [gerando, setGerando] = useState(false)
+  const [excluindo, setExcluindo] = useState(false)
+
+  // Excluir relatório (ex.: vistorias de teste): responsáveis, supervisores e coordenação
+  async function excluir() {
+    const plano = planoExclusao(doc, { ocorrencias, viaturas, vistorias: vistorias || [] })
+    const extras = [
+      plano.ocorrencias.length && `${plano.ocorrencias.length} ${plano.ocorrencias.length === 1 ? 'pendência aberta' : 'pendências abertas'} por ele`,
+      plano.fotos.length && `${plano.fotos.length} ${plano.fotos.length === 1 ? 'foto' : 'fotos'}`,
+    ].filter(Boolean)
+    const kms = Object.keys(plano.kms).length
+    const ok = window.confirm(
+      `Excluir o relatório de ${dataBR(doc.data)} às ${horaCurta(doc.enviadaEm)}, enviado por ${doc.enviadaPor}?\n\n` +
+        (extras.length ? `Também serão excluídas: ${extras.join(' e ')}.\n` : '') +
+        (kms ? `${kms === 1 ? 'A viatura volta' : `As ${kms} viaturas voltam`} ao KM do relatório anterior.\n` : '') +
+        '\nIsto não pode ser desfeito.',
+    )
+    if (!ok) return
+    setExcluindo(true)
+    try {
+      await api.excluirRelatorio(doc.id, { ocorrencias: plano.ocorrencias.map((o) => o.id), fotos: plano.fotos, kms: plano.kms })
+      await Promise.all([recarregarOcorrencias(), recarregarViaturas()])
+      avisar('Relatório excluído.')
+      ir('historico')
+    } catch {
+      avisar('Não foi possível excluir. Verifique a conexão.')
+      setExcluindo(false)
+    }
+  }
 
   const nomeArquivo = doc ? `relatorio-viaturas-${doc.id}.pdf` : ''
   const podeCompartilharArquivo =
@@ -116,6 +146,12 @@ export default function Relatorio({ data: id }) {
             ) : (
               <Formatado r={r} />
             )}
+
+            {podeExcluirRelatorio(usuario) && (
+              <button className="botao texto perigo cheio" style={{ marginTop: 16 }} onClick={excluir} disabled={excluindo}>
+                <Icone nome="Trash2" /> {excluindo ? 'Excluindo…' : 'Excluir este relatório'}
+              </button>
+            )}
           </>
         )}
       </main>
@@ -194,6 +230,14 @@ function Formatado({ r }) {
           <div style={{ marginTop: 8 }}>
             <strong>Responsável do dia:</strong>
             {r.responsaveis.map((n) => (
+              <div key={n}>{n}</div>
+            ))}
+          </div>
+        )}
+        {r.auxiliares.length > 0 && (
+          <div style={{ marginTop: 8 }}>
+            <strong>Auxiliar do responsável:</strong>
+            {r.auxiliares.map((n) => (
               <div key={n}>{n}</div>
             ))}
           </div>

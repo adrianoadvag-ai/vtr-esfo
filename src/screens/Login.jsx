@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import api from '../data'
 import { Brasoes } from '../components/base'
-import { APP_NOME, PERFIS } from '../config'
+import { APP_NOME, FUNCOES, PERFIS, funcaoDe } from '../config'
 
 const ERROS = {
   'auth/invalid-credential': 'E-mail ou senha incorretos.',
@@ -41,7 +41,7 @@ function LoginDemo() {
             <span>
               {u.posto} {u.nome}
             </span>
-            <small>{PERFIS[u.perfil]}</small>
+            <small>{funcaoDe(u) ? FUNCOES[funcaoDe(u)].nome : PERFIS[u.perfil]}</small>
           </button>
         ))}
       </div>

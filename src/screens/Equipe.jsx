@@ -1,19 +1,16 @@
 import { useState } from 'react'
 import { useApp } from '../App'
 import { Avatar, Cabecalho, Icone, Selo } from '../components/base'
-import { PERFIS, dadosCompletos, podeGerir } from '../config'
+import { FUNCOES, PERFIS, dadosCompletos, funcaoDe, perfilPara, podeGerir } from '../config'
 import { proximosServicos } from '../lib/escala'
 import { dataCurta, linkWhatsApp, nomeCompleto, soDigitos, telefoneBR } from '../lib/formato'
 
 const PELOTOES = ['1º Pelotão Alfa', '1º Pelotão Bravo', '1º Pelotão Charlie', '2º Pelotão Alfa', '2º Pelotão Bravo', '2º Pelotão Charlie']
 const porNome = (a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR')
 
-// A lista de integrantes sai separada por função
-const GRUPOS = [
-  { nome: 'Coordenação', perfis: ['admin', 'coordenador'] },
-  { nome: 'Supervisão', perfis: ['supervisao'] },
-  { nome: 'Vistoriadores', perfis: ['vistoriador'] },
-]
+// A lista de integrantes sai separada por função na missão
+const GRUPOS = [...Object.entries(FUNCOES).map(([k, f]) => ({ funcao: k, nome: f.grupo })), { funcao: null, nome: 'Sem função definida' }]
+const NOMES_PAPEL = { responsavel: 'Responsável', auxiliar: 'Auxiliar', supervisor: 'Supervisor' }
 const voltarOu = (rota) => (window.history.length > 1 ? window.history.back() : (window.location.hash = `/${rota}`))
 
 // Lista de integrantes: todos veem; o coordenador também libera os acessos aqui
@@ -24,10 +21,17 @@ export default function Equipe() {
   const ativos = usuarios.filter((u) => u.perfil !== 'pendente').sort(porNome)
   const eu = usuarios.find((u) => u.id === usuario.id) || usuario
 
+  const [funcaoNova, setFuncaoNova] = useState({})
   async function liberar(u) {
-    await api.definirPerfil(u.id, 'vistoriador')
-    await recarregarUsuarios()
-    avisar(`${nomeCompleto(u)} liberado.`)
+    const funcao = funcaoNova[u.id]
+    if (!funcao) return avisar('Escolha a função antes de liberar.')
+    try {
+      await api.definirFuncao(u.id, { perfil: perfilPara(u, funcao), funcao })
+      await recarregarUsuarios()
+      avisar(`${nomeCompleto(u)} liberado como ${FUNCOES[funcao].nome.toLowerCase()}.`)
+    } catch {
+      avisar('Não foi possível liberar. Verifique a conexão.')
+    }
   }
 
   return (
@@ -52,15 +56,32 @@ export default function Equipe() {
             <h2 className="secao">Aguardando liberação ({pendentes.length})</h2>
             <ul className="bloco vtr-lista">
               {pendentes.map((u) => (
-                <li key={u.id} className="pessoa">
-                  <Avatar u={u} />
-                  <span>
-                    <span className="nome">{nomeCompleto(u)}</span>
-                    <span className="detalhe">{u.email}</span>
+                <li key={u.id} className="liberar">
+                  <span className="pessoa" style={{ padding: 0 }}>
+                    <Avatar u={u} />
+                    <span>
+                      <span className="nome">{nomeCompleto(u)}</span>
+                      <span className="detalhe">{u.email}</span>
+                    </span>
                   </span>
-                  <button className="botao" style={{ minHeight: 40 }} onClick={() => liberar(u)}>
-                    Liberar
-                  </button>
+                  <span className="liberar-acoes">
+                    <select
+                      className="entrada"
+                      value={funcaoNova[u.id] || ''}
+                      onChange={(e) => setFuncaoNova({ ...funcaoNova, [u.id]: e.target.value })}
+                      aria-label={`Função de ${nomeCompleto(u)}`}
+                    >
+                      <option value="">Função…</option>
+                      {Object.entries(FUNCOES).map(([k, f]) => (
+                        <option key={k} value={k}>
+                          {f.nome} ({f.quem})
+                        </option>
+                      ))}
+                    </select>
+                    <button className="botao" style={{ minHeight: 44 }} onClick={() => liberar(u)} disabled={!funcaoNova[u.id]}>
+                      Liberar
+                    </button>
+                  </span>
                 </li>
               ))}
             </ul>
@@ -68,7 +89,7 @@ export default function Equipe() {
         )}
 
         {GRUPOS.map((g) => {
-          const membros = ativos.filter((u) => g.perfis.includes(u.perfil))
+          const membros = ativos.filter((u) => funcaoDe(u) === g.funcao)
           if (!membros.length) return null
           return (
             <section key={g.nome}>
@@ -86,7 +107,6 @@ export default function Equipe() {
                           {u.id === usuario.id && <span className="detalhe"> (você)</span>}
                         </span>
                         <span className="detalhe">
-                          {/* Na coordenação, distingue o administrador do coordenador */}
                           {[u.pelotao, u.perfil === 'admin' && PERFIS.admin].filter(Boolean).join(' · ') || 'Dados não preenchidos'}
                         </span>
                       </span>
@@ -122,8 +142,8 @@ export function Integrante({ id }) {
   const u = usuarios.find((x) => x.id === id)
   const gestor = podeGerir(usuario)
   const proprio = id === usuario.id
-  // Só o administrador cria outros administradores
-  const opcoes = Object.entries(PERFIS).filter(([k]) => usuario.perfil === 'admin' || k !== 'admin')
+  // O coordenador define a função dos outros; o administrador também a própria
+  const podeMudarFuncao = gestor && (!proprio || usuario.perfil === 'admin')
 
   if (!u) {
     return (
@@ -139,11 +159,29 @@ export function Integrante({ id }) {
   const servicos = proximosServicos(Object.values(escalas), u, hoje).slice(0, 4)
   const tel = soDigitos(u.telefone)
 
-  async function mudar(perfil) {
-    await api.definirPerfil(u.id, perfil)
-    await recarregarUsuarios()
-    avisar(`${nomeCompleto(u)}: ${PERFIS[perfil]}.`)
+  async function mudarFuncao(funcao) {
+    if (!funcao) return
+    try {
+      await api.definirFuncao(u.id, proprio ? { funcao } : { perfil: perfilPara(u, funcao), funcao })
+      await recarregarUsuarios()
+      avisar(`${nomeCompleto(u)}: ${FUNCOES[funcao].nome.toLowerCase()}.`)
+    } catch {
+      avisar('Não foi possível mudar a função. Verifique a conexão.')
+    }
   }
+
+  async function mudarAdmin(admin) {
+    const funcao = funcaoDe(u)
+    try {
+      await api.definirFuncao(u.id, { perfil: admin ? 'admin' : funcao === 'coordenador' ? 'coordenador' : 'vistoriador' })
+      await recarregarUsuarios()
+      avisar(admin ? `${nomeCompleto(u)} agora é administrador do app.` : `${nomeCompleto(u)} deixou de ser administrador.`)
+    } catch {
+      avisar('Não foi possível mudar o acesso.')
+    }
+  }
+
+  const funcao = funcaoDe(u)
 
   return (
     <>
@@ -157,7 +195,14 @@ export function Integrante({ id }) {
             </div>
             {u.nomeInteiro && <div className="tela-sub" style={{ margin: 0 }}>{u.nomeInteiro}</div>}
             <div style={{ marginTop: 6 }}>
-              <Selo nivel={u.perfil === 'pendente' ? 'atencao' : 'neutro'}>{PERFIS[u.perfil]}</Selo>
+              {u.perfil === 'pendente' ? (
+                <Selo nivel="atencao">{PERFIS.pendente}</Selo>
+              ) : (
+                <span className="chips">
+                  <Selo nivel={funcao ? 'ok' : 'neutro'}>{funcao ? FUNCOES[funcao].nome : 'Sem função definida'}</Selo>
+                  {u.perfil === 'admin' && <Selo nivel="neutro">Administrador</Selo>}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -217,7 +262,7 @@ export function Integrante({ id }) {
                   <Icone nome="CalendarDays" />
                 </div>
                 <div className="rotulo">{dataCurta(s.dia)}</div>
-                <Selo nivel={s.papel === 'responsavel' ? 'ok' : 'neutro'}>{s.papel === 'responsavel' ? 'Responsável' : 'Supervisor'}</Selo>
+                <Selo nivel={s.papel === 'supervisor' ? 'neutro' : 'ok'}>{NOMES_PAPEL[s.papel]}</Selo>
               </button>
             ))
           )}
@@ -229,24 +274,29 @@ export function Integrante({ id }) {
           </button>
         )}
 
-        {gestor && !proprio && (
+        {podeMudarFuncao && (
           <>
-            <h2 className="secao">Acesso</h2>
-            <div className="bloco pad">
-              {u.perfil === 'pendente' ? (
-                <button className="botao cheio" onClick={() => mudar('vistoriador')}>
-                  Liberar acesso
-                </button>
-              ) : (
-                <label className="form" style={{ gap: 6 }}>
-                  <span style={{ fontWeight: 500 }}>Perfil no app</span>
-                  <select className="entrada" value={u.perfil} onChange={(e) => mudar(e.target.value)}>
-                    {opcoes.map(([k, n]) => (
-                      <option key={k} value={k}>
-                        {n}
-                      </option>
-                    ))}
-                  </select>
+            <h2 className="secao">{u.perfil === 'pendente' ? 'Liberar acesso' : 'Função na missão'}</h2>
+            <div className="bloco pad form">
+              <label className="form" style={{ gap: 6 }}>
+                <span style={{ fontWeight: 500 }}>Função</span>
+                <select className="entrada" value={funcao || ''} onChange={(e) => mudarFuncao(e.target.value)}>
+                  {!funcao && <option value="">Escolha a função…</option>}
+                  {Object.entries(FUNCOES).map(([k, f]) => (
+                    <option key={k} value={k}>
+                      {f.nome} ({f.quem})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p className="tela-sub" style={{ margin: 0, fontSize: 14 }}>
+                Todos vistoriam, cuidam das viaturas e resolvem pendências. Os responsáveis montam a escala. Responsáveis e supervisores podem excluir
+                relatórios.
+              </p>
+              {usuario.perfil === 'admin' && !proprio && u.perfil !== 'pendente' && (
+                <label className="chave">
+                  Administrador do app (acesso total)
+                  <input type="checkbox" checked={u.perfil === 'admin'} onChange={(e) => mudarAdmin(e.target.checked)} />
                 </label>
               )}
             </div>

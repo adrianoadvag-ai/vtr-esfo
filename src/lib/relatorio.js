@@ -5,7 +5,7 @@ const OK = /^(S\/A|Normal|Operante|VTR nova)$/i
 const NEUTROS = /^(KM|Combustível|Arla|Próx\. troca|Data da próx\. troca|Última troca|Situação)$/i
 
 export function estruturar(texto = '') {
-  const r = { saudacao: '', titulo: '', alteracoes: [], pendencias: [], vtrs: [], limpeza: '', responsaveis: [], supervisor: [] }
+  const r = { saudacao: '', titulo: '', alteracoes: [], pendencias: [], vtrs: [], limpeza: '', responsaveis: [], auxiliares: [], supervisor: [] }
   let secao = null
   let vtr = null
   for (const bruta of texto.split('\n')) {
@@ -25,7 +25,9 @@ export function estruturar(texto = '') {
       secao = null
     } else if (l.startsWith('Responsável do dia')) secao = 'resp'
     else if (/^Supervisor:?$/.test(l)) secao = 'sup'
+    else if (/^Auxiliar( do responsável)?:?$/.test(l)) secao = 'aux'
     else if (secao === 'sup') r.supervisor.push(l)
+    else if (secao === 'aux') r.auxiliares.push(l)
     else if (secao === 'alt' && l.startsWith('- ')) {
       const t = l.slice(2)
       const nivel = /^CRÍTICO/i.test(t) ? 'critico' : /^ATENÇÃO/i.test(t) ? 'atencao' : 'info'
@@ -218,6 +220,18 @@ export async function gerarPdf({ texto, data, enviadaEm, enviadaPor, brasoes, no
     y += 5
     fonte('normal', 10)
     for (const n of r.responsaveis) {
+      pdf.text(limpar(n), L, y)
+      y += 5
+    }
+  }
+  if (r.auxiliares.length) {
+    garantir(6 + r.auxiliares.length * 5)
+    y += 2
+    fonte('bold', 10)
+    pdf.text('Auxiliar do responsável:', L, y)
+    y += 5
+    fonte('normal', 10)
+    for (const n of r.auxiliares) {
       pdf.text(limpar(n), L, y)
       y += 5
     }

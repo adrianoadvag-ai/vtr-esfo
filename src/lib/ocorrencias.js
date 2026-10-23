@@ -1,7 +1,7 @@
 // Transforma as alterações do dia em ocorrências (pendências) que ficam abertas até serem resolvidas.
 import { avaliar } from './vistoria'
 
-export function ocorrenciasDoDia({ data, viaturas, registros, abertas, por }) {
+export function ocorrenciasDoDia({ data, viaturas, registros, abertas, por, relatorioId }) {
   const chaves = new Set(abertas.map((o) => `${o.viaturaId}:${o.itemId}`))
   const novas = []
   for (const v of viaturas) {
@@ -26,6 +26,8 @@ export function ocorrenciasDoDia({ data, viaturas, registros, abertas, por }) {
         abertaEm: data,
         abertaPor: por,
         status: 'aberta',
+        // Relatório que abriu a pendência (se ele for excluído, ela sai junto)
+        ...(relatorioId ? { relatorioId } : {}),
       })
     }
   }

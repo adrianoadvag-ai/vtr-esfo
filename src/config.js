@@ -106,27 +106,55 @@ export const ITENS = [
   },
 ]
 
+// Acesso ao app. A função na missão (abaixo) é que define o que cada um faz.
 export const PERFIS = {
   pendente: 'Aguardando liberação',
-  vistoriador: 'Vistoriador',
+  vistoriador: 'Integrante',
+  supervisao: 'Integrante',
   coordenador: 'Coordenador',
-  supervisao: 'Supervisão',
   admin: 'Administrador',
 }
 
-// Coordenador e administrador: escala, equipe e perfis
-export const podeGerir = (u) => Boolean(u) && (u.perfil === 'coordenador' || u.perfil === 'admin')
-// Supervisão, coordenador e administrador: cadastrar, editar, excluir e mudar a situação das viaturas,
-// registrar troca de óleo e resolver pendências
-export const podeGerirViaturas = (u) => Boolean(u) && ['supervisao', 'coordenador', 'admin'].includes(u.perfil)
-export const podeVistoriar = (u) => Boolean(u) && ['vistoriador', 'supervisao', 'coordenador', 'admin'].includes(u.perfil)
+// Funções na missão, na ordem em que aparecem na Equipe
+export const FUNCOES = {
+  coordenador: { nome: 'Coordenador', grupo: 'Coordenação', quem: 'Oficial responsável pela missão' },
+  supervisor: { nome: 'Supervisor', grupo: 'Supervisores', quem: 'Cadete do 3º ano' },
+  responsavel: { nome: 'Responsável', grupo: 'Responsáveis', quem: 'Cadete do 1º ano /1' },
+  auxiliar: { nome: 'Auxiliar do responsável', grupo: 'Auxiliares', quem: 'Cadete do 1º ano /2' },
+}
+
+// Função de um integrante (quem foi liberado antes das funções é deduzido do perfil antigo)
+export function funcaoDe(u) {
+  if (!u) return null
+  if (u.funcao && FUNCOES[u.funcao]) return u.funcao
+  if (u.perfil === 'supervisao') return 'supervisor'
+  if (u.perfil === 'coordenador') return 'coordenador'
+  return null
+}
+
+// Perfil de acesso que acompanha a função (o administrador continua administrador)
+export const perfilPara = (u, funcao) => (u.perfil === 'admin' ? 'admin' : funcao === 'coordenador' ? 'coordenador' : 'vistoriador')
+
+const liberado = (u) => Boolean(u) && Boolean(u.perfil) && u.perfil !== 'pendente'
+const comando = (u) => Boolean(u) && (u.perfil === 'coordenador' || u.perfil === 'admin')
+
+// Coordenador e administrador: liberam a equipe e definem as funções
+export const podeGerir = comando
+// Todos os integrantes liberados: vistoria, viaturas (cadastro, situação, troca de óleo, exclusão) e pendências
+export const podeVistoriar = liberado
+export const podeGerirViaturas = liberado
+// Escala: montada pelos responsáveis (coordenador e administrador também podem)
+export const podeMontarEscala = (u) => liberado(u) && (comando(u) || funcaoDe(u) === 'responsavel')
+// Excluir um relatório enviado (ex.: testes): responsáveis e supervisores, além do coordenador e do administrador
+export const podeExcluirRelatorio = (u) => liberado(u) && (comando(u) || ['responsavel', 'supervisor'].includes(funcaoDe(u)))
 
 export const SITUACOES = { ativa: 'Ativa', manutencao: 'Em manutenção', baixada: 'Baixada' }
 
-// Escala da missão: segunda a sexta. Na segunda são dois cadetes de serviço.
+// Escala da missão: segunda a sexta. Na segunda são dois responsáveis; todo dia, um auxiliar e um supervisor.
 export const ESCALA = {
   dias: [1, 2, 3, 4, 5], // 1 = segunda … 5 = sexta
   vagas: { 1: 2, 2: 1, 3: 1, 4: 1, 5: 1 },
+  auxiliares: 1,
 }
 
 // Rotina de manutenção das VTR (planilha da missão), por dia da semana

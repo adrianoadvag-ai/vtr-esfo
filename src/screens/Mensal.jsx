@@ -120,7 +120,9 @@ export default function Mensal({ mes: mesRota }) {
                   <li key={d.dia} className="linha-simples">
                     <span>
                       {dataCurta(d.dia)}
-                      <span className="detalhe-linha">Escala: {d.escalados.join(', ') || 'não definida'}</span>
+                      <span className="detalhe-linha">
+                        Resp.: {d.escalados.join(', ') || 'a definir'} · Aux.: {d.auxiliares.join(', ') || 'a definir'}
+                      </span>
                     </span>
                     {d.relatorios ? (
                       <span className="detalhe">

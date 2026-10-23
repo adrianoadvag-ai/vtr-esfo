@@ -16,26 +16,42 @@ export const VIATURAS_INICIAIS = [
 
 import { hojeISO, segundaDa, somarDias } from '../lib/formato'
 
+// Equipe da demonstração, a partir da escala de out. 2026 (funções: coordenador, supervisor, responsável, auxiliar)
+const pessoa = (id, posto, nome, funcao, extra = {}) => ({ id: `demo-${id}`, posto, nome, funcao, perfil: funcao === 'coordenador' ? 'coordenador' : 'vistoriador', email: `${id}@exemplo.com`, ...extra })
+
 export const USUARIOS_DEMO = [
-  { id: 'demo-coord', posto: 'Cad.', nome: 'Romeiro', nomeInteiro: 'Adriano Romeiro', pelotao: '1º Pelotão Alfa', telefone: '41999990001', email: 'romeiro@exemplo.com', perfil: 'coordenador' },
-  { id: 'demo-muniz', posto: 'Cad.', nome: 'Muniz', nomeInteiro: 'Lucas Muniz', pelotao: '1º Pelotão Alfa', telefone: '41999990002', email: 'muniz@exemplo.com', perfil: 'vistoriador' },
-  { id: 'demo-vitor', posto: 'Cad.', nome: 'Vitor Luiz', nomeInteiro: 'Vitor Luiz Santos', pelotao: '1º Pelotão Bravo', telefone: '41999990003', email: 'vitor@exemplo.com', perfil: 'vistoriador' },
-  { id: 'demo-forcassim', posto: 'Cad.', nome: 'Forcassim', nomeInteiro: 'Pedro Forcassim', pelotao: '1º Pelotão Bravo', telefone: '41999990004', email: 'forcassim@exemplo.com', perfil: 'vistoriador' },
-  { id: 'demo-leonardo', posto: 'Cad.', nome: 'Leonardo', email: 'leonardo@exemplo.com', perfil: 'vistoriador' },
-  { id: 'demo-denichevicz', posto: 'Cad.', nome: 'Denichevicz', nomeInteiro: 'Rafael Denichevicz', pelotao: '1º Pelotão Alfa', telefone: '41999990006', email: 'denichevicz@exemplo.com', perfil: 'supervisao' },
-  { id: 'demo-novo', posto: 'Cad.', nome: 'Ítalo', email: 'italo@exemplo.com', perfil: 'pendente' },
+  pessoa('romeiro', 'Cad.', 'Romeiro', 'responsavel', { perfil: 'admin', nomeInteiro: 'Adriano Romeiro', pelotao: '1º Pelotão Alfa', telefone: '41999990001' }),
+  pessoa('tenente', 'Ten.', 'Coordenador', 'coordenador'),
+  pessoa('barata', 'Cad.', 'Barata', 'supervisor'),
+  pessoa('matumoto', 'Cad.', 'Matumoto', 'supervisor'),
+  pessoa('vinicius', 'Cad.', 'Vinícius', 'supervisor'),
+  pessoa('euzebio', 'Cad.', 'Euzébio', 'responsavel'),
+  pessoa('italo', 'Cad.', 'Ítalo', 'responsavel'),
+  pessoa('matheus', 'Cad.', 'Matheus', 'responsavel'),
+  pessoa('guedes', 'Cad.', 'Guedes', 'responsavel'),
+  pessoa('kutianski', 'Cad.', 'Kutianski', 'responsavel'),
+  pessoa('leonardo', 'Cad.', 'Leonardo', 'auxiliar'),
+  pessoa('ronald', 'Cad.', 'Ronald', 'auxiliar'),
+  pessoa('muniz', 'Cad.', 'Muniz', 'auxiliar', { nomeInteiro: 'Lucas Muniz', pelotao: '1º Pelotão Alfa', telefone: '41999990002' }),
+  pessoa('vitor', 'Cad.', 'Vitor Luiz', 'auxiliar'),
+  pessoa('forcassim', 'Cad.', 'Forcassim', 'auxiliar'),
+  { id: 'demo-novo', posto: 'Cad.', nome: 'Castro', email: 'castro@exemplo.com', perfil: 'pendente' },
 ]
 
-// Escala da semana atual para a demonstração
+// Escala da semana atual para a demonstração (como na planilha de 05/10/2026)
 export function escalaDemo() {
   const seg = segundaDa(hojeISO())
-  const p = (id, nome) => ({ id, nome: `Cad. ${nome}` })
+  const p = (id) => {
+    const u = USUARIOS_DEMO.find((x) => x.id === `demo-${id}`)
+    return { id: u.id, nome: `${u.posto} ${u.nome}` }
+  }
+  const dia = (resp, aux, sup) => ({ responsaveis: resp.map(p), auxiliares: [p(aux)], supervisor: p(sup) })
   const dias = {
-    [seg]: { responsaveis: [p('demo-muniz', 'Muniz'), p('demo-leonardo', 'Leonardo')], supervisor: p('demo-coord', 'Romeiro') },
-    [somarDias(seg, 1)]: { responsaveis: [p('demo-muniz', 'Muniz')], supervisor: p('demo-denichevicz', 'Denichevicz') },
-    [somarDias(seg, 2)]: { responsaveis: [p('demo-vitor', 'Vitor Luiz')], supervisor: { nome: 'Cad. Euzébio' } },
-    [somarDias(seg, 3)]: { responsaveis: [p('demo-forcassim', 'Forcassim')], supervisor: p('demo-coord', 'Romeiro') },
-    [somarDias(seg, 4)]: { responsaveis: [p('demo-leonardo', 'Leonardo')], supervisor: p('demo-coord', 'Romeiro') },
+    [seg]: dia(['euzebio', 'italo'], 'leonardo', 'matumoto'),
+    [somarDias(seg, 1)]: dia(['matheus'], 'ronald', 'vinicius'),
+    [somarDias(seg, 2)]: dia(['guedes'], 'muniz', 'barata'),
+    [somarDias(seg, 3)]: dia(['romeiro'], 'vitor', 'matumoto'),
+    [somarDias(seg, 4)]: dia(['kutianski'], 'forcassim', 'vinicius'),
   }
   return { [seg]: { semana: seg, dias } }
 }

@@ -9,11 +9,11 @@ App para a vistoria diária das viaturas da Escola de Formação de Oficiais (AP
 - Relatório gerado no formato do grupo, pronto para **copiar ou abrir no WhatsApp**, com as alterações no topo.
 - **Pendências** (ex.: freio da 16843) ficam abertas e reaparecem nos relatórios até o coordenador resolver.
 - Controle de **troca de óleo** por KM e por data, com alerta quando faltam 1.000 km ou 15 dias.
-- **Escala** de segunda a sexta (na segunda, dois cadetes), com supervisor e a rotina de manutenção do dia. O coordenador monta pelo app; todos veem e podem copiar para o WhatsApp. A escala de hoje aparece na tela inicial e preenche os responsáveis do relatório.
+- **Escala** de segunda a sexta como na planilha: auxiliar, responsável (dois na segunda) e supervisor, com a rotina de manutenção do dia e o **total de escalas** de cada um, contado a partir do primeiro relatório enviado. Os responsáveis montam pelo app; todos veem e podem copiar para o WhatsApp. A escala de hoje aparece na tela inicial e preenche os responsáveis do relatório.
 - **Equipe**: lista dos integrantes com ficha (telefone, WhatsApp, e-mail, pelotão e próximos serviços). Depois de liberado, cada cadete completa os próprios dados em *Meus dados*.
 - **Ficha de cada viatura** (toque na VTR em *Viaturas*): KM ao longo do tempo, alterações que se repetem, pendências, trocas de óleo e todas as vistorias.
 - **Relatório mensal** (em *Histórico*): dias com e sem relatório, escala cumprida, viaturas, pendências e trocas de óleo, com PDF para o comando.
-- **Perfis**: *Vistoriador* faz a vistoria. *Supervisão* também vistoria (e assina o relatório como supervisor), cadastra, edita, exclui e muda a situação das viaturas (ativa, em manutenção, baixada), registra troca de óleo e resolve pendências. *Coordenador* e *Administrador* fazem tudo isso e ainda montam a escala e liberam a equipe.
+- **Funções**: *Coordenador* (oficial, Ten.), *Supervisor* (3º ano), *Responsável* (1º ano /1) e *Auxiliar do responsável* (1º ano /2). O coordenador escolhe a função ao liberar o acesso. Todos vistoriam (responsável e auxiliar juntos, editando a mesma vistoria), cuidam das viaturas (cadastro, situação, troca de óleo, exclusão) e resolvem pendências. Os **responsáveis montam a escala**. Responsáveis e supervisores podem **excluir relatórios** do histórico (ex.: testes): saem junto as pendências e fotos dele, e o KM volta ao do relatório anterior. O *Administrador* tem acesso total.
 - Funciona como app no celular (PWA) e continua funcionando sem sinal na garagem.
 
 Com `VITE_DEMO=1`, o app abre em **modo demonstração**: os dados ficam só no aparelho.

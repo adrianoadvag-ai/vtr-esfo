@@ -153,14 +153,15 @@ export async function gerarPdfMensal({ resumo: r, brasoes, geradoPor, hoje }) {
   tituloSecao('Cumprimento da escala')
   tabela(
     [
-      { titulo: 'Dia', w: 31 },
-      { titulo: 'Escalado(s)', w: 45 },
-      { titulo: 'Supervisor', w: 34 },
-      { titulo: 'Enviado por', w: 50 },
-      { titulo: 'VTR', w: 20, direita: true },
+      { titulo: 'Dia', w: 29 },
+      { titulo: 'Responsável', w: 36 },
+      { titulo: 'Auxiliar', w: 30 },
+      { titulo: 'Supervisor', w: 30 },
+      { titulo: 'Enviado por', w: 43 },
+      { titulo: 'VTR', w: 12, direita: true },
     ],
-    r.porDia.map((d) => [dataCurta(d.dia), d.escalados.join(', ') || '-', d.supervisor || '-', d.relatorios ? d.enviadoPor.join(', ') : d.aguardando ? 'Hoje, aguardando' : 'Sem relatório', d.relatorios ? String(d.viaturas) : '-']),
-    { cores: (li, ci) => (ci === 3 && !r.porDia[li].relatorios && !r.porDia[li].aguardando ? COR.critico : null) },
+    r.porDia.map((d) => [dataCurta(d.dia), d.escalados.join(', ') || '-', d.auxiliares.join(', ') || '-', d.supervisor || '-', d.relatorios ? d.enviadoPor.join(', ') : d.aguardando ? 'Hoje, aguardando' : 'Sem relatório', d.relatorios ? String(d.viaturas) : '-']),
+    { cores: (li, ci) => (ci === 4 && !r.porDia[li].relatorios && !r.porDia[li].aguardando ? COR.critico : null) },
   )
 
   tituloSecao('Viaturas no mês')

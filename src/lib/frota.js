@@ -108,6 +108,7 @@ export function resumoMensal({ mes, hoje, vistorias, viaturas, ocorrencias, esca
       relatorios: rels.length,
       enviadoPor: [...new Set(rels.map((r) => r.enviadaPor).filter(Boolean))],
       escalados: (esc?.responsaveis || []).filter(Boolean).map((p) => p.nome).filter(Boolean),
+      auxiliares: (esc?.auxiliares || []).filter(Boolean).map((p) => p.nome).filter(Boolean),
       supervisor: esc?.supervisor?.nome || '',
       viaturas: vtrs.size,
       // Hoje ainda pode chegar o relatório: não conta como falta
@@ -151,4 +152,31 @@ export function resumoMensal({ mes, hoje, vistorias, viaturas, ocorrencias, esca
     emAberto,
     trocas,
   }
+}
+
+// ---------- Excluir um relatório enviado ----------
+
+// O que sai junto com o relatório: pendências que ele abriu, fotos, e o KM das VTR volta ao anterior
+export function planoExclusao(rel, { ocorrencias = [], viaturas = [], vistorias = [] }) {
+  const ids = rel.incluidas || Object.keys(rel.registros || {})
+  const pend = ocorrencias.filter((o) =>
+    o.relatorioId
+      ? o.relatorioId === rel.id
+      : // Pendências antigas (sem o vínculo): mesmo dia, mesma pessoa e mesma VTR
+        o.abertaEm === rel.data && o.abertaPor === rel.enviadaPor && ids.includes(o.viaturaId),
+  )
+  const fotos = ids.flatMap((id) => rel.registros?.[id]?.fotos || [])
+  const kms = {}
+  for (const id of ids) {
+    const reg = rel.registros?.[id]
+    const vtr = viaturas.find((v) => v.id === id)
+    if (!reg?.km || !vtr || Number(vtr.kmAtual) !== Number(reg.km)) continue
+    // Maior KM dessa VTR nos outros relatórios
+    const outros = vistorias
+      .filter((v) => v.id !== rel.id && (v.incluidas || Object.keys(v.registros || {})).includes(id))
+      .map((v) => Number(v.registros?.[id]?.km) || 0)
+    const anterior = Math.max(0, ...outros)
+    if (anterior && anterior < Number(reg.km)) kms[id] = anterior
+  }
+  return { ocorrencias: pend, fotos, kms }
 }
