@@ -6,7 +6,7 @@ import { LIMITES, podeGerirViaturas, podeVistoriar } from '../config'
 import { km, nomeCompleto } from '../lib/formato'
 import { avaliar, exigida, itensDa, travaDeOutro } from '../lib/vistoria'
 import { atuaComoGestor, escalaDoDia } from '../lib/escala'
-import FiguraVtr from '../components/FiguraVtr'
+import FiguraVtr, { ModeloVtr } from '../components/FiguraVtr'
 
 export default function Vistoria({ vtrId }) {
   const { viaturas, vistoria, hoje, ir, api, usuario, avisar, escalas, usuarios, recarregarViaturas } = useApp()
@@ -204,9 +204,13 @@ export default function Vistoria({ vtrId }) {
       <Cabecalho titulo={`VTR ${vtr.prefixo}`} sub={vtr.modelo} voltar={() => ir('hoje')} />
       <main>
         <div className="vtr-topo">
-          <span className="prefixo">{vtr.prefixo}</span>
-          <FiguraVtr vtr={vtr} tamanho={84} />
-          <span className="modelo">{vtr.modelo}</span>
+          <FiguraVtr vtr={vtr} tamanho={128} />
+          <span className="vtr-topo-texto">
+            <span className="prefixo">{vtr.prefixo}</span>
+            <span className="modelo">
+              <ModeloVtr modelo={vtr.modelo} />
+            </span>
+          </span>
         </div>
         <div className="vtr-info">
           Último KM {km(vtr.kmAtual) || '—'}

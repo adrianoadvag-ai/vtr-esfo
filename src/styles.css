@@ -1629,3 +1629,13 @@ button.pessoa:active,
   .vtr-desc .figura-vtr { width: 52px; height: 26px; }
 }
 img.figura-vtr { object-fit: contain; }
+
+/* Topo da vistoria e da ficha: figura à esquerda, prefixo e modelo empilhados */
+.vtr-topo { align-items: center; gap: 14px; margin-bottom: 10px; }
+.vtr-topo-texto { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
+.vtr-topo-texto .modelo { overflow-wrap: break-word; line-height: 1.25; }
+.vtr-tipo { color: var(--tinta-2); font-size: 14px; }
+@media (max-width: 360px) {
+  .vtr-topo .figura-vtr { width: 104px; height: 52px; }
+  .vtr-topo .prefixo { font-size: 38px; }
+}
