@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../App'
-import { Cabecalho, Icone, SeloNivel, useCarregar } from '../components/base'
-import { NIVEIS, funcaoDe, rotuloVaga } from '../config'
+import { Cabecalho, Icone, Selo, SeloNivel, useCarregar } from '../components/base'
+import { NIVEIS, SITUACOES, funcaoDe, rotuloVaga } from '../config'
 import { dataExtensa, nomeCompleto } from '../lib/formato'
 import { ocorrenciasDoDia } from '../lib/ocorrencias'
 import { avaliar, exigida, idRodada, montarRelatorio, travaDeOutro } from '../lib/vistoria'
@@ -53,6 +53,8 @@ export default function Revisao() {
   const idsIncluidos = new Set(incluidas.map((v) => v.id))
   const abertas = ocorrencias.filter((o) => o.status === 'aberta')
   const abertasDestas = abertas.filter((o) => idsIncluidos.has(o.viaturaId))
+  // Em manutenção ou baixadas: entram no relatório com o motivo
+  const foraDeServico = viaturas.filter((v) => !exigida(v) && !idsIncluidos.has(v.id))
   const pronto = incluidas.length > 0 && (responsaveis.length > 0 || auxiliares.length > 0) && (limpeza.ok || limpeza.obs?.trim())
 
   const texto = montarRelatorio({
@@ -63,6 +65,7 @@ export default function Revisao() {
     responsaveis,
     auxiliares,
     pendenciasAbertas: abertasDestas,
+    foraDeServico,
     totalFrota: viaturas.filter(exigida).length,
   })
 
@@ -174,6 +177,31 @@ export default function Revisao() {
               </span>
             ))}
           </p>
+        )}
+
+        {foraDeServico.length > 0 && (
+          <>
+            <h2 className="secao">Fora de serviço ({foraDeServico.length})</h2>
+            <div className="bloco">
+              {foraDeServico.map((v, i) => (
+                <button
+                  key={v.id}
+                  className="achado"
+                  style={{ width: '100%', background: 'none', border: 0, textAlign: 'left', borderTop: i ? '1px solid var(--linha)' : 0 }}
+                  onClick={() => ir(`vtr/${v.id}`)}
+                >
+                  <span className="prefixo">{v.prefixo}</span>
+                  <span className="texto">{v.motivoSituacao || 'Motivo não informado'}</span>
+                  <span className="meta">
+                    <Selo nivel={v.situacao === 'manutencao' ? 'atencao' : 'neutro'}>{SITUACOES[v.situacao]}</Selo>
+                  </span>
+                </button>
+              ))}
+            </div>
+            <p className="tela-sub" style={{ margin: '6px 0 0', fontSize: 14 }}>
+              Entram no relatório com o motivo. Para corrigir, toque na viatura.
+            </p>
+          </>
         )}
 
         <h2 className="secao">

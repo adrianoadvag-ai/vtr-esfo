@@ -2,6 +2,7 @@
 import { NIVEIS, SITUACOES } from '../config'
 import { dataBR, diaMes, km } from './formato'
 import { nomeMes } from './frota'
+import { linhaSituacao } from './situacao'
 
 function carregarImagem(src) {
   return new Promise((ok) => {
@@ -164,15 +165,18 @@ export async function gerarPdfMensal({ resumo: r, brasoes, geradoPor, hoje }) {
   )
 
   // Alterações, pendências e trocas, por viatura
-  tituloSecao('Alterações, pendências e trocas de óleo')
-  const comAlgo = r.porViatura.filter((x) => x.alteracoes.length || x.pendencias.length || x.trocas.length)
+  tituloSecao('Situação, alterações, pendências e trocas de óleo')
+  const comAlgo = r.porViatura.filter((x) => x.situacao !== 'ativa' || x.alteracoes.length || x.pendencias.length || x.trocas.length)
   if (!comAlgo.length) {
     fonte('normal', 10, COR.cinza)
-    pdf.text('Nenhuma alteração, pendência ou troca de óleo no período.', L, y)
+    pdf.text('Nenhuma VTR fora de serviço, alteração, pendência ou troca de óleo no período.', L, y)
     y += 6
   }
   for (const x of comAlgo) {
     const itens = [
+      ...(x.situacao !== 'ativa'
+        ? [{ selo: x.situacao === 'manutencao' ? 'MANUTENÇÃO' : 'BAIXADA', cor: COR.atencao, texto: linhaSituacao(x.vtr).replace(/^[^·]+·\s*/, '') }]
+        : []),
       ...x.alteracoes.map((g) => ({
         selo: NIVEIS[g.nivel].nome.toUpperCase(),
         cor: g.nivel === 'critico' ? COR.critico : g.nivel === 'atencao' ? COR.atencao : COR.cinza,

@@ -1,6 +1,7 @@
 // Regras da vistoria: o que falta preencher, gravidade dos achados e texto do relatório.
 import { ITENS, LIMITES, NIVEIS, TROCA, rotuloVaga } from '../config'
 import { combustivelTexto, dataBR, dataExtensa, diasAte, km, saudacao } from './formato'
+import { linhaSituacao } from './situacao'
 
 // Identificador da rodada: a 1ª do dia é a própria data; as seguintes, data-2, data-3…
 // Trava de VTR: vale enquanto o celular de quem vistoria der sinal de vida (renova a cada minuto)
@@ -99,7 +100,7 @@ export function avaliar(vtr, reg = {}, hoje) {
 export const exigida = (vtr) => (vtr.situacao || 'ativa') === 'ativa'
 
 // Monta o texto do relatório no formato usado no WhatsApp
-export function montarRelatorio({ data, viaturas, registros, limpeza, responsaveis, auxiliares = [], supervisor, pendenciasAbertas = [], totalFrota, agora = new Date() }) {
+export function montarRelatorio({ data, viaturas, registros, limpeza, responsaveis, auxiliares = [], supervisor, pendenciasAbertas = [], foraDeServico = [], totalFrota, agora = new Date() }) {
   const L = []
   L.push(`Com licença, Senhores. ${saudacao(agora)}`)
   L.push('')
@@ -130,6 +131,13 @@ export function montarRelatorio({ data, viaturas, registros, limpeza, responsave
     for (const p of antigas) L.push(`- ${p.prefixo}: ${p.texto} (desde ${dataBR(p.abertaEm)})`)
   }
 
+  // VTR em manutenção ou baixadas (não vistoriadas neste relatório), com o motivo
+  if (foraDeServico.length) {
+    L.push('')
+    L.push(`🔧 *VTR fora de serviço (${foraDeServico.length})*`)
+    for (const v of foraDeServico) L.push(`- ${v.prefixo} ${v.modelo}: ${linhaSituacao(v)}`)
+  }
+
   lista.forEach((v, i) => {
     const r = registros[v.id] || {}
     L.push('')
@@ -141,7 +149,7 @@ export function montarRelatorio({ data, viaturas, registros, limpeza, responsave
       if (r.por) L.push(`* Registrado por: ${r.por}`)
       return
     }
-    if (v.situacao === 'manutencao') L.push(`* Situação: em manutenção${v.motivoSituacao ? ` (${v.motivoSituacao})` : ''}`)
+    if ((v.situacao || 'ativa') !== 'ativa') L.push(`* Situação: ${linhaSituacao(v, { maiuscula: false })}`)
     L.push(`* KM: ${km(r.km)}`)
     const t = trocaDeOleo(v, r.km, data)
     if (t.nova) {

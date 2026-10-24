@@ -194,7 +194,20 @@ function Formatado({ r }) {
         </>
       )}
 
-      <h2 className="secao" style={r.alteracoes.length || r.pendencias.length ? {} : { marginTop: 0 }}>
+      {r.fora.length > 0 && (
+        <>
+          <h2 className="secao">VTR fora de serviço ({r.fora.length})</h2>
+          <div className="bloco">
+            {r.fora.map((p, i) => (
+              <div className="achado" key={i} style={{ gridTemplateColumns: '1fr' }}>
+                <span className="texto">{p}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <h2 className="secao" style={r.alteracoes.length || r.pendencias.length || r.fora.length ? {} : { marginTop: 0 }}>
         Viaturas ({r.vtrs.length})
       </h2>
       {r.vtrs.map((v) => (

@@ -29,3 +29,16 @@ export function textoSituacao(v, { rotulo = true } = {}) {
   const partes = [rotulo ? SITUACOES[s] : '', v.motivoSituacao].filter(Boolean).join(': ')
   return v.previsaoRetorno ? `${partes} (retorno prev. ${dataBR(v.previsaoRetorno)})` : partes
 }
+
+// "desde 24/10/2026 por Cad. Romeiro; retorno prev. 30/10/2026"
+export function detalheSituacao(v) {
+  const desde = [v.situacaoDesde && `desde ${dataBR(v.situacaoDesde)}`, v.situacaoPor && `por ${v.situacaoPor}`].filter(Boolean).join(' ')
+  return [desde, v.previsaoRetorno && `retorno prev. ${dataBR(v.previsaoRetorno)}`].filter(Boolean).join('; ')
+}
+
+// Linha completa para relatórios: "EM MANUTENÇÃO · troca das pastilhas (desde 24/10/2026 por Cad. Romeiro; retorno prev. 30/10/2026)"
+export function linhaSituacao(v, { maiuscula = true } = {}) {
+  const s = SITUACOES[v.situacao || 'ativa']
+  const d = detalheSituacao(v)
+  return `${maiuscula ? s.toUpperCase() : s.toLowerCase()} · ${v.motivoSituacao || 'motivo não informado'}${d ? ` (${d})` : ''}`
+}

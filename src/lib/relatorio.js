@@ -2,12 +2,12 @@
 // para mostrar formatado no app e gerar o PDF. Funciona também com relatórios antigos.
 
 const OK = /^(S\/A|Normal|Operante|VTR nova)$/i
-const NEUTROS = /^(KM|Combustível|Arla|Próx\. troca|Data da próx\. troca|Última troca|Situação)$/i
+const NEUTROS = /^(KM|Combustível|Arla|Próx\. troca|Data da próx\. troca|Última troca)$/i
 
 export function estruturar(texto = '') {
   // assinaturas: quem assinou, com o nome da função como estava no relatório
   // (os antigos dizem "Responsável do dia / Auxiliar / Supervisor"; os novos, "Responsável / Supervisor / Gestor")
-  const r = { saudacao: '', titulo: '', alteracoes: [], pendencias: [], vtrs: [], limpeza: '', assinaturas: [] }
+  const r = { saudacao: '', titulo: '', alteracoes: [], pendencias: [], fora: [], vtrs: [], limpeza: '', assinaturas: [] }
   let assinatura = null
   let secao = null
   let vtr = null
@@ -19,6 +19,7 @@ export function estruturar(texto = '') {
     else if (l.startsWith('Segue o relatório')) r.titulo = l
     else if (/\*Alterações/.test(l)) secao = 'alt'
     else if (/\*Pendências em aberto/.test(l)) secao = 'pend'
+    else if (/\*VTR fora de serviço/.test(l)) secao = 'fora'
     else if ((m = l.match(/^(\d+)\.\s+(.+?)\s+-\s+(.+)$/))) {
       secao = 'vtr'
       vtr = { numero: m[1], prefixo: m[2], modelo: m[3], linhas: [] }
@@ -37,6 +38,7 @@ export function estruturar(texto = '') {
       const nivel = /^CRÍTICO/i.test(t) ? 'critico' : /^ATENÇÃO/i.test(t) ? 'atencao' : 'info'
       r.alteracoes.push({ nivel, texto: t.replace(/^(CRÍTICO|ATENÇÃO|INFORMATIVO)\s*·\s*/i, '') })
     } else if (secao === 'pend' && l.startsWith('- ')) r.pendencias.push(l.slice(2))
+    else if (secao === 'fora' && l.startsWith('- ')) r.fora.push(l.slice(2))
     else if (secao === 'vtr' && l.startsWith('* ')) {
       const t = l.slice(2)
       const i = t.indexOf(':')
@@ -152,6 +154,18 @@ export async function gerarPdf({ texto, data, enviadaEm, enviadaPor, brasoes, no
     tituloSecao(`Pendências em aberto (${r.pendencias.length})`)
     fonte('normal', 10)
     for (const p of r.pendencias) {
+      const linhas = linhasDe(`- ${p}`, W)
+      garantir(linhas.length * 4.8)
+      linhas.forEach((t, i) => pdf.text(t, L, y + i * 4.8))
+      y += linhas.length * 4.8 + 1
+    }
+    y += 3
+  }
+
+  if (r.fora.length) {
+    tituloSecao(`VTR fora de serviço (${r.fora.length})`)
+    fonte('normal', 10)
+    for (const p of r.fora) {
       const linhas = linhasDe(`- ${p}`, W)
       garantir(linhas.length * 4.8)
       linhas.forEach((t, i) => pdf.text(t, L, y + i * 4.8))
