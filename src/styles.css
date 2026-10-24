@@ -1726,3 +1726,20 @@ details.fora-frota summary { cursor: pointer; color: var(--tinta-2); font-weight
 .chip.marcado b { color: var(--ouro); }
 .chip.nivel-critico:not(.marcado) { border-color: var(--critico); color: var(--critico); }
 .chip.nivel-atencao:not(.marcado) { border-color: var(--atencao); color: var(--atencao); }
+
+/* Pendências agrupadas por viatura, com recolher */
+.recolher-todas { justify-content: flex-end; margin: -6px 0 6px; gap: 4px; }
+.recolher-todas .botao.texto { min-height: 0; padding: 6px 8px; font-size: 14px; display: inline-flex; gap: 4px; align-items: center; }
+.grupo-pendencias { margin-bottom: 10px; overflow: hidden; }
+.grupo-topo { width: 100%; display: flex; align-items: center; gap: 10px; background: none; border: 0; padding: 10px 14px; text-align: left; color: inherit; font: inherit; cursor: pointer; }
+.grupo-pendencias:not(.fechado) .grupo-topo { border-bottom: 1px solid var(--linha); }
+.grupo-topo .prefixo { font-size: 24px; }
+.grupo-topo .grupo-info { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.grupo-topo .modelo { font-weight: 500; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grupo-topo .detalhe { font-size: 13px; color: var(--tinta-2); }
+.grupo-pendencias .achado { border-top: 1px solid var(--linha); }
+.grupo-pendencias .achado:first-of-type { border-top: 0; }
+
+.grupo-topo .detalhe { white-space: nowrap; }
+.grupo-conta { flex: none; min-width: 28px; height: 28px; border-radius: 999px; background: var(--atencao-fundo); color: var(--atencao); font-weight: 700; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
+.grupo-topo .prefixo { font-size: 22px; }

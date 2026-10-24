@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useApp } from '../App'
-import { Cabecalho, Selo, SeloNivel } from '../components/base'
+import { Cabecalho, Icone, Selo, SeloNivel } from '../components/base'
+import FiguraVtr from '../components/FiguraVtr'
 import { NIVEIS, podeExcluirRelatorio, podeGerirViaturas } from '../config'
 import { dataBR, diasAte, mensagemErro, nomeCompleto } from '../lib/formato'
 import { DATA_PLANILHA, pendenciasDaPlanilha } from '../data/detalhamento-planilha'
@@ -12,9 +13,7 @@ export default function Pendencias() {
   const [resolvendo, setResolvendo] = useState(null)
   const [nota, setNota] = useState('')
 
-  const abertas = ocorrencias
-    .filter((o) => o.status === 'aberta')
-    .sort((a, b) => NIVEIS[b.nivel].ordem - NIVEIS[a.nivel].ordem || a.abertaEm.localeCompare(b.abertaEm))
+  const abertas = ocorrencias.filter((o) => o.status === 'aberta').sort((a, b) => NIVEIS[b.nivel].ordem - NIVEIS[a.nivel].ordem || a.abertaEm.localeCompare(b.abertaEm))
   const resolvidas = ocorrencias.filter((o) => o.status === 'resolvida').sort((a, b) => (b.resolvidaEm || '').localeCompare(a.resolvidaEm || ''))
   const base = verResolvidas ? resolvidas : abertas
   // Filtros: viatura e gravidade
@@ -26,8 +25,51 @@ export default function Pendencias() {
   const contaNivel = base.filter((o) => !vtrFiltro || o.prefixo === vtrFiltro).reduce((m, o) => ({ ...m, [o.nivel]: (m[o.nivel] || 0) + 1 }), {})
   const lista = base.filter((o) => (!vtrFiltro || o.prefixo === vtrFiltro) && (!nivelFiltro || o.nivel === nivelFiltro))
 
+  // Lista agrupada por viatura; cada grupo pode ser recolhido (lembrado neste aparelho)
+  const [recolhidas, setRecolhidasEstado] = useState(() => {
+    try {
+      return new Set(JSON.parse(localStorage.getItem('pendencias-recolhidas') || '[]'))
+    } catch {
+      return new Set()
+    }
+  })
+  const setRecolhidas = (conj) => {
+    setRecolhidasEstado(conj)
+    try {
+      localStorage.setItem('pendencias-recolhidas', JSON.stringify([...conj]))
+    } catch {
+      // sem armazenamento: vale só nesta tela
+    }
+  }
+  const alternarGrupo = (p) => {
+    const n = new Set(recolhidas)
+    if (n.has(p)) n.delete(p)
+    else n.add(p)
+    setRecolhidas(n)
+  }
+  const grupos = []
+  for (const o of lista) {
+    let g = grupos.find((x) => x.prefixo === o.prefixo)
+    if (!g) {
+      g = {
+        prefixo: o.prefixo,
+        vtr: viaturas.find((v) => v.id === o.viaturaId),
+        itens: [],
+        pior: null,
+      }
+      grupos.push(g)
+    }
+    g.itens.push(o)
+    if (!g.pior || NIVEIS[o.nivel].ordem > NIVEIS[g.pior].ordem) g.pior = o.nivel
+  }
+  grupos.sort((a, b) => (ordemVtr[a.prefixo] ?? 99) - (ordemVtr[b.prefixo] ?? 99) || a.prefixo.localeCompare(b.prefixo))
+
   async function resolver(o) {
-    await api.resolverOcorrencia(o.id, { por: nomeCompleto(usuario), nota, data: hoje })
+    await api.resolverOcorrencia(o.id, {
+      por: nomeCompleto(usuario),
+      nota,
+      data: hoje,
+    })
     setResolvendo(null)
     setNota('')
     recarregarOcorrencias()
@@ -82,59 +124,99 @@ export default function Pendencias() {
             {base.length ? 'Nenhuma pendência com esse filtro.' : verResolvidas ? 'Nenhuma pendência resolvida ainda.' : 'Nenhuma pendência em aberto.'}
           </div>
         ) : (
-          <div className="bloco">
-            {lista.map((o) => {
-              const dias = -diasAte(o.abertaEm, hoje)
+          <>
+            <div className="botoes recolher-todas">
+              <button className="botao texto" onClick={() => setRecolhidas(new Set(grupos.map((g) => g.prefixo)))}>
+                <Icone nome="ChevronUp" tamanho={18} /> Recolher todas
+              </button>
+              <button className="botao texto" onClick={() => setRecolhidas(new Set())}>
+                <Icone nome="ChevronDown" tamanho={18} /> Expandir todas
+              </button>
+            </div>
+            {grupos.map((g) => {
+              const fechado = recolhidas.has(g.prefixo) && vtrFiltro !== g.prefixo
               return (
-                <div className="achado" key={o.id}>
-                  <span className="prefixo">{o.prefixo}</span>
-                  <span className="texto">{textoPendencia(o)}</span>
-                  <span className="meta">
-                    <span style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                      {o.status === 'aberta' ? <SeloNivel nivel={o.nivel} /> : <Selo nivel="ok">Resolvida {dataBR(o.resolvidaEm)}</Selo>}
-                      <span>
-                        desde {dataBR(o.abertaEm)}
-                        {o.status === 'aberta' && dias > 0 ? ` (${dias} ${dias === 1 ? 'dia' : 'dias'})` : ''}
-                      </span>
+                <section key={g.prefixo} className={`bloco grupo-pendencias ${fechado ? 'fechado' : ''}`}>
+                  <button className="grupo-topo" onClick={() => alternarGrupo(g.prefixo)} aria-expanded={!fechado}>
+                    {g.vtr && <FiguraVtr vtr={g.vtr} tamanho={44} />}
+                    <span className="prefixo">{g.prefixo}</span>
+                    <span className="grupo-info">
+                      <span className="modelo">{g.vtr?.modelo || g.itens[0].modelo}</span>
                     </span>
-                    {o.obs && !o.descricao && <span style={{ display: 'block', marginTop: 4 }}>{o.obs}</span>}
-                    {o.atualizadaEm && (
-                      <span style={{ display: 'block', marginTop: 4 }}>
-                        Atualizada em {dataBR(o.atualizadaEm)}
-                        {o.atualizadaPor ? ` por ${o.atualizadaPor}` : ''}
-                      </span>
-                    )}
-                    {o.origem === 'planilha' && <span style={{ display: 'block', marginTop: 4 }}>Importada da planilha de gestão</span>}
-                    {o.notaResolucao && <span style={{ display: 'block', marginTop: 4 }}>Solução: {o.notaResolucao}</span>}
-                    {o.status === 'aberta' &&
-                      podeGerirViaturas(usuario) &&
-                      (resolvendo === o.id ? (
-                        <span style={{ display: 'grid', gap: 8, marginTop: 8 }}>
-                          <textarea
-                            value={nota}
-                            onChange={(e) => setNota(e.target.value)}
-                            placeholder="O que foi feito? Ex.: pastilhas trocadas na oficina"
-                            style={{ minHeight: 64 }}
-                          />
-                          <span className="botoes">
-                            <button className="botao secundario" onClick={() => setResolvendo(null)}>
-                              Cancelar
-                            </button>
-                            <button className="botao" onClick={() => resolver(o)}>
-                              Marcar como resolvida
-                            </button>
+                    {!verResolvidas && g.pior === 'critico' && <SeloNivel nivel="critico" />}
+                    <span className="grupo-conta" aria-label={`${g.itens.length} pendências`}>
+                      {g.itens.length}
+                    </span>
+                    <Icone nome={fechado ? 'ChevronDown' : 'ChevronUp'} style={{ color: 'var(--tinta-2)', flex: 'none' }} />
+                  </button>
+                  {!fechado &&
+                    g.itens.map((o) => {
+                      const dias = -diasAte(o.abertaEm, hoje)
+                      return (
+                        <div className="achado" key={o.id} style={{ gridTemplateColumns: '1fr' }}>
+                          <span className="texto">{textoPendencia(o)}</span>
+                          <span className="meta" style={{ gridColumn: 1 }}>
+                            <span
+                              style={{
+                                display: 'flex',
+                                gap: 8,
+                                alignItems: 'center',
+                                flexWrap: 'wrap',
+                              }}
+                            >
+                              {o.status === 'aberta' ? <SeloNivel nivel={o.nivel} /> : <Selo nivel="ok">Resolvida {dataBR(o.resolvidaEm)}</Selo>}
+                              <span>
+                                desde {dataBR(o.abertaEm)}
+                                {o.status === 'aberta' && dias > 0 ? ` (${dias} ${dias === 1 ? 'dia' : 'dias'})` : ''}
+                              </span>
+                            </span>
+                            {o.obs && !o.descricao && <span style={{ display: 'block', marginTop: 4 }}>{o.obs}</span>}
+                            {o.atualizadaEm && (
+                              <span style={{ display: 'block', marginTop: 4 }}>
+                                Atualizada em {dataBR(o.atualizadaEm)}
+                                {o.atualizadaPor ? ` por ${o.atualizadaPor}` : ''}
+                              </span>
+                            )}
+                            {o.origem === 'planilha' && <span style={{ display: 'block', marginTop: 4 }}>Importada da planilha de gestão</span>}
+                            {o.notaResolucao && <span style={{ display: 'block', marginTop: 4 }}>Solução: {o.notaResolucao}</span>}
+                            {o.status === 'aberta' &&
+                              podeGerirViaturas(usuario) &&
+                              (resolvendo === o.id ? (
+                                <span
+                                  style={{
+                                    display: 'grid',
+                                    gap: 8,
+                                    marginTop: 8,
+                                  }}
+                                >
+                                  <textarea
+                                    value={nota}
+                                    onChange={(e) => setNota(e.target.value)}
+                                    placeholder="O que foi feito? Ex.: pastilhas trocadas na oficina"
+                                    style={{ minHeight: 64 }}
+                                  />
+                                  <span className="botoes">
+                                    <button className="botao secundario" onClick={() => setResolvendo(null)}>
+                                      Cancelar
+                                    </button>
+                                    <button className="botao" onClick={() => resolver(o)}>
+                                      Marcar como resolvida
+                                    </button>
+                                  </span>
+                                </span>
+                              ) : (
+                                <button className="botao texto" style={{ padding: 0, marginTop: 4 }} onClick={() => setResolvendo(o.id)}>
+                                  Resolver
+                                </button>
+                              ))}
                           </span>
-                        </span>
-                      ) : (
-                        <button className="botao texto" style={{ padding: 0, marginTop: 4 }} onClick={() => setResolvendo(o.id)}>
-                          Resolver
-                        </button>
-                      ))}
-                  </span>
-                </div>
+                        </div>
+                      )
+                    })}
+                </section>
               )
             })}
-          </div>
+          </>
         )}
       </main>
     </>
@@ -166,8 +248,8 @@ function ImportarPlanilha({ viaturas, usuario, api, avisar, recarregar }) {
     <div className="bloco pad importar-planilha">
       <strong>Detalhamento da planilha</strong>
       <p className="tela-sub" style={{ margin: '4px 0 8px', fontSize: 14 }}>
-        Traz o <em>Detalhamento atualizado</em> da planilha de gestão (conferência de {dataBR(DATA_PLANILHA)}) como pendências abertas: {lista.length} itens
-        de {Object.keys(porVtr).length} VTR. A planilha não é alterada.
+        Traz o <em>Detalhamento atualizado</em> da planilha de gestão (conferência de {dataBR(DATA_PLANILHA)}) como pendências abertas: {lista.length} itens de{' '}
+        {Object.keys(porVtr).length} VTR. A planilha não é alterada.
       </p>
       {aberto ? (
         <>

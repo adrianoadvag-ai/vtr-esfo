@@ -6,8 +6,10 @@ import {
   CalendarDays,
   CarFront,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Circle,
   CircleDot,
   Cog,
@@ -67,7 +69,7 @@ export function Avatar({ u, grande }) {
 }
 
 // Só os ícones usados no app (importar todos deixaria o app 1 MB mais pesado)
-const ICONES = { CalendarCheck, Cog, Disc3, Fan, SprayCan, Thermometer, Wind, Battery, CalendarDays, Camera, CarFront, Check, ChevronLeft, ChevronRight, Circle, CircleDot, ClipboardCheck, Copy, CreditCard, Disc, Droplet, Droplets, FileBarChart, FileDown, FileSpreadsheet, Fuel, Gauge, History, LogOut, Mail, MessageCircle, OctagonAlert, Pencil, Phone, Plus, Radio, Send, Share2, Siren, Sparkles, Trash2, TriangleAlert, UserRound, Users, Wrench, X }
+const ICONES = { CalendarCheck, Cog, Disc3, Fan, SprayCan, Thermometer, Wind, Battery, CalendarDays, Camera, CarFront, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Circle, CircleDot, ClipboardCheck, Copy, CreditCard, Disc, Droplet, Droplets, FileBarChart, FileDown, FileSpreadsheet, Fuel, Gauge, History, LogOut, Mail, MessageCircle, OctagonAlert, Pencil, Phone, Plus, Radio, Send, Share2, Siren, Sparkles, Trash2, TriangleAlert, UserRound, Users, Wrench, X }
 
 export function Icone({ nome, tamanho = 20, ...resto }) {
   const C = ICONES[nome] || Circle
