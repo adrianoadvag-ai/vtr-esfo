@@ -1581,3 +1581,53 @@ button.pessoa:active,
   font-size: 14px;
   color: var(--tinta-2);
 }
+
+/* Silhueta da viatura (components/FiguraVtr.jsx) */
+.figura-vtr {
+  flex: none;
+  display: block;
+  align-self: center;
+  --fv-corpo: var(--azul);
+  --fv-escuro: var(--noite);
+  --fv-roda: #15191e;
+}
+.fv-bd { fill: var(--fv-corpo); }
+.fv-wn { fill: var(--azul-claro); }
+.fv-st { fill: var(--cartao); }
+.fv-bp { fill: var(--fv-escuro); }
+.fv-ar { fill: #0d141c; }
+.fv-wh { fill: var(--fv-roda); }
+.fv-rm { fill: #aeb9c4; }
+.fv-hl { fill: var(--ouro); }
+.fv-tl, .fv-rd { fill: #d64545; }
+.fv-bl { fill: #3a7bd5; }
+.fv-gs { fill: var(--tinta); opacity: 0.08; }
+.fv-ln { stroke: var(--fv-escuro); stroke-width: 0.8; fill: none; }
+.fv-mk { stroke: var(--fv-corpo); stroke-width: 4; stroke-linecap: round; fill: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .figura-vtr { --fv-escuro: #2e4a70; }
+}
+:root[data-theme='dark'] .figura-vtr { --fv-escuro: #2e4a70; }
+.vtr-desc {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.vtr-linha.inativa .figura-vtr { opacity: 0.45; }
+.vtr-topo, .ficha-topo { align-items: center; }
+.tipo-escolha {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.tipo-escolha select { flex: 1; }
+.vtr-linha { grid-template-columns: 82px minmax(0, 1fr) auto; }
+.vtr-linha.com-num { grid-template-columns: 24px 82px minmax(0, 1fr) auto; }
+.vtr-desc > span { min-width: 0; }
+.vtr-linha .modelo { overflow-wrap: break-word; }
+.selo-linha { display: block; margin-top: 4px; }
+.selo-linha:empty { display: none; }
+@media (max-width: 400px) {
+  .vtr-desc .figura-vtr { width: 44px; height: 22px; }
+}

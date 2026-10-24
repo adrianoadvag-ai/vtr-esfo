@@ -4,6 +4,7 @@ import { APP_NOME, FUNCOES, dadosCompletos, podeGerirViaturas, podeVistoriar, ro
 import { escalaDoDia, juntar, papelNoDia, proximosServicos, rotinaDo } from '../lib/escala'
 import { dataCurta, horaCurta, nomeCompleto } from '../lib/formato'
 import { avaliar, exigida, travaDeOutro } from '../lib/vistoria'
+import FiguraVtr, { ModeloVtr } from '../components/FiguraVtr'
 
 const SITUACAO = { manutencao: 'Em manutenção', baixada: 'Baixada' }
 
@@ -101,12 +102,15 @@ export default function Hoje() {
                   >
                     <span className="num">{i + 1}</span>
                     <span className="prefixo">{v.prefixo}</span>
-                    <span>
-                      <span className="modelo">{v.modelo}</span>
+                    <span className="vtr-desc">
+                      <FiguraVtr vtr={v} tamanho={56} />
+                      <span>
+                      <span className="modelo"><ModeloVtr modelo={v.modelo} /></span>
                       <span className="detalhe" style={{ display: 'block' }}>
                         {travaDeOutro(vistoria, v.id, usuario.id)
                           ? `Em vistoria por ${travaDeOutro(vistoria, v.id, usuario.id).nome}`
                           : detalhe(v, a, temRegistro, ja)}
+                      </span>
                       </span>
                     </span>
                     <Status a={a} temRegistro={temRegistro} ja={ja} />

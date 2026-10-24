@@ -5,6 +5,7 @@ import { podeExcluirRelatorio } from '../config'
 import { dataBR, dataExtensa, horaCurta, mensagemErro } from '../lib/formato'
 import { planoExclusao } from '../lib/frota'
 import { estruturar, gerarPdf } from '../lib/relatorio'
+import FiguraVtr from '../components/FiguraVtr'
 
 export default function Relatorio({ data: id }) {
   const { api, ir, avisar, enviadasHoje, usuario, ocorrencias, viaturas, recarregarOcorrencias, recarregarViaturas } = useApp()
@@ -200,6 +201,7 @@ function Formatado({ r }) {
         <div className="bloco ficha" key={`${v.numero}-${v.prefixo}`}>
           <div className="ficha-topo">
             <span className="prefixo">{v.prefixo}</span>
+            <FiguraVtr vtr={v} tamanho={56} />
             <span className="modelo">{v.modelo}</span>
           </div>
           <dl className="ficha-dados">

@@ -4,6 +4,8 @@ import { Cabecalho, Icone, Selo } from '../components/base'
 import { SITUACOES, podeGerirViaturas } from '../config'
 import { km, mensagemErro } from '../lib/formato'
 import { trocaDeOleo } from '../lib/vistoria'
+import FiguraVtr, { ModeloVtr } from '../components/FiguraVtr'
+import { TIPOS_VTR, tipoDaViatura } from '../lib/tipo-vtr'
 
 export default function Viaturas() {
   const { viaturas, ir, usuario, api, recarregarViaturas, avisar, hoje } = useApp()
@@ -52,17 +54,22 @@ export default function Viaturas() {
                   <button className={`vtr-linha com-num ${v.situacao === 'baixada' ? 'inativa' : ''}`} onClick={() => ir(`vtr/${v.id}`)}>
                     <span className="num">{i + 1}</span>
                     <span className="prefixo">{v.prefixo}</span>
-                    <span>
-                      <span className="modelo">{v.modelo}</span>
+                    <span className="vtr-desc">
+                      <FiguraVtr vtr={v} tamanho={56} />
+                      <span>
+                      <span className="modelo"><ModeloVtr modelo={v.modelo} /></span>
                       <span className="detalhe" style={{ display: 'block' }}>
                         {km(v.kmAtual)} km · {t.texto}
                       </span>
+                      <span className="selo-linha">
+                        {(v.situacao || 'ativa') !== 'ativa' ? (
+                          <Selo nivel={v.situacao === 'manutencao' ? 'atencao' : 'neutro'}>{SITUACOES[v.situacao]}</Selo>
+                        ) : t.alerta ? (
+                          <Selo nivel="atencao">{t.nova ? 'Revisão' : 'Troca de óleo'}</Selo>
+                        ) : null}
+                      </span>
+                      </span>
                     </span>
-                    {(v.situacao || 'ativa') !== 'ativa' ? (
-                      <Selo nivel={v.situacao === 'manutencao' ? 'atencao' : 'neutro'}>{SITUACOES[v.situacao]}</Selo>
-                    ) : t.alerta ? (
-                      <Selo nivel="atencao">{t.nova ? 'Revisão' : 'Troca de óleo'}</Selo>
-                    ) : null}
                   </button>
                 </li>
               )
@@ -109,7 +116,7 @@ export function EditarViatura({ id }) {
     setErro('')
     if (!String(f.prefixo).trim() || !String(f.modelo).trim()) return setErro('Informe prefixo e modelo.')
     if (nova && viaturas.some((v) => v.prefixo === String(f.prefixo).trim())) return setErro('Já existe uma viatura com este prefixo.')
-    const limpo = Object.fromEntries(Object.entries({ ...f, prefixo: String(f.prefixo).trim() }).filter(([, v]) => v !== '' && v !== undefined))
+    const limpo = Object.fromEntries(Object.entries({ ...f, tipo: f.tipo || tipoDaViatura(f), prefixo: String(f.prefixo).trim() }).filter(([, v]) => v !== '' && v !== undefined))
     const salva = await api.salvarViatura(limpo)
     await recarregarViaturas()
     avisar('Viatura salva.')
@@ -150,6 +157,19 @@ export function EditarViatura({ id }) {
           <label>
             Marca/modelo
             <input className="entrada" {...campo('modelo')} placeholder="Renault/Duster" />
+          </label>
+          <label>
+            Tipo (figura da viatura)
+            <span className="tipo-escolha">
+              <FiguraVtr tipo={f.tipo || tipoDaViatura(f)} tamanho={72} />
+              <select className="entrada" value={f.tipo || tipoDaViatura(f)} onChange={(e) => setF({ ...f, tipo: e.target.value })}>
+                {Object.entries(TIPOS_VTR).map(([k, n]) => (
+                  <option key={k} value={k}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </span>
           </label>
           <div className="dupla">
             <label>

@@ -5,6 +5,8 @@ import { SITUACOES, podeGerirViaturas } from '../config'
 import { combustivelTexto, dataBR, dataCurta, km, mensagemErro } from '../lib/formato'
 import { leiturasDa, recorrencias, serieKm, trocasDa } from '../lib/frota'
 import { trocaDeOleo } from '../lib/vistoria'
+import FiguraVtr from '../components/FiguraVtr'
+import { TIPOS_VTR, tipoDaViatura } from '../lib/tipo-vtr'
 
 // Ficha de uma viatura: situação, KM ao longo do tempo, alterações que se repetem, pendências e trocas de óleo
 export default function FichaViatura({ id }) {
@@ -69,6 +71,14 @@ export default function FichaViatura({ id }) {
         }
       />
       <main>
+        <div className="vtr-topo">
+          <span className="prefixo">{vtr.prefixo}</span>
+          <FiguraVtr vtr={vtr} tamanho={96} />
+          <span>
+            <span className="modelo" style={{ display: 'block' }}>{vtr.modelo}</span>
+            <span className="vtr-info" style={{ margin: 0 }}>{TIPOS_VTR[tipoDaViatura(vtr)]}</span>
+          </span>
+        </div>
         <div className="bloco pad">
           <dl className="ficha-dados">
             <div>
