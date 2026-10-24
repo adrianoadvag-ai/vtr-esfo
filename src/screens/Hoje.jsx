@@ -188,10 +188,7 @@ function CartaoEscala({ hoje, escalas, usuarios, usuario, ir }) {
               <small>{rotuloVaga('responsaveis', resp.length)}</small>
               {juntar(resp) || 'A definir'}
             </span>
-            <span>
-              <small>{rotuloVaga('supervisor')}</small>
-              {d?.supervisor?.nome || 'A definir'}
-            </span>
+
           </div>
           <div className="dia-rotina">
             <Icone nome="Wrench" tamanho={15} />

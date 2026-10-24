@@ -99,6 +99,13 @@ export function somarDias(iso, n) {
   return hojeISO(new Date(a, m - 1, d + n))
 }
 
+// Soma meses (31/08 + 6 meses = 28/02 ou 29/02, sem pular para março)
+export function somarMeses(iso, n) {
+  const { a, m, d } = partes(iso)
+  const fim = new Date(a, m - 1 + n + 1, 0).getDate()
+  return hojeISO(new Date(a, m - 1 + n, Math.min(d, fim)))
+}
+
 export function diaDaSemana(iso) {
   const { a, m, d } = partes(iso)
   return new Date(a, m - 1, d).getDay()

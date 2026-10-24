@@ -16,7 +16,7 @@ export default function Historico() {
           </span>
           <span className="rotulo" style={{ textAlign: 'left' }}>
             Relatório mensal
-            <small>Escala cumprida, viaturas, pendências e trocas de óleo, em PDF</small>
+            <small>Situação das viaturas, KM rodado, alterações e trocas de óleo, em PDF</small>
           </span>
           <Icone nome="ChevronRight" style={{ color: 'var(--tinta-2)' }} />
         </button>

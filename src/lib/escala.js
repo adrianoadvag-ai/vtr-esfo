@@ -18,18 +18,15 @@ export const mesmaPessoa = (p, u) => Boolean(p && u && ((p.id && p.id === u.id) 
 
 export function papelNoDia(diaEsc, u) {
   if (!diaEsc || !u) return null
-  if ((diaEsc.responsaveis || []).some((p) => mesmaPessoa(p, u))) return 'responsavel'
+  if ((diaEsc.responsaveis || []).slice(0, 1).some((p) => mesmaPessoa(p, u))) return 'responsavel'
   if ((diaEsc.auxiliares || []).some((p) => mesmaPessoa(p, u))) return 'auxiliar'
-  if (mesmaPessoa(diaEsc.supervisor, u)) return 'supervisor'
   return null
 }
 
-// Quem vistoria como gestor (3º ano, chave 'supervisor'): o gestor escalado no dia ou quem tem essa função
-// (desde que não esteja escalado como supervisor ou responsável naquele dia)
+// Gestor (3º ano, chave 'supervisor') não entra na escala; quando vistoria, aparece como "(gestor)"
 export function atuaComoGestor(diaEsc, u) {
-  const papel = papelNoDia(diaEsc, u)
-  if (papel === 'responsavel' || papel === 'auxiliar') return false
-  return papel === 'supervisor' || funcaoDe(u) === 'supervisor'
+  if (papelNoDia(diaEsc, u)) return false
+  return funcaoDe(u) === 'supervisor'
 }
 
 export const nomesAuxiliares = (diaEsc) => (diaEsc?.auxiliares || []).filter((p) => p?.nome).map((p) => p.nome)
@@ -59,12 +56,11 @@ export function textoEscala(semana, escala) {
   const L = ['*Escala · Missão Viaturas EsFO*', `Semana de ${diaMes(dias[0])} a ${diaMes(dias[dias.length - 1])}`]
   for (const dia of dias) {
     const d = escala?.dias?.[dia]
-    const resp = nomesResponsaveis(d)
+    const resp = nomesResponsaveis(d).slice(0, vagasDo(dia))
     L.push('', `*${NOMES_DIAS[diaDaSemana(dia)]} – ${diaMes(dia)}*`)
     const aux = nomesAuxiliares(d)
     L.push(`${rotuloVaga('auxiliares', aux.length)}: ${juntar(aux) || 'a definir'}`)
     L.push(`${rotuloVaga('responsaveis', resp.length)}: ${juntar(resp) || 'a definir'}`)
-    L.push(`${rotuloVaga('supervisor')}: ${d?.supervisor?.nome || 'a definir'}`)
     L.push(`Rotina: ${rotinaDo(dia)}`)
   }
   return L.join('\n')
@@ -79,21 +75,21 @@ export function nomeAtual(p, usuarios = []) {
   return u ? nomeCompleto(u) : p.nome || ''
 }
 
-// Escala de um dia, já com os nomes atualizados
+// Escala de um dia, já com os nomes atualizados.
+// Escalas antigas podem ter dois supervisores na segunda e um gestor: valem só as vagas atuais.
 export function escalaDoDia(escalas, dia, usuarios) {
   const d = escalas?.[segundaDa(dia)]?.dias?.[dia]
   if (!d) return null
   return {
-    responsaveis: (d.responsaveis || []).filter(Boolean).map((p) => ({ ...p, nome: nomeAtual(p, usuarios) })),
-    auxiliares: (d.auxiliares || []).filter(Boolean).map((p) => ({ ...p, nome: nomeAtual(p, usuarios) })),
-    supervisor: d.supervisor ? { ...d.supervisor, nome: nomeAtual(d.supervisor, usuarios) } : null,
+    responsaveis: (d.responsaveis || []).slice(0, vagasDo(dia)).filter(Boolean).map((p) => ({ ...p, nome: nomeAtual(p, usuarios) })),
+    auxiliares: (d.auxiliares || []).slice(0, vagasAuxiliar()).filter(Boolean).map((p) => ({ ...p, nome: nomeAtual(p, usuarios) })),
+    supervisor: null,
   }
 }
 
 // Total de escalas de cada um, por papel, a partir do primeiro dia de missão com relatório
 // (como na planilha: inclui as semanas já lançadas)
 export const PAPEIS = [
-  { papel: 'supervisor', nome: FUNCOES.supervisor.grupo, funcao: 'supervisor' },
   { papel: 'responsavel', nome: FUNCOES.responsavel.grupo, funcao: 'responsavel' },
   { papel: 'auxiliar', nome: FUNCOES.auxiliar.grupo, funcao: 'auxiliar' },
 ]
@@ -114,9 +110,8 @@ export function totaisEscala(escalas = [], inicio, usuarios = []) {
     for (const e of escalas) {
       for (const [dia, d] of Object.entries(e?.dias || {})) {
         if (dia < inicio || !d) continue
-        for (const p of d.responsaveis || []) somar('responsavel', p)
-        for (const p of d.auxiliares || []) somar('auxiliar', p)
-        somar('supervisor', d.supervisor)
+        for (const p of (d.responsaveis || []).slice(0, vagasDo(dia))) somar('responsavel', p)
+        for (const p of (d.auxiliares || []).slice(0, vagasAuxiliar())) somar('auxiliar', p)
       }
     }
   }

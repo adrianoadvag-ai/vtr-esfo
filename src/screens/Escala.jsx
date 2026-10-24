@@ -148,22 +148,6 @@ export default function Escala({ semana: semanaRota }) {
                     </div>
                   </div>
                 ))}
-                <div className="dia-linha">
-                  <span className="dia-rotulo">{rotuloVaga('supervisor')}</span>
-                  <div className="dia-nomes">
-                    {gestor ? (
-                      <SeletorPessoa
-                        valor={d?.supervisor}
-                        ativos={ativos}
-                        funcao="supervisor"
-                        rotulo={`${rotuloVaga('supervisor')} de ${NOMES_DIAS[diaDaSemana(dia)]}`}
-                        onChange={(novo) => salvar(dia, { supervisor: novo })}
-                      />
-                    ) : (
-                      <NomePessoa p={d?.supervisor} ir={ir} />
-                    )}
-                  </div>
-                </div>
               </section>
             )
           })
@@ -197,7 +181,7 @@ export default function Escala({ semana: semanaRota }) {
 // Mesma pessoa em mais de uma vaga no mesmo dia
 function repetidos(d) {
   if (!d) return []
-  const todos = [...(d.responsaveis || []), ...(d.auxiliares || []), d.supervisor].filter((p) => p?.nome)
+  const todos = [...(d.responsaveis || []).slice(0, 1), ...(d.auxiliares || [])].filter((p) => p?.nome)
   const vistos = []
   const dobrados = new Set()
   for (const p of todos) {

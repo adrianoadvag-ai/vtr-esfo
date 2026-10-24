@@ -11,6 +11,17 @@ export const LIMITES = {
   saltoKm: 500, // KM maior que isso desde a última vistoria pede confirmação
 }
 
+// Relatório mensal: conta a partir deste dia (o que veio antes foram testes)
+export const INICIO_RELATORIOS = '2026-10-24'
+
+// Troca de óleo: próxima troca calculada a partir da última (o vistoriador pode mudar se a etiqueta disser outra coisa).
+// VTR nova (ainda sem troca): alerta da revisão dos 10.000 km.
+export const TROCA = {
+  intervaloKm: 10000,
+  intervaloMeses: 6,
+  revisaoNovaKm: 10000,
+}
+
 // Níveis de gravidade
 export const NIVEIS = {
   critico: { nome: 'Crítico', ordem: 3 },
@@ -162,16 +173,16 @@ export const podeExcluirRelatorio = (u) => liberado(u) && (comando(u) || ['respo
 
 export const SITUACOES = { ativa: 'Ativa', manutencao: 'Em manutenção', baixada: 'Baixada' }
 
-// Escala da missão: segunda a sexta. Todo dia um responsável, um supervisor (dois na segunda) e um gestor.
+// Escala da missão: segunda a sexta, um responsável e um supervisor por dia. Os gestores não entram na escala.
 export const ESCALA = {
   dias: [1, 2, 3, 4, 5], // 1 = segunda … 5 = sexta
-  vagas: { 1: 2, 2: 1, 3: 1, 4: 1, 5: 1 },
+  vagas: { 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 }, // supervisores por dia
   auxiliares: 1,
 }
 
 // Rotina de manutenção das VTR (planilha da missão), por dia da semana
 export const ROTINA = {
-  1: 'Funcionamento dos motores, verificar a água, óleo, palhetas, lataria, KM, pneus e limpeza.',
+  1: 'Funcionamento dos motores, verificar a água, óleo, palhetas, lataria, KM, pneus, rádios e limpeza.',
   2: 'Verificar a limpeza externa/interna.',
   3: 'Funcionamento dos motores e verificar a limpeza externa/interna.',
   4: 'Verificar a limpeza externa/interna.',

@@ -1,7 +1,6 @@
 // Histórico da frota a partir dos relatórios enviados: ficha por viatura e relatório mensal.
-import { ESCALA } from '../config'
-import { diaDaSemana, segundaDa, somarDias } from './formato'
-import { avaliar } from './vistoria'
+import { INICIO_RELATORIOS, NIVEIS } from '../config'
+import { avaliar, trocaDeOleo } from './vistoria'
 
 // Achados que não são defeito da viatura (resolvem-se sozinhos ou dependem do cadastro atual)
 const NAO_RECORRENTES = new Set(['combustivel', 'arla', 'troca'])
@@ -57,7 +56,7 @@ export function serieKm(leituras) {
 // Trocas de óleo registradas (as antigas só têm a data da última troca)
 export function trocasDa(vtr) {
   const lista = [...(vtr.trocas || [])]
-  if (vtr.dataUltimaTroca && !lista.some((t) => t.data === vtr.dataUltimaTroca)) lista.push({ data: vtr.dataUltimaTroca })
+  if (vtr.dataUltimaTroca && !lista.some((t) => t.data === vtr.dataUltimaTroca)) lista.push({ data: vtr.dataUltimaTroca, km: vtr.kmUltimaTroca })
   return lista.sort((a, b) => b.data.localeCompare(a.data))
 }
 
@@ -79,78 +78,74 @@ export function mesSeguinte(mes) {
   return m === 12 ? `${a + 1}-01` : `${a}-${String(m + 1).padStart(2, '0')}`
 }
 
-// Dias de missão (segunda a sexta) do mês, até hoje
-export function diasDeMissao(mes, hoje) {
-  const dias = []
-  for (let d = `${mes}-01`; mesDe(d) === mes && d <= hoje; d = somarDias(d, 1)) {
-    if (ESCALA.dias.includes(diaDaSemana(d))) dias.push(d)
-  }
-  return dias
+export const ultimoDiaDoMes = (mes) => {
+  const [a, m] = mes.split('-').map(Number)
+  return `${mes}-${String(new Date(a, m, 0).getDate()).padStart(2, '0')}`
 }
 
-// Segundas-feiras das semanas que tocam o mês (para carregar as escalas)
-export function semanasDoMes(mes) {
-  const semanas = new Set()
-  for (let d = `${mes}-01`; mesDe(d) === mes; d = somarDias(d, 1)) semanas.add(segundaDa(d))
-  return [...semanas]
-}
-
-export function resumoMensal({ mes, hoje, vistorias, viaturas, ocorrencias, escalas }) {
-  const doMes = vistorias.filter((v) => mesDe(v.data) === mes).sort((a, b) => a.data.localeCompare(b.data) || (a.enviadaEm || 0) - (b.enviadaEm || 0))
-  const dias = diasDeMissao(mes, hoje)
-
-  const porDia = dias.map((dia) => {
-    const rels = doMes.filter((v) => v.data === dia)
-    const esc = escalas?.[segundaDa(dia)]?.dias?.[dia]
-    const vtrs = new Set(rels.flatMap((r) => r.incluidas || Object.keys(r.registros || {})))
-    return {
-      dia,
-      relatorios: rels.length,
-      enviadoPor: [...new Set(rels.map((r) => r.enviadaPor).filter(Boolean))],
-      escalados: (esc?.responsaveis || []).filter(Boolean).map((p) => p.nome).filter(Boolean),
-      auxiliares: (esc?.auxiliares || []).filter(Boolean).map((p) => p.nome).filter(Boolean),
-      supervisor: esc?.supervisor?.nome || '',
-      viaturas: vtrs.size,
-      // Hoje ainda pode chegar o relatório: não conta como falta
-      aguardando: dia === hoje && rels.length === 0,
-    }
-  })
+// Relatório mensal: só as viaturas, contando a partir de INICIO_RELATORIOS (antes disso eram testes)
+export function resumoMensal({ mes, hoje, vistorias, viaturas, ocorrencias }) {
+  const de = `${mes}-01` < INICIO_RELATORIOS ? INICIO_RELATORIOS : `${mes}-01`
+  const ate = ultimoDiaDoMes(mes) > hoje ? hoje : ultimoDiaDoMes(mes)
+  const vazio = de > ate
+  const noPeriodo = (d) => d && d >= de && d <= ate
+  const doPeriodo = vazio ? [] : vistorias.filter((v) => noPeriodo(v.data))
 
   const porViatura = viaturas.map((vtr) => {
-    const l = leiturasDa(vtr, doMes)
+    const l = leiturasDa(vtr, doPeriodo)
     const kms = l.map((x) => x.km).filter(Boolean)
-    const alteracoes = l.reduce((n, x) => n + x.achados.length, 0)
+    // Alterações agrupadas: a mesma alteração em vários dias vira uma linha só
+    const grupos = new Map()
+    for (const x of l) {
+      for (const a of x.achados) {
+        const g = grupos.get(a.texto) || { texto: a.texto, nivel: a.nivel, vezes: 0, primeira: x.data, ultima: x.data }
+        g.vezes += 1
+        if (x.data < g.primeira) g.primeira = x.data
+        if (x.data > g.ultima) g.ultima = x.data
+        if (NIVEIS[a.nivel].ordem > NIVEIS[g.nivel].ordem) g.nivel = a.nivel
+        grupos.set(a.texto, g)
+      }
+    }
+    const alteracoes = [...grupos.values()].sort((a, b) => NIVEIS[b.nivel].ordem - NIVEIS[a.nivel].ordem || b.vezes - a.vezes)
+    const pendencias = ocorrencias
+      .filter((o) => o.viaturaId === vtr.id && o.status === 'aberta')
+      .sort((a, b) => NIVEIS[b.nivel].ordem - NIVEIS[a.nivel].ordem || a.abertaEm.localeCompare(b.abertaEm))
+    const kmInicial = kms.length ? Math.min(...kms) : null
+    const kmFinal = kms.length ? Math.max(...kms) : null
     return {
       vtr,
+      situacao: vtr.situacao || 'ativa',
       vistorias: new Set(l.filter((x) => !x.naoVistoriada).map((x) => x.data)).size,
       naoVistoriada: l.filter((x) => x.naoVistoriada).length,
+      kmInicial,
+      kmFinal,
+      rodado: kms.length ? kmFinal - kmInicial : 0,
       alteracoes,
-      kmInicial: kms.length ? Math.min(...kms) : null,
-      kmFinal: kms.length ? Math.max(...kms) : null,
-      recorrentes: recorrencias(l).slice(0, 3),
+      totalAlteracoes: alteracoes.reduce((n, g) => n + g.vezes, 0),
+      pendencias,
+      trocas: (vtr.trocas || []).filter((t) => noPeriodo(t.data)).sort((a, b) => a.data.localeCompare(b.data)),
+      troca: trocaDeOleo(vtr, null, hoje),
     }
   })
 
-  const abertasNoMes = ocorrencias.filter((o) => mesDe(o.abertaEm) === mes)
-  const resolvidasNoMes = ocorrencias.filter((o) => o.status === 'resolvida' && o.resolvidaEm && mesDe(o.resolvidaEm) === mes)
-  const emAberto = ocorrencias.filter((o) => o.status === 'aberta')
-  const trocas = viaturas.flatMap((vtr) => (vtr.trocas || []).filter((t) => mesDe(t.data) === mes).map((t) => ({ ...t, vtr })))
-  trocas.sort((a, b) => a.data.localeCompare(b.data))
-
+  const n = (s) => porViatura.filter((x) => x.situacao === s).length
   return {
     mes,
-    dias,
-    porDia,
-    diasComRelatorio: porDia.filter((d) => d.relatorios > 0).length,
-    diasContados: porDia.filter((d) => !d.aguardando).length,
-    diasSemRelatorio: porDia.filter((d) => d.relatorios === 0 && !d.aguardando).map((d) => d.dia),
-    totalRelatorios: doMes.length,
-    totalAlteracoes: porViatura.reduce((n, x) => n + x.alteracoes, 0),
+    de,
+    ate,
+    vazio,
+    emAndamento: ate === hoje,
+    frota: {
+      ativas: n('ativa'),
+      manutencao: n('manutencao'),
+      baixadas: n('baixada'),
+      kmRodados: porViatura.reduce((s, x) => s + x.rodado, 0),
+      alteracoes: porViatura.reduce((s, x) => s + x.totalAlteracoes, 0),
+      pendencias: porViatura.reduce((s, x) => s + x.pendencias.length, 0),
+      trocas: porViatura.reduce((s, x) => s + x.trocas.length, 0),
+      trocaAlerta: porViatura.filter((x) => x.troca.alerta).length,
+    },
     porViatura,
-    abertasNoMes,
-    resolvidasNoMes,
-    emAberto,
-    trocas,
   }
 }
 

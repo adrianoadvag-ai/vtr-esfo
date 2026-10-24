@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useApp } from '../App'
 import { Cabecalho, FotoMini, Icone, ItemTique, Marcador } from '../components/base'
+import CartaoTroca from '../components/CartaoTroca'
 import { LIMITES, podeGerirViaturas, podeVistoriar } from '../config'
 import { km, nomeCompleto } from '../lib/formato'
-import { avaliar, exigida, itensDa, travaDeOutro, trocaDeOleo } from '../lib/vistoria'
+import { avaliar, exigida, itensDa, travaDeOutro } from '../lib/vistoria'
 import { atuaComoGestor, escalaDoDia } from '../lib/escala'
 
 export default function Vistoria({ vtrId }) {
-  const { viaturas, vistoria, hoje, ir, api, usuario, avisar, escalas, usuarios } = useApp()
+  const { viaturas, vistoria, hoje, ir, api, usuario, avisar, escalas, usuarios, recarregarViaturas } = useApp()
   const vtr = viaturas.find((v) => v.id === vtrId)
   const enviada = vistoria?.status === 'enviada'
   const pode = !enviada && podeVistoriar(usuario)
@@ -160,7 +161,6 @@ export default function Vistoria({ vtrId }) {
   const comecada = Boolean(vistoria?.registros?.[vtrId]) || Object.keys(reg).some((k) => k !== 'itens') || Object.keys(reg.itens || {}).length > 0
 
   const a = avaliar(vtr, reg, hoje)
-  const troca = trocaDeOleo(vtr, reg.km, hoje)
   const kmNum = reg.km === '' || reg.km === undefined ? null : Number(reg.km)
   const kmMenor = kmNum !== null && vtr.kmAtual && kmNum < vtr.kmAtual
   const kmSalto = kmNum !== null && vtr.kmAtual && kmNum - vtr.kmAtual > LIMITES.saltoKm
@@ -207,7 +207,7 @@ export default function Vistoria({ vtrId }) {
           <span className="modelo">{vtr.modelo}</span>
         </div>
         <div className="vtr-info">
-          Último KM {km(vtr.kmAtual) || '—'} · Troca de óleo: {troca.texto}
+          Último KM {km(vtr.kmAtual) || '—'}
         </div>
 
         {pode && posse === 'outra' && (
@@ -279,6 +279,17 @@ export default function Vistoria({ vtrId }) {
                 </div>
               )}
             </div>
+
+            <CartaoTroca
+              vtr={vtr}
+              kmHoje={reg.km}
+              hoje={hoje}
+              usuario={usuario}
+              api={api}
+              recarregarViaturas={recarregarViaturas}
+              avisar={avisar}
+              podeEditar={podeGerirViaturas(usuario)}
+            />
 
             <div className="bloco">
               {itensDa(vtr).map((it) => (

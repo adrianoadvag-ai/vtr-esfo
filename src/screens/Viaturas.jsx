@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useApp } from '../App'
 import { Cabecalho, Icone, Selo } from '../components/base'
 import { SITUACOES, podeGerirViaturas } from '../config'
-import { dataBR, hojeISO, km, mensagemErro, nomeCompleto } from '../lib/formato'
+import { km, mensagemErro } from '../lib/formato'
 import { trocaDeOleo } from '../lib/vistoria'
 
 export default function Viaturas() {
@@ -61,7 +61,7 @@ export default function Viaturas() {
                     {(v.situacao || 'ativa') !== 'ativa' ? (
                       <Selo nivel={v.situacao === 'manutencao' ? 'atencao' : 'neutro'}>{SITUACOES[v.situacao]}</Selo>
                     ) : t.alerta ? (
-                      <Selo nivel="atencao">Troca de óleo</Selo>
+                      <Selo nivel="atencao">{t.nova ? 'Revisão' : 'Troca de óleo'}</Selo>
                     ) : null}
                   </button>
                 </li>
@@ -81,8 +81,11 @@ export function EditarViatura({ id }) {
   const [f, setF] = useState(
     atual || { prefixo: '', modelo: '', combustivel: 'flex', usaArla: false, temRadio: true, situacao: 'ativa', nova: true, kmAtual: '', ordem: viaturas.length + 1 },
   )
-  const [troca, setTroca] = useState(null)
   const [erro, setErro] = useState('')
+  // Aberta direto pelo endereço, a lista de viaturas chega depois: preenche o formulário quando ela chegar
+  useEffect(() => {
+    if (atual && !f.id) setF(atual) // eslint-disable-line react-hooks/set-state-in-effect
+  }, [atual]) // eslint-disable-line react-hooks/exhaustive-deps
   const voltar = () => ir(nova ? 'viaturas' : `vtr/${id}`)
 
   if (!podeGerirViaturas(usuario)) return null
@@ -127,27 +130,6 @@ export function EditarViatura({ id }) {
     } catch (e) {
       avisar(mensagemErro(e, 'Não foi possível excluir.'))
     }
-  }
-
-  async function registrarTroca() {
-    const kmTroca = Number(troca.km)
-    if (!kmTroca) return setErro('Informe o KM da troca.')
-    const v = {
-      ...f,
-      nova: false,
-      dataUltimaTroca: hojeISO(),
-      // Histórico das trocas (aparece na ficha e no relatório mensal)
-      trocas: [...(f.trocas || []), { data: hojeISO(), km: kmTroca, por: nomeCompleto(usuario) }],
-      kmProxTroca: kmTroca + Number(troca.intervalo || 10000),
-      dataProxTroca: troca.data || undefined,
-      kmAtual: Math.max(Number(f.kmAtual) || 0, kmTroca),
-    }
-    const limpo = Object.fromEntries(Object.entries(v).filter(([, x]) => x !== '' && x !== undefined))
-    await api.salvarViatura(limpo)
-    await recarregarViaturas()
-    setF(limpo)
-    setTroca(null)
-    avisar(`Troca registrada. Próxima aos ${km(limpo.kmProxTroca)} km.`)
   }
 
   return (
@@ -197,72 +179,22 @@ export function EditarViatura({ id }) {
             Tem rádio
             <input type="checkbox" {...marca('temRadio')} />
           </label>
-          <label className="chave">
-            VTR nova (ainda sem troca de óleo)
-            <input type="checkbox" {...marca('nova')} />
-          </label>
+          {nova && (
+            <label className="chave">
+              VTR nova (ainda sem troca de óleo)
+              <input type="checkbox" {...marca('nova')} />
+            </label>
+          )}
           <label>
             KM atual
             <input className="entrada" type="number" inputMode="numeric" {...campo('kmAtual', 'number')} />
           </label>
-          {!f.nova && (
-            <div className="dupla">
-              <label>
-                Próx. troca (KM)
-                <input className="entrada" type="number" inputMode="numeric" {...campo('kmProxTroca', 'number')} />
-              </label>
-              <label>
-                Próx. troca (data)
-                <input className="entrada" type="date" {...campo('dataProxTroca')} />
-              </label>
-            </div>
-          )}
-          {f.dataUltimaTroca && <div style={{ color: 'var(--tinta-2)', fontSize: 14 }}>Última troca registrada em {dataBR(f.dataUltimaTroca)}.</div>}
+          <p className="tela-sub" style={{ margin: 0, fontSize: 14 }}>
+            A troca de óleo (última troca, próxima troca ou revisão de VTR nova) é preenchida na tela de vistoria da viatura.
+          </p>
           {erro && <div className="erro-form">{erro}</div>}
           <button className="botao cheio">Salvar viatura</button>
         </form>
-
-        {!nova && (
-          <div className="bloco pad" style={{ marginTop: 12 }}>
-            {!troca ? (
-              <button className="botao secundario cheio" onClick={() => setTroca({ km: f.kmAtual || '', intervalo: 10000, data: '' })}>
-                <Icone nome="Droplet" /> Registrar troca de óleo feita hoje
-              </button>
-            ) : (
-              <div className="form">
-                <strong>Troca de óleo de hoje</strong>
-                <div className="dupla">
-                  <label>
-                    KM na troca
-                    <input className="entrada" type="number" inputMode="numeric" value={troca.km} onChange={(e) => setTroca({ ...troca, km: e.target.value })} />
-                  </label>
-                  <label>
-                    Próxima em (km)
-                    <input
-                      className="entrada"
-                      type="number"
-                      inputMode="numeric"
-                      value={troca.intervalo}
-                      onChange={(e) => setTroca({ ...troca, intervalo: e.target.value })}
-                    />
-                  </label>
-                </div>
-                <label>
-                  Data limite da próxima (se houver)
-                  <input className="entrada" type="date" value={troca.data} onChange={(e) => setTroca({ ...troca, data: e.target.value })} />
-                </label>
-                <div className="botoes">
-                  <button className="botao secundario" onClick={() => setTroca(null)}>
-                    Cancelar
-                  </button>
-                  <button className="botao" onClick={registrarTroca}>
-                    Registrar troca
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
 
         {!nova && (
           <button className="botao texto perigo cheio" style={{ marginTop: 16 }} onClick={excluir}>

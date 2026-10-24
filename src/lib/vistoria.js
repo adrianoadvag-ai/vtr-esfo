@@ -1,5 +1,5 @@
 // Regras da vistoria: o que falta preencher, gravidade dos achados e texto do relatório.
-import { ITENS, LIMITES, NIVEIS, rotuloVaga } from '../config'
+import { ITENS, LIMITES, NIVEIS, TROCA, rotuloVaga } from '../config'
 import { combustivelTexto, dataBR, dataExtensa, diasAte, km, saudacao } from './formato'
 
 // Identificador da rodada: a 1ª do dia é a própria data; as seguintes, data-2, data-3…
@@ -21,8 +21,20 @@ const maior = (a, b) => (NIVEIS[a].ordem >= NIVEIS[b].ordem ? a : b)
 
 // Situação da troca de óleo da viatura (com o KM informado hoje, se houver)
 export function trocaDeOleo(vtr, kmHoje, hoje) {
-  if (vtr.nova) return { texto: 'VTR nova', alerta: false }
   const kmRef = Number(kmHoje) || vtr.kmAtual || 0
+  // VTR nova: ainda sem troca; o que vale é a revisão dos 10.000 km
+  if (vtr.nova) {
+    const kmAlvo = Number(vtr.kmRevisao) || TROCA.revisaoNovaKm
+    const faltaKm = kmAlvo - kmRef
+    return {
+      nova: true,
+      kmAlvo,
+      faltaKm,
+      faltaDias: null,
+      alerta: faltaKm <= LIMITES.kmParaTroca,
+      texto: faltaKm < 0 ? `revisão dos ${km(kmAlvo)} km vencida há ${km(-faltaKm)} km` : `revisão dos ${km(kmAlvo)} km: faltam ${km(faltaKm)} km`,
+    }
+  }
   const faltaKm = vtr.kmProxTroca ? vtr.kmProxTroca - kmRef : null
   const faltaDias = vtr.dataProxTroca ? diasAte(vtr.dataProxTroca, hoje) : null
   const alertaKm = faltaKm !== null && faltaKm <= LIMITES.kmParaTroca
@@ -30,7 +42,7 @@ export function trocaDeOleo(vtr, kmHoje, hoje) {
   const partes = []
   if (faltaKm !== null) partes.push(faltaKm < 0 ? `vencida há ${km(-faltaKm)} km` : `faltam ${km(faltaKm)} km`)
   if (faltaDias !== null) partes.push(faltaDias < 0 ? `vencida há ${-faltaDias} dias` : `faltam ${faltaDias} dias`)
-  return { faltaKm, faltaDias, alerta: alertaKm || alertaDias, texto: partes.join(' · ') || 'Sem dados de troca' }
+  return { faltaKm, faltaDias, alerta: alertaKm || alertaDias, semDados: !partes.length, texto: partes.join(' · ') || 'sem dados da troca' }
 }
 
 // Avalia o registro de uma VTR: completo? quais achados e qual a gravidade?
@@ -74,7 +86,10 @@ export function avaliar(vtr, reg = {}, hoje) {
     achados.push({ nivel: 'atencao', itemId: 'arla', item: 'Arla 32', texto: `Arla: ${combustivelTexto(reg.arla).replace(' de tanque', '')}` })
   }
   const troca = trocaDeOleo(vtr, reg.km, hoje)
-  if (troca.alerta) achados.push({ nivel: 'atencao', itemId: 'troca', item: 'Troca de óleo', texto: `Troca de óleo: ${troca.texto}` })
+  if (troca.alerta) {
+    const item = troca.nova ? 'Revisão' : 'Troca de óleo'
+    achados.push({ nivel: 'atencao', itemId: 'troca', item, texto: troca.nova ? `Revisão: ${troca.texto.replace(/^revisão /, '')}` : `Troca de óleo: ${troca.texto}` })
+  }
 
   const nivel = achados.reduce((n, a) => (n ? maior(n, a.nivel) : a.nivel), null)
   const estado = pendentes.length ? (Object.keys(reg.itens || {}).length || reg.km ? 'andamento' : 'pendente') : temAlt ? 'alt' : 'ok'
@@ -128,13 +143,15 @@ export function montarRelatorio({ data, viaturas, registros, limpeza, responsave
     }
     if (v.situacao === 'manutencao') L.push('* Situação: em manutenção')
     L.push(`* KM: ${km(r.km)}`)
-    if (v.nova) {
-      L.push('* Próx. troca: VTR nova')
+    const t = trocaDeOleo(v, r.km, data)
+    if (t.nova) {
+      L.push(`* Próx. troca: VTR nova, revisão aos ${km(t.kmAlvo)} km (${t.faltaKm < 0 ? 'vencida' : `faltam ${km(t.faltaKm)} km`})`)
+    } else if (t.semDados) {
+      L.push(`* Próx. troca: sem dados${v.dataUltimaTroca ? ` (última em ${dataBR(v.dataUltimaTroca)})` : ''}`)
     } else {
-      const t = trocaDeOleo(v, r.km, data)
-      if (v.kmProxTroca) L.push(`* Próx. troca: ${km(v.kmProxTroca)}${t.faltaKm !== null ? ` (${t.faltaKm < 0 ? 'vencida' : `faltam ${km(t.faltaKm)} km`})` : ''}`)
-      if (v.dataProxTroca) L.push(`* Data da próx. troca: ${dataBR(v.dataProxTroca)}`)
-      if (!v.kmProxTroca && !v.dataProxTroca && v.dataUltimaTroca) L.push(`* Última troca: ${dataBR(v.dataUltimaTroca)}`)
+      const kmTxt = v.kmProxTroca ? `${km(v.kmProxTroca)} km (${t.faltaKm < 0 ? 'vencida' : `faltam ${km(t.faltaKm)} km`})` : ''
+      const dataTxt = v.dataProxTroca ? dataBR(v.dataProxTroca) : ''
+      L.push(`* Próx. troca: ${[kmTxt, dataTxt].filter(Boolean).join(' ou ')}`)
     }
     if (v.usaArla) L.push(`* Arla: ${combustivelTexto(r.arla).replace(' de tanque', '')}`)
     const it = Object.fromEntries(itensDa(v).map((x) => [x.id, x]))

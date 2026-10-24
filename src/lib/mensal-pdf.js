@@ -1,6 +1,6 @@
-// PDF do relatório mensal (para o coordenador e o comando)
-import { SITUACOES } from '../config'
-import { dataBR, dataCurta, km } from './formato'
+// PDF do relatório mensal: situação de cada viatura no período
+import { NIVEIS, SITUACOES } from '../config'
+import { dataBR, diaMes, km } from './formato'
 import { nomeMes } from './frota'
 
 function carregarImagem(src) {
@@ -21,6 +21,8 @@ const limpar = (s = '') =>
     .replace(/…/g, '...')
     .replace(/→/g, '->')
     .trim()
+
+const maiuscula = (t) => (t ? t[0].toUpperCase() + t.slice(1) : t)
 
 export async function gerarPdfMensal({ resumo: r, brasoes, geradoPor, hoje }) {
   const { jsPDF } = await import('jspdf')
@@ -52,15 +54,8 @@ export async function gerarPdfMensal({ resumo: r, brasoes, geradoPor, hoje }) {
     pdf.text(t, L, y)
     y += 6
   }
-  const paragrafo = (t, cor = COR.tinta) => {
-    fonte('normal', 10, cor)
-    const ls = linhasDe(t, W)
-    garantir(ls.length * 4.8)
-    ls.forEach((x, i) => pdf.text(x, L, y + i * 4.8))
-    y += ls.length * 4.8 + 1
-  }
 
-  // Tabela simples: colunas com largura em mm; repete o cabeçalho ao virar a página
+  // Tabela simples; repete o cabeçalho ao virar a página
   function tabela(colunas, linhas, { cores } = {}) {
     const pad = 1.6
     const cabecalho = () => {
@@ -107,130 +102,115 @@ export async function gerarPdfMensal({ resumo: r, brasoes, geradoPor, hoje }) {
   pdf.text('RELATÓRIO MENSAL DE VIATURAS', L + W / 2, y + 9, { align: 'center' })
   fonte('normal', 10, COR.cinza)
   pdf.text('Escola de Formação de Oficiais · APMG · PMPR', L + W / 2, y + 15, { align: 'center' })
-  const mes = nomeMes(r.mes)
-  pdf.text(nomeMes(r.mes, true), L + W / 2, y + 20.5, { align: 'center' })
+  pdf.text(limpar(`${nomeMes(r.mes, true)} · ${diaMes(r.de)} a ${dataBR(r.ate)}`), L + W / 2, y + 20.5, { align: 'center' })
   y += altB + 4
   pdf.setDrawColor(...COR.ouro)
   pdf.setLineWidth(1)
   pdf.line(L, y, L + W, y)
   y += 6
   fonte('normal', 9, COR.cinza)
-  const parcial = r.dias.length && r.dias.at(-1) === hoje ? ` (mês em andamento, dados até ${dataBR(hoje)})` : ''
-  pdf.text(limpar(`Gerado em ${dataBR(hoje)}${geradoPor ? ` por ${geradoPor}` : ''}${parcial}`), L, y)
+  pdf.text(limpar(`Gerado em ${dataBR(hoje)}${geradoPor ? ` por ${geradoPor}` : ''}${r.emAndamento ? ' (mês em andamento)' : ''}`), L, y)
   y += 6
 
-  // Números do mês
+  // Números da frota
+  const f = r.frota
   const numeros = [
-    [`${r.diasComRelatorio}/${r.diasContados}`, 'dias de missão com relatório'],
-    [r.totalRelatorios, 'relatórios enviados'],
-    [r.totalAlteracoes, 'alterações registradas'],
-    [r.trocas.length, 'trocas de óleo'],
-    [r.abertasNoMes.length, 'pendências abertas no mês'],
-    [r.resolvidasNoMes.length, 'pendências resolvidas no mês'],
-    [r.emAberto.length, 'pendências em aberto hoje'],
-    [r.porViatura.filter((x) => (x.vtr.situacao || 'ativa') !== 'ativa').length, 'VTR em manutenção ou baixadas'],
+    [String(f.ativas), `VTR ativas${f.manutencao || f.baixadas ? ` (${f.manutencao} em manutenção, ${f.baixadas} baixadas)` : ''}`],
+    [km(f.kmRodados), 'km rodados no período'],
+    [String(f.alteracoes), 'alterações registradas'],
+    [String(f.pendencias), 'pendências em aberto'],
   ]
   const larg = (W - 3 * 4) / 4
   numeros.forEach(([n, rot], i) => {
-    const col = i % 4
-    const lin = Math.floor(i / 4)
-    const x = L + col * (larg + 4)
-    const yy = y + lin * 20
+    const x = L + i * (larg + 4)
     pdf.setFillColor(...COR.fundo)
-    pdf.roundedRect(x, yy, larg, 17, 1.5, 1.5, 'F')
+    pdf.roundedRect(x, y, larg, 17, 1.5, 1.5, 'F')
     fonte('bold', 16)
-    pdf.text(String(n), x + 3, yy + 8)
+    pdf.text(n, x + 3, y + 8)
     fonte('normal', 8, COR.cinza)
-    linhasDe(rot, larg - 6).forEach((t, k) => pdf.text(t, x + 3, yy + 12.2 + k * 3.4))
+    linhasDe(rot, larg - 6).forEach((t, k) => pdf.text(t, x + 3, y + 12.2 + k * 3.4))
   })
-  y += 40 + 4
+  y += 24
 
-  if (r.diasSemRelatorio.length) {
-    tituloSecao(`Dias sem relatório (${r.diasSemRelatorio.length})`)
-    paragrafo(r.diasSemRelatorio.map(dataCurta).join(', '), COR.critico)
-  }
-
-  tituloSecao('Cumprimento da escala')
+  // Quadro das viaturas
+  tituloSecao('Situação das viaturas')
   tabela(
     [
-      { titulo: 'Dia', w: 29 },
-      { titulo: 'Responsável', w: 32 },
-      { titulo: 'Supervisor', w: 34 },
-      { titulo: 'Gestor', w: 30 },
-      { titulo: 'Enviado por', w: 43 },
-      { titulo: 'VTR', w: 12, direita: true },
-    ],
-    r.porDia.map((d) => [dataCurta(d.dia), d.auxiliares.join(', ') || '-', d.escalados.join(', ') || '-', d.supervisor || '-', d.relatorios ? d.enviadoPor.join(', ') : d.aguardando ? 'Hoje, aguardando' : 'Sem relatório', d.relatorios ? String(d.viaturas) : '-']),
-    { cores: (li, ci) => (ci === 4 && !r.porDia[li].relatorios && !r.porDia[li].aguardando ? COR.critico : null) },
-  )
-
-  tituloSecao('Viaturas no mês')
-  tabela(
-    [
-      { titulo: 'VTR', w: 18 },
-      { titulo: 'Modelo', w: 40 },
-      { titulo: 'Situação', w: 28 },
-      { titulo: 'Vistorias', w: 18, direita: true },
-      { titulo: 'Alterações', w: 20, direita: true },
-      { titulo: 'KM no mês', w: 36, direita: true },
-      { titulo: 'Rodado', w: 20, direita: true },
+      { titulo: 'VTR', w: 16 },
+      { titulo: 'Modelo', w: 32 },
+      { titulo: 'Situação', w: 24 },
+      { titulo: 'KM no período', w: 34, direita: true },
+      { titulo: 'Rodado', w: 18, direita: true },
+      { titulo: 'Vistorias', w: 16, direita: true },
+      { titulo: 'Troca de óleo / revisão', w: 40 },
     ],
     r.porViatura.map((x) => [
       x.vtr.prefixo,
       x.vtr.modelo,
-      SITUACOES[x.vtr.situacao || 'ativa'],
-      String(x.vistorias),
-      String(x.alteracoes),
+      SITUACOES[x.situacao],
       x.kmInicial ? `${km(x.kmInicial)} - ${km(x.kmFinal)}` : '-',
-      x.kmInicial ? km(x.kmFinal - x.kmInicial) : '-',
+      x.kmInicial ? km(x.rodado) : '-',
+      String(x.vistorias),
+      maiuscula(x.troca.texto),
     ]),
-    { cores: (li, ci) => (ci === 4 && r.porViatura[li].alteracoes ? COR.atencao : null) },
+    {
+      cores: (li, ci) => {
+        const x = r.porViatura[li]
+        if (ci === 6 && x.troca.alerta) return COR.atencao
+        if (ci === 2 && x.situacao !== 'ativa') return COR.atencao
+        return null
+      },
+    },
   )
 
-  const recorrentes = r.porViatura.filter((x) => x.recorrentes.length)
-  if (recorrentes.length) {
-    tituloSecao('Alterações mais frequentes')
-    for (const x of recorrentes) paragrafo(`${x.vtr.prefixo} (${x.vtr.modelo}): ${x.recorrentes.map((c) => `${c.item} ${c.vezes}x`).join(', ')}`)
+  // Alterações, pendências e trocas, por viatura
+  tituloSecao('Alterações, pendências e trocas de óleo')
+  const comAlgo = r.porViatura.filter((x) => x.alteracoes.length || x.pendencias.length || x.trocas.length)
+  if (!comAlgo.length) {
+    fonte('normal', 10, COR.cinza)
+    pdf.text('Nenhuma alteração, pendência ou troca de óleo no período.', L, y)
+    y += 6
   }
-
-  const linhaPend = (o) => [o.prefixo, o.texto, dataBR(o.abertaEm), o.status === 'resolvida' ? `Resolvida ${dataBR(o.resolvidaEm)}` : 'Em aberto']
-  const colPend = [
-    { titulo: 'VTR', w: 18 },
-    { titulo: 'Alteração', w: 90 },
-    { titulo: 'Aberta em', w: 24 },
-    { titulo: 'Situação', w: 48 },
-  ]
-  if (r.emAberto.length) {
-    tituloSecao(`Pendências em aberto hoje (${r.emAberto.length})`)
-    tabela(colPend, r.emAberto.map(linhaPend), { cores: (_l, ci) => (ci === 3 ? COR.critico : null) })
+  for (const x of comAlgo) {
+    const itens = [
+      ...x.alteracoes.map((g) => ({
+        selo: NIVEIS[g.nivel].nome.toUpperCase(),
+        cor: g.nivel === 'critico' ? COR.critico : g.nivel === 'atencao' ? COR.atencao : COR.cinza,
+        texto: `${g.texto} - ${g.vezes > 1 ? `${g.vezes} vistorias, de ${diaMes(g.primeira)} a ${diaMes(g.ultima)}` : `em ${diaMes(g.ultima)}`}`,
+      })),
+      ...x.pendencias.map((o) => ({ selo: 'PENDÊNCIA', cor: COR.cinza, texto: `${o.texto} - em aberto desde ${dataBR(o.abertaEm)}` })),
+      ...x.trocas.map((t) => ({ selo: 'TROCA', cor: COR.ok, texto: `Troca de óleo em ${dataBR(t.data)}${t.km ? ` aos ${km(t.km)} km` : ''}${t.por ? ` (${t.por})` : ''}` })),
+    ]
+    fonte('normal', 9.5)
+    const alturas = itens.map((it) => linhasDe(it.texto, W - 28).length * 4.3 + 1.5)
+    garantir(9 + Math.min(alturas.reduce((a, b) => a + b, 0), 60))
+    pdf.setFillColor(...COR.fundo)
+    pdf.roundedRect(L, y - 4.5, W, 7, 1.2, 1.2, 'F')
+    fonte('bold', 10.5)
+    pdf.text(limpar(x.vtr.prefixo), L + 3, y)
+    const lp = pdf.getTextWidth(limpar(x.vtr.prefixo))
+    fonte('normal', 9.5, COR.cinza)
+    pdf.text(limpar(x.vtr.modelo), L + 6 + lp, y)
+    y += 6.5
+    itens.forEach((it, i) => {
+      garantir(alturas[i])
+      pdf.setFillColor(...it.cor)
+      pdf.roundedRect(L + 2, y - 3.4, 22, 4.6, 1, 1, 'F')
+      fonte('bold', 7, [255, 255, 255])
+      pdf.text(limpar(it.selo), L + 13, y - 0.3, { align: 'center' })
+      fonte('normal', 9.5)
+      linhasDe(it.texto, W - 28).forEach((t, k) => pdf.text(t, L + 27, y + k * 4.3))
+      y += alturas[i]
+    })
+    y += 3
   }
-  if (r.resolvidasNoMes.length) {
-    tituloSecao(`Pendências resolvidas no mês (${r.resolvidasNoMes.length})`)
-    tabela(
-      [...colPend.slice(0, 3), { titulo: 'Solução', w: 48 }],
-      r.resolvidasNoMes.map((o) => [o.prefixo, o.texto, dataBR(o.abertaEm), `${dataBR(o.resolvidaEm)}${o.notaResolucao ? ` - ${o.notaResolucao}` : ''}`]),
-    )
-  }
-
-  tituloSecao('Trocas de óleo no mês')
-  if (r.trocas.length) {
-    tabela(
-      [
-        { titulo: 'Data', w: 26 },
-        { titulo: 'VTR', w: 50 },
-        { titulo: 'KM', w: 30, direita: true },
-        { titulo: 'Registrada por', w: 74 },
-      ],
-      r.trocas.map((t) => [dataBR(t.data), `${t.vtr.prefixo} ${t.vtr.modelo}`, t.km ? km(t.km) : '-', t.por || '-']),
-    )
-  } else paragrafo('Nenhuma troca registrada no app neste mês.', COR.cinza)
 
   // Rodapé com numeração
   const total = pdf.getNumberOfPages()
   for (let p = 1; p <= total; p++) {
     pdf.setPage(p)
     fonte('normal', 8, COR.cinza)
-    pdf.text(limpar(`Missão Viaturas · EsFO · ${mes}`), L, ALTURA - 8)
+    pdf.text(limpar(`Missão Viaturas · EsFO · ${nomeMes(r.mes)}`), L, ALTURA - 8)
     pdf.text(`Página ${p} de ${total}`, L + W, ALTURA - 8, { align: 'right' })
   }
 

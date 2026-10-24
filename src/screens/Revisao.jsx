@@ -15,10 +15,9 @@ export default function Revisao() {
   const escalaHoje = escalaDoDia(escalas, hoje, equipe)
   const escalados = (escalaHoje?.responsaveis || []).map((p) => p.nome).filter(Boolean)
   const escaladosAux = (escalaHoje?.auxiliares || []).map((p) => p.nome).filter(Boolean)
-  const supervisorEscala = escalaHoje?.supervisor?.nome || ''
-  // Supervisor que faz a vistoria assina como supervisor, não como responsável do dia
-  const souSupervisor = atuaComoGestor(escalaHoje, usuario)
-  const naEscala = escalados.includes(eu) || escaladosAux.includes(eu) || souSupervisor
+  // Gestor (3º ano) não entra na escala nem assina; se ele vistoriar, assinam os escalados do dia
+  const souGestor = atuaComoGestor(escalaHoje, usuario)
+  const naEscala = escalados.includes(eu) || escaladosAux.includes(eu) || souGestor
   const souAuxiliar = funcaoDe(usuario) === 'auxiliar'
   const [responsaveis, setResponsaveis] = useState(
     vistoria?.responsaveis?.length ? vistoria.responsaveis : naEscala || souAuxiliar ? escalados : [eu],
@@ -27,15 +26,13 @@ export default function Revisao() {
     vistoria?.auxiliares?.length ? vistoria.auxiliares : naEscala ? escaladosAux : souAuxiliar ? [eu] : escaladosAux,
   )
   const [verTodos, setVerTodos] = useState(false)
-  const [supervisor, setSupervisor] = useState(vistoria?.supervisor ?? (souSupervisor ? eu : supervisorEscala))
   // A escala pode chegar depois que a tela abre: preenche os nomes enquanto ninguém mexeu neles
   const mexeu = useRef(Boolean(vistoria?.responsaveis?.length))
-  const chaveEscala = [...escalados, '|', ...escaladosAux, '|', supervisorEscala].join(',')
+  const chaveEscala = [...escalados, '|', ...escaladosAux].join(',')
   useEffect(() => {
     if (mexeu.current || !chaveEscala.replace(/[|,]/g, '')) return
     setResponsaveis(naEscala || souAuxiliar ? escalados : [eu])
     setAuxiliares(naEscala ? escaladosAux : souAuxiliar ? [eu] : escaladosAux)
-    setSupervisor(souSupervisor ? eu : supervisorEscala)
   }, [chaveEscala]) // eslint-disable-line react-hooks/exhaustive-deps
   const [limpeza, setLimpeza] = useState(vistoria?.limpeza || { ok: true, obs: '' })
   const [verTexto, setVerTexto] = useState(false)
@@ -56,7 +53,7 @@ export default function Revisao() {
   const idsIncluidos = new Set(incluidas.map((v) => v.id))
   const abertas = ocorrencias.filter((o) => o.status === 'aberta')
   const abertasDestas = abertas.filter((o) => idsIncluidos.has(o.viaturaId))
-  const pronto = incluidas.length > 0 && (responsaveis.length > 0 || auxiliares.length > 0 || supervisor) && (limpeza.ok || limpeza.obs?.trim())
+  const pronto = incluidas.length > 0 && (responsaveis.length > 0 || auxiliares.length > 0) && (limpeza.ok || limpeza.obs?.trim())
 
   const texto = montarRelatorio({
     data: hoje,
@@ -65,7 +62,6 @@ export default function Revisao() {
     limpeza,
     responsaveis,
     auxiliares,
-    supervisor,
     pendenciasAbertas: abertasDestas,
     totalFrota: viaturas.filter(exigida).length,
   })
@@ -77,8 +73,6 @@ export default function Revisao() {
   const opcoes = (escala, f, marcados) => Array.from(new Set([...escala, ...marcados, ...(verTodos ? [eu, ...todos] : daFuncao(f))]))
   const nomesResp = opcoes(escalados, 'responsavel', responsaveis)
   const nomesAux = opcoes(escaladosAux, 'auxiliar', auxiliares)
-  // Supervisor: o da escala, quem está enviando (se atua como supervisor) e quem tem a função de supervisor
-  const supervisores = Array.from(new Set([supervisorEscala, souSupervisor && eu, supervisor, ...daFuncao('supervisor')].filter(Boolean)))
   const alternar = (n) => {
     mexeu.current = true
     setResponsaveis((r) => (r.includes(n) ? r.filter((x) => x !== n) : [...r, n]))
@@ -103,7 +97,7 @@ export default function Revisao() {
         relatorio: texto,
         responsaveis,
         auxiliares,
-        supervisor,
+        supervisor: '',
         limpeza,
         kms,
         novasOcorrencias,
@@ -264,25 +258,9 @@ export default function Revisao() {
           </button>
         )}
 
-        <h2 className="secao">{rotuloVaga('supervisor')}</h2>
-        <div className="chips">
-          {supervisores.map((n) => (
-            <button
-              key={n}
-              className={`opcao ${supervisor === n ? 'marcada' : ''}`}
-              onClick={() => {
-                mexeu.current = true
-                setSupervisor(supervisor === n ? '' : n)
-              }}
-            >
-              {n}
-            </button>
-          ))}
-          {supervisores.length === 0 && <span className="tela-sub">Nenhum gestor na escala de hoje.</span>}
-        </div>
-        {responsaveis.length === 0 && auxiliares.length === 0 && supervisor && (
+        {responsaveis.length === 0 && auxiliares.length === 0 && (
           <p className="tela-sub" style={{ margin: '8px 0 0' }}>
-            Ninguém marcado como responsável ou supervisor: o relatório sai assinado só pelo gestor.
+            Marque o responsável ou o supervisor do dia para enviar.
           </p>
         )}
 

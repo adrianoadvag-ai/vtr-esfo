@@ -1228,7 +1228,7 @@ button.pessoa:active,
 }
 .cartao-escala .linha-escala {
   display: grid;
-  grid-template-columns: auto repeat(3, minmax(0, 1fr));
+  grid-template-columns: auto repeat(2, minmax(0, 1fr));
   gap: 10px 14px;
   align-items: start;
   padding: 12px 14px 4px;
@@ -1491,4 +1491,93 @@ button.pessoa:active,
   font: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+/* Troca de óleo na vistoria */
+.cartao-troca .troca-resumo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 0 14px 12px 60px;
+  font-size: 15px;
+  color: var(--tinta-2);
+}
+.cartao-troca .troca-resumo strong {
+  color: var(--tinta);
+}
+.cartao-troca .troca-resumo .botao.texto {
+  min-height: 36px;
+  padding: 0;
+}
+.troca-form {
+  border-top: 1px solid var(--linha);
+  padding: 12px 14px 14px;
+}
+.troca-form small,
+.troca-nota {
+  display: block;
+  font-size: 13px;
+  color: var(--tinta-2);
+  font-weight: 400;
+}
+.troca-titulo {
+  font-size: 14px;
+  margin-top: 4px;
+}
+.link-texto {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--azul);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Relatório mensal: ficha de cada viatura */
+.mensal-vtr .ficha-topo.linha-botao {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--linha);
+  padding: 0 0 8px;
+  margin-bottom: 10px;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.mensal-vtr.inativa {
+  opacity: 0.75;
+}
+.mensal-lista {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--linha);
+  display: grid;
+  gap: 10px;
+}
+.mensal-lista li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: start;
+}
+.mensal-lista small {
+  display: block;
+  font-size: 13px;
+  color: var(--tinta-2);
+}
+.mensal-nada {
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--linha);
+  font-size: 14px;
+  color: var(--tinta-2);
 }
