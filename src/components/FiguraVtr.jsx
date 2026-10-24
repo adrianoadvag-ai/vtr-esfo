@@ -19,11 +19,11 @@ const Giroflex = ({ x, y, w = 11, h = 6 }) => (
   </>
 )
 
-// Pintura: parte de baixo cinza com friso amarelo
+// Pintura: metade de baixo amarela, com friso cinza acima
 const Faixa = () => (
   <>
-    <rect className="fv-cz" x="4.4" y="45" width="143.2" height="15" />
-    <rect className="fv-am" x="4.4" y="41" width="143.2" height="3" />
+    <rect className="fv-am" x="4.4" y="38" width="143.2" height="22" />
+    <rect className="fv-cz" x="4.4" y="35" width="143.2" height="3" />
   </>
 )
 
