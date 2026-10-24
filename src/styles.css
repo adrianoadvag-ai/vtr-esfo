@@ -871,8 +871,9 @@ textarea:focus,
   background: var(--noite);
 }
 .carregando img {
-  height: 96px;
-  opacity: 0.9;
+  width: min(220px, 56vw);
+  height: auto;
+  border-radius: 18px;
 }
 
 .toast {

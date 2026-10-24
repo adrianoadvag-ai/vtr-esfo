@@ -37,7 +37,7 @@ src/
   components/FiguraVtr.jsx  figura da viatura por tipo
   assets/viaturas/     ilustrações das VTR (furgão, picape, SUV, SUV grande, sedã)
   lib/tipo-vtr.js      tipos de viatura e dedução pelo modelo
-  assets/logo-viatura.svg  logo do app (os ícones em public/icons saem dele)
+  assets/logo-app.webp logo do app (tela de abertura); os ícones em public/icons saem do emblema circular dela
 firestore.rules        quem pode ler e escrever o quê
 .github/workflows/     publicação automática no GitHub Pages
 ```

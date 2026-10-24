@@ -42,7 +42,7 @@ import {
 } from 'lucide-react'
 import brasaoApmg from '../assets/brasao-apmg.png'
 import brasaoEsfo from '../assets/brasao-esfo.png'
-import logoViatura from '../assets/logo-viatura.svg'
+import logoViatura from '../assets/logo-app.webp'
 import { NIVEIS } from '../config'
 import { fracao, iniciais } from '../lib/formato'
 
