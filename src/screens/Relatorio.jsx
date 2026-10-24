@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useApp } from '../App'
 import { Cabecalho, Icone, SeloNivel, brasaoApmg, brasaoEsfo, useCarregar } from '../components/base'
 import { podeExcluirRelatorio } from '../config'
-import { dataBR, dataExtensa, horaCurta, mensagemErro } from '../lib/formato'
+import { comSaudacaoAtual, dataBR, dataExtensa, horaCurta, mensagemErro } from '../lib/formato'
 import { planoExclusao } from '../lib/frota'
 import { estruturar, gerarPdf } from '../lib/relatorio'
 import FiguraVtr from '../components/FiguraVtr'
@@ -50,7 +50,7 @@ export default function Relatorio({ data: id }) {
 
   async function copiar() {
     try {
-      await navigator.clipboard.writeText(doc.relatorio)
+      await navigator.clipboard.writeText(comSaudacaoAtual(doc.relatorio))
       avisar('Texto copiado. Cole no grupo do WhatsApp.')
     } catch {
       setVerTexto(true)
@@ -116,7 +116,7 @@ export default function Relatorio({ data: id }) {
               <button className="botao" onClick={copiar}>
                 <Icone nome="Copy" /> Copiar texto
               </button>
-              <a className="botao" href={`https://wa.me/?text=${encodeURIComponent(doc.relatorio)}`} target="_blank" rel="noreferrer">
+              <a className="botao" href={`https://wa.me/?text=${encodeURIComponent(comSaudacaoAtual(doc.relatorio))}`} target="_blank" rel="noreferrer">
                 <Icone nome="MessageCircle" /> WhatsApp
               </a>
             </div>
@@ -142,7 +142,7 @@ export default function Relatorio({ data: id }) {
 
             {verTexto ? (
               <div className="bloco">
-                <pre className="relatorio-texto">{doc.relatorio}</pre>
+                <pre className="relatorio-texto">{comSaudacaoAtual(doc.relatorio)}</pre>
               </div>
             ) : (
               <Formatado r={r} />

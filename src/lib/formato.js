@@ -74,6 +74,12 @@ export function saudacao(d = new Date()) {
   return 'Boa noite!'
 }
 
+// Troca a saudação do relatório ("Com licença, Senhores. Boa noite!") pela do horário atual,
+// para o texto copiado ou enviado depois do envio não sair com a saudação errada
+export function comSaudacaoAtual(texto = '', d = new Date()) {
+  return texto.replace(/^(Com licença, Senhores\.\s*)(Bom dia!|Boa tarde!|Boa noite!)/, `$1${saudacao(d)}`)
+}
+
 export function horaCurta(ms) {
   if (!ms) return ''
   const d = new Date(ms)
