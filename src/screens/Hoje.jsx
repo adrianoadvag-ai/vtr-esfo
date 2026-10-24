@@ -111,9 +111,14 @@ export default function Hoje() {
                           ? `Em vistoria por ${travaDeOutro(vistoria, v.id, usuario.id).nome}`
                           : detalhe(v, a, temRegistro, ja)}
                       </span>
+                      {(temRegistro || ja) && (
+                        <span className="selo-linha">
+                          <Status a={a} temRegistro={temRegistro} ja={ja} />
+                        </span>
+                      )}
                       </span>
                     </span>
-                    <Status a={a} temRegistro={temRegistro} ja={ja} />
+                    {!temRegistro && !ja && <Icone nome="ChevronRight" style={{ color: 'var(--tinta-2)' }} />}
                   </button>
                 </li>
               )
