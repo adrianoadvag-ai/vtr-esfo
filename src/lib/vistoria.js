@@ -1,6 +1,6 @@
 // Regras da vistoria: o que falta preencher, gravidade dos achados e texto do relatório.
 import { CONFERENCIA_SEMANAL, ITENS, LIMITES, NIVEIS, TROCA, rotuloVaga } from '../config'
-import { combustivelTexto, dataBR, dataExtensa, diasAte, km, saudacao } from './formato'
+import { combustivelTexto, dataBR, dataExtensa, diasAte, nomeDiaSemana, km, saudacao } from './formato'
 import { infoSituacao, linhaSituacao, situacaoDe } from './situacao'
 
 // Identificador da rodada: a 1ª do dia é a própria data; as seguintes, data-2, data-3…
@@ -110,7 +110,7 @@ export function montarRelatorio({ data, viaturas, registros, limpeza, responsave
   L.push('')
   const lista = viaturas
   const parcial = totalFrota && lista.length < totalFrota ? ` (${lista.length} de ${totalFrota} viaturas)` : ''
-  L.push(`Segue o relatório das viaturas: ${dataExtensa(data)}${parcial}`)
+  L.push(`Segue o relatório das viaturas: ${nomeDiaSemana(data)}, ${dataExtensa(data)}${parcial}`)
 
   const alteracoes = []
   for (const v of lista) {

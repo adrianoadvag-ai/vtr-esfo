@@ -20,6 +20,12 @@ export function dataExtensa(iso) {
   return `${d} ${MESES[m - 1]} ${a}`
 }
 
+// "segunda-feira"
+export function nomeDiaSemana(iso) {
+  const { a, m, d } = partes(iso)
+  return NOMES_DIAS[new Date(a, m - 1, d).getDay()].toLowerCase()
+}
+
 // "Quarta, 21 out."
 export function dataCurta(iso) {
   const { a, m, d } = partes(iso)
