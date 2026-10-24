@@ -6,6 +6,7 @@ import { dataBR, diaMes, km, nomeCompleto } from '../lib/formato'
 import { mesAnterior, mesDe, mesSeguinte, nomeMes, resumoMensal } from '../lib/frota'
 import { gerarPdfMensal } from '../lib/mensal-pdf'
 import FiguraVtr from '../components/FiguraVtr'
+import { textoSituacao } from '../lib/situacao'
 
 // Relatório do mês: situação de cada viatura, KM rodado, alterações, pendências e troca de óleo, com PDF
 export default function Mensal({ mes: mesRota }) {
@@ -134,6 +135,7 @@ function FichaMensal({ x, ir }) {
         {x.situacao !== 'ativa' && <Selo nivel={x.situacao === 'manutencao' ? 'atencao' : 'neutro'}>{SITUACOES[x.situacao]}</Selo>}
         <Icone nome="ChevronRight" style={{ marginLeft: 'auto', color: 'var(--tinta-2)' }} />
       </button>
+      {x.situacao !== 'ativa' && vtr.motivoSituacao && <p className="motivo-linha detalhe" style={{ margin: '0 0 8px' }}>{textoSituacao(vtr, { rotulo: false })}</p>}
       <dl className="ficha-dados">
         <div>
           <dt>KM no período</dt>

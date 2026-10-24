@@ -7,6 +7,7 @@ import { leiturasDa, recorrencias, serieKm, trocasDa } from '../lib/frota'
 import { trocaDeOleo } from '../lib/vistoria'
 import FiguraVtr, { ModeloVtr } from '../components/FiguraVtr'
 import { TIPOS_VTR, tipoDaViatura } from '../lib/tipo-vtr'
+import { comSituacao } from '../lib/situacao'
 
 // Ficha de uma viatura: situação, KM ao longo do tempo, alterações que se repetem, pendências e trocas de óleo
 export default function FichaViatura({ id }) {
@@ -16,6 +17,8 @@ export default function FichaViatura({ id }) {
   const { dados: vistorias, carregando } = useCarregar(() => api.listarVistorias(), [enviadasHoje.length])
   const [verTodas, setVerTodas] = useState(false)
   const [mudando, setMudando] = useState(false)
+  // Pedido de mudança para manutenção/baixada: aguarda o motivo
+  const [pedido, setPedido] = useState(null)
 
   const leituras = useMemo(() => (vtr && vistorias ? leiturasDa(vtr, vistorias) : []), [vtr, vistorias])
   const recorrentes = useMemo(() => recorrencias(leituras), [leituras])
@@ -42,18 +45,35 @@ export default function FichaViatura({ id }) {
   const mostradas = verTodas ? recentes : recentes.slice(0, 8)
   const ultima = recentes[0]
 
-  async function mudarSituacao(nova) {
-    if (nova === situacao || mudando) return
+  function escolherSituacao(nova) {
+    if (mudando) return
+    if (nova === 'ativa') {
+      setPedido(null)
+      if (situacao !== 'ativa') salvarSituacao('ativa')
+      return
+    }
+    if (nova === situacao && !pedido) return
+    setPedido({ situacao: nova, motivo: nova === situacao ? vtr.motivoSituacao || '' : '', previsao: nova === situacao ? vtr.previsaoRetorno || '' : '', erro: '' })
+  }
+
+  async function salvarSituacao(nova, dados) {
     setMudando(true)
     try {
-      await api.salvarViatura({ ...vtr, situacao: nova })
+      await api.salvarViatura(comSituacao(vtr, nova, dados, usuario, hoje))
       await recarregarViaturas()
+      setPedido(null)
       avisar(`VTR ${vtr.prefixo}: ${SITUACOES[nova].toLowerCase()}.`)
     } catch (e) {
       avisar(mensagemErro(e, 'Não foi possível mudar a situação.'))
     } finally {
       setMudando(false)
     }
+  }
+
+  function confirmarPedido(e) {
+    e.preventDefault()
+    if (!pedido.motivo.trim()) return setPedido({ ...pedido, erro: 'Descreva o motivo.' })
+    salvarSituacao(pedido.situacao, pedido)
   }
 
   return (
@@ -102,6 +122,26 @@ export default function FichaViatura({ id }) {
               <dd>{ultima ? `${dataBR(ultima.data)}${ultima.comb != null ? ` · ${combustivelTexto(ultima.comb)}` : ''}` : vtr.ultimaVistoria ? dataBR(vtr.ultimaVistoria) : '—'}</dd>
             </div>
           </dl>
+          {situacao !== 'ativa' && (
+            <div className={`motivo-situacao ${situacao}`}>
+              <strong>{situacao === 'baixada' ? 'Motivo da baixa' : 'Manutenção'}</strong>
+              <p>{vtr.motivoSituacao || 'Motivo não informado.'}</p>
+              <span>
+                {[
+                  vtr.situacaoDesde && `Desde ${dataBR(vtr.situacaoDesde)}`,
+                  vtr.situacaoPor && `por ${vtr.situacaoPor}`,
+                  vtr.previsaoRetorno && `· retorno previsto ${dataBR(vtr.previsaoRetorno)}`,
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              </span>
+              {gestor && !pedido && (
+                <button className="botao texto" onClick={() => escolherSituacao(situacao)}>
+                  <Icone nome="Pencil" tamanho={16} /> {vtr.motivoSituacao ? 'Editar motivo' : 'Informar motivo'}
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {gestor && (
@@ -109,13 +149,39 @@ export default function FichaViatura({ id }) {
             <h2 className="secao">Mudar situação</h2>
             <div className="botoes">
               {Object.entries(SITUACOES).map(([k, n]) => (
-                <button key={k} className={`opcao ${situacao === k ? 'marcada' : ''}`} onClick={() => mudarSituacao(k)} disabled={mudando} aria-pressed={situacao === k}>
+                <button key={k} className={`opcao ${(pedido?.situacao || situacao) === k ? 'marcada' : ''}`} onClick={() => escolherSituacao(k)} disabled={mudando} aria-pressed={(pedido?.situacao || situacao) === k}>
                   {n}
                 </button>
               ))}
             </div>
+            {pedido && (
+              <form className="bloco pad form" style={{ marginTop: 12 }} onSubmit={confirmarPedido}>
+                <label>
+                  {pedido.situacao === 'baixada' ? 'Motivo da baixa' : 'Manutenção que está sendo feita'}
+                  <textarea
+                    value={pedido.motivo}
+                    onChange={(e) => setPedido({ ...pedido, motivo: e.target.value, erro: '' })}
+                    placeholder={pedido.situacao === 'baixada' ? 'Ex.: freio dianteiro com ruído, aguardando oficina' : 'Ex.: troca das pastilhas de freio na oficina do quartel'}
+                    autoFocus
+                  />
+                </label>
+                <label>
+                  Previsão de retorno (opcional)
+                  <input className="entrada" type="date" value={pedido.previsao} min={hoje} onChange={(e) => setPedido({ ...pedido, previsao: e.target.value })} />
+                </label>
+                {pedido.erro && <div className="erro-form">{pedido.erro}</div>}
+                <div className="botoes">
+                  <button className="botao" disabled={mudando}>
+                    {pedido.situacao === situacao ? 'Salvar motivo' : `Confirmar: ${SITUACOES[pedido.situacao].toLowerCase()}`}
+                  </button>
+                  <button type="button" className="botao secundario" onClick={() => setPedido(null)} disabled={mudando}>
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            )}
             <p className="tela-sub" style={{ margin: '8px 0 0' }}>
-              Em manutenção ou baixada, a VTR deixa de ser exigida na vistoria do dia.
+              Em manutenção ou baixada, a VTR deixa de ser exigida na vistoria do dia. Informe o motivo para que todos saibam o que está acontecendo.
             </p>
           </>
         )}

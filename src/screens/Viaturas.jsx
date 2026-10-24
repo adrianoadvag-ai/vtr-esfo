@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useApp } from '../App'
 import { Cabecalho, Icone, Selo } from '../components/base'
 import { SITUACOES, podeGerirViaturas } from '../config'
-import { km, mensagemErro } from '../lib/formato'
+import { hojeISO, km, mensagemErro } from '../lib/formato'
+import { comSituacao, textoSituacao } from '../lib/situacao'
 import { trocaDeOleo } from '../lib/vistoria'
 import FiguraVtr, { ModeloVtr } from '../components/FiguraVtr'
 import { TIPOS_VTR, tipoDaViatura } from '../lib/tipo-vtr'
@@ -61,6 +62,9 @@ export default function Viaturas() {
                       <span className="detalhe" style={{ display: 'block' }}>
                         {km(v.kmAtual)} km · {t.texto}
                       </span>
+                      {(v.situacao || 'ativa') !== 'ativa' && v.motivoSituacao && (
+                        <span className="detalhe motivo-linha">{textoSituacao(v, { rotulo: false })}</span>
+                      )}
                       <span className="selo-linha">
                         {(v.situacao || 'ativa') !== 'ativa' ? (
                           <Selo nivel={v.situacao === 'manutencao' ? 'atencao' : 'neutro'}>{SITUACOES[v.situacao]}</Selo>
@@ -116,7 +120,11 @@ export function EditarViatura({ id }) {
     setErro('')
     if (!String(f.prefixo).trim() || !String(f.modelo).trim()) return setErro('Informe prefixo e modelo.')
     if (nova && viaturas.some((v) => v.prefixo === String(f.prefixo).trim())) return setErro('Já existe uma viatura com este prefixo.')
-    const limpo = Object.fromEntries(Object.entries({ ...f, tipo: f.tipo || tipoDaViatura(f), prefixo: String(f.prefixo).trim() }).filter(([, v]) => v !== '' && v !== undefined))
+    const sit = f.situacao || 'ativa'
+    if (sit !== 'ativa' && !String(f.motivoSituacao || '').trim()) return setErro('Descreva o motivo da situação.')
+    const comMotivo = comSituacao(atual || {}, sit, { motivo: f.motivoSituacao || '', previsao: f.previsaoRetorno || '' }, usuario, hojeISO())
+    const situacaoDados = Object.fromEntries(['situacao', 'motivoSituacao', 'previsaoRetorno', 'situacaoDesde', 'situacaoPor'].map((k) => [k, comMotivo[k]]))
+    const limpo = Object.fromEntries(Object.entries({ ...f, ...situacaoDados, tipo: f.tipo || tipoDaViatura(f), prefixo: String(f.prefixo).trim() }).filter(([, v]) => v !== '' && v !== undefined))
     const salva = await api.salvarViatura(limpo)
     await recarregarViaturas()
     avisar('Viatura salva.')
@@ -191,6 +199,18 @@ export function EditarViatura({ id }) {
               </select>
             </label>
           </div>
+          {(f.situacao || 'ativa') !== 'ativa' && (
+            <>
+              <label>
+                {f.situacao === 'baixada' ? 'Motivo da baixa' : 'Manutenção que está sendo feita'}
+                <textarea value={f.motivoSituacao || ''} onChange={(e) => setF({ ...f, motivoSituacao: e.target.value })} />
+              </label>
+              <label>
+                Previsão de retorno (opcional)
+                <input className="entrada" type="date" {...campo('previsaoRetorno')} />
+              </label>
+            </>
+          )}
           <label className="chave">
             Usa Arla 32
             <input type="checkbox" {...marca('usaArla')} />

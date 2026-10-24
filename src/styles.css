@@ -1639,3 +1639,19 @@ img.figura-vtr { object-fit: contain; }
   .vtr-topo .figura-vtr { width: 104px; height: 52px; }
   .vtr-topo .prefixo { font-size: 38px; }
 }
+
+/* Motivo da manutenção ou da baixa */
+.motivo-situacao {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--atencao-fundo);
+  color: var(--tinta);
+}
+.motivo-situacao.baixada { background: var(--papel); border: 1px solid var(--linha); }
+.motivo-situacao strong { display: block; font-size: 13px; color: var(--atencao); text-transform: uppercase; letter-spacing: 0.03em; }
+.motivo-situacao.baixada strong { color: var(--tinta-2); }
+.motivo-situacao p { margin: 4px 0; white-space: pre-wrap; }
+.motivo-situacao span { display: block; font-size: 13px; color: var(--tinta-2); }
+.motivo-situacao .botao.texto { margin-top: 6px; padding-left: 0; display: inline-flex; gap: 6px; align-items: center; }
+.motivo-linha { display: block; font-style: italic; }

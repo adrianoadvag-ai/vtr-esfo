@@ -147,7 +147,7 @@ function detalhe(v, a, temRegistro, ja) {
   }
   if (temRegistro) return `Falta: ${a.pendentes.slice(0, 2).join(', ')}${a.pendentes.length > 2 ? '…' : ''}`
   if (ja) return `Enviada às ${horaCurta(ja.enviadaEm)}`
-  return SITUACAO[v.situacao] || ''
+  return v.motivoSituacao ? `${SITUACAO[v.situacao]}: ${v.motivoSituacao}` : SITUACAO[v.situacao] || ''
 }
 
 function Status({ a, temRegistro, ja }) {

@@ -141,7 +141,7 @@ export function montarRelatorio({ data, viaturas, registros, limpeza, responsave
       if (r.por) L.push(`* Registrado por: ${r.por}`)
       return
     }
-    if (v.situacao === 'manutencao') L.push('* Situação: em manutenção')
+    if (v.situacao === 'manutencao') L.push(`* Situação: em manutenção${v.motivoSituacao ? ` (${v.motivoSituacao})` : ''}`)
     L.push(`* KM: ${km(r.km)}`)
     const t = trocaDeOleo(v, r.km, data)
     if (t.nova) {
