@@ -10,6 +10,13 @@ import {
   ChevronRight,
   Circle,
   CircleDot,
+  Cog,
+  Disc3,
+  Fan,
+  SprayCan,
+  Thermometer,
+  Wind,
+  CalendarCheck,
   ClipboardCheck,
   Copy,
   CreditCard,
@@ -43,7 +50,7 @@ import {
 import brasaoApmg from '../assets/brasao-apmg.png'
 import brasaoEsfo from '../assets/brasao-esfo.png'
 import logoViatura from '../assets/logo-app.webp'
-import { NIVEIS } from '../config'
+import { CONDICOES, NIVEIS } from '../config'
 import { fracao, iniciais } from '../lib/formato'
 
 export { brasaoApmg, brasaoEsfo, logoViatura }
@@ -58,7 +65,7 @@ export function Avatar({ u, grande }) {
 }
 
 // Só os ícones usados no app (importar todos deixaria o app 1 MB mais pesado)
-const ICONES = { Battery, CalendarDays, Camera, CarFront, Check, ChevronLeft, ChevronRight, Circle, CircleDot, ClipboardCheck, Copy, CreditCard, Disc, Droplet, Droplets, FileBarChart, FileDown, Fuel, Gauge, History, LogOut, Mail, MessageCircle, OctagonAlert, Pencil, Phone, Plus, Radio, Send, Share2, Siren, Sparkles, Trash2, TriangleAlert, UserRound, Users, Wrench, X }
+const ICONES = { CalendarCheck, Cog, Disc3, Fan, SprayCan, Thermometer, Wind, Battery, CalendarDays, Camera, CarFront, Check, ChevronLeft, ChevronRight, Circle, CircleDot, ClipboardCheck, Copy, CreditCard, Disc, Droplet, Droplets, FileBarChart, FileDown, Fuel, Gauge, History, LogOut, Mail, MessageCircle, OctagonAlert, Pencil, Phone, Plus, Radio, Send, Share2, Siren, Sparkles, Trash2, TriangleAlert, UserRound, Users, Wrench, X }
 
 export function Icone({ nome, tamanho = 20, ...resto }) {
   const C = ICONES[nome] || Circle
@@ -206,6 +213,40 @@ export function ItemTique({ item, valor, onChange, nivel, desativado }) {
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+// Item de condição (pneus, pastilhas): Excelente, Bom, Regular ou Troca urgente. "Troca urgente" conta como alteração.
+export function ItemCondicao({ item, valor, onChange, desativado }) {
+  const atual = valor?.condicao
+  const escolher = (c) =>
+    onChange(atual === c ? null : c === 'Troca urgente' ? { estado: 'alt', condicao: c, alts: [c] } : { estado: 'ok', condicao: c })
+  return (
+    <div className={`item ${atual === 'Troca urgente' ? 'alt nivel-critico' : ''}`}>
+      <div className="linha">
+        <div className="icone-item">
+          <Icone nome={item.icone} />
+        </div>
+        <div className="rotulo">
+          {item.nome}
+          {item.detalhe && <small>{item.detalhe}</small>}
+        </div>
+      </div>
+      <div className="opcoes condicoes" role="radiogroup" aria-label={item.nome}>
+        {CONDICOES.map((c) => (
+          <button
+            key={c}
+            className={`opcao ${atual === c ? 'marcada' : ''} ${c === 'Troca urgente' ? 'urgente' : c === 'Regular' ? 'regular' : ''}`}
+            onClick={() => escolher(c)}
+            disabled={desativado}
+            role="radio"
+            aria-checked={atual === c}
+          >
+            {c}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }

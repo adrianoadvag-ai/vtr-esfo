@@ -1656,3 +1656,26 @@ img.figura-vtr { object-fit: contain; }
 .motivo-situacao span { display: block; font-size: 13px; color: var(--tinta-2); }
 .motivo-situacao .botao.texto { margin-top: 6px; padding-left: 0; display: inline-flex; gap: 6px; align-items: center; }
 .motivo-linha { display: block; font-style: italic; }
+
+/* Formulário da viatura: grupos e dicas */
+.form-grupo { margin: 8px 0 -4px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--tinta-2); font-weight: 600; }
+.form-grupo:first-child { margin-top: 0; }
+.dica { display: block; margin-top: 4px; color: var(--tinta-2); font-size: 13px; font-weight: 400; }
+details.fora-frota { margin-top: 16px; }
+details.fora-frota summary { cursor: pointer; color: var(--tinta-2); font-weight: 600; padding: 8px 2px; }
+
+.ficha-dados.identificacao { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--linha); }
+.ficha-dados .quebra { overflow-wrap: anywhere; }
+.motivo-situacao.usoInterno, .motivo-situacao.usoExclusivo, .motivo-situacao.foraDaFrota { background: var(--papel); border: 1px solid var(--linha); }
+.motivo-situacao.baixada { background: var(--critico-fundo); border: 0; }
+.motivo-situacao.baixada strong { color: var(--critico); }
+
+/* Conferência semanal: condição de pneus e pastilhas */
+.opcoes.condicoes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.opcoes.condicoes .opcao { padding-left: 4px; padding-right: 4px; font-size: 14px; text-align: center; }
+.opcoes.condicoes .opcao.marcada.regular { background: var(--atencao); border-color: var(--atencao); color: #fff; }
+.opcoes.condicoes .opcao.marcada.urgente { background: var(--critico); border-color: var(--critico); color: #fff; }
+.secao .lucide { vertical-align: -3px; margin-right: 4px; }
+
+.aviso-conferencia { display: flex; gap: 8px; align-items: flex-start; background: var(--azul-claro); color: var(--tinta); border-radius: var(--raio); padding: 10px 12px; margin: 0 0 12px; font-size: 15px; }
+.aviso-conferencia .lucide { flex: none; margin-top: 2px; color: var(--azul); }

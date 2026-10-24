@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useApp } from '../App'
 import { Cabecalho, Icone, Selo, SeloNivel, brasaoApmg, brasaoEsfo, useCarregar } from '../components/base'
-import { INICIO_RELATORIOS, SITUACOES } from '../config'
+import { INICIO_RELATORIOS, SITUACAO_INFO, SITUACOES } from '../config'
 import { dataBR, diaMes, km, nomeCompleto } from '../lib/formato'
 import { mesAnterior, mesDe, mesSeguinte, nomeMes, resumoMensal } from '../lib/frota'
 import { gerarPdfMensal } from '../lib/mensal-pdf'
@@ -95,8 +95,8 @@ export default function Mensal({ mes: mesRota }) {
               <div>
                 <strong>{r.frota.ativas}</strong>
                 <span>
-                  VTR ativas
-                  {r.frota.manutencao || r.frota.baixadas ? ` · ${r.frota.manutencao} em manutenção · ${r.frota.baixadas} baixadas` : ''}
+                  VTR em condições
+                  {r.frota.baixadas ? ` · ${r.frota.baixadas} baixadas` : ''}
                 </span>
               </div>
               <div>
@@ -132,7 +132,7 @@ function FichaMensal({ x, ir }) {
         <span className="prefixo">{vtr.prefixo}</span>
         <FiguraVtr vtr={vtr} tamanho={56} />
         <span className="modelo">{vtr.modelo}</span>
-        {x.situacao !== 'ativa' && <Selo nivel={x.situacao === 'manutencao' ? 'atencao' : 'neutro'}>{SITUACOES[x.situacao]}</Selo>}
+        {x.situacao !== 'ativa' && <Selo nivel={SITUACAO_INFO[x.situacao].selo}>{SITUACOES[x.situacao]}</Selo>}
         <Icone nome="ChevronRight" style={{ marginLeft: 'auto', color: 'var(--tinta-2)' }} />
       </button>
       {x.situacao !== 'ativa' && vtr.motivoSituacao && <p className="motivo-linha detalhe" style={{ margin: '0 0 8px' }}>{textoSituacao(vtr, { rotulo: false })}</p>}

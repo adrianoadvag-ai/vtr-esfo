@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useApp } from '../App'
-import { Cabecalho, FotoMini, Icone, ItemTique, Marcador } from '../components/base'
+import { Cabecalho, FotoMini, Icone, ItemCondicao, ItemTique, Marcador } from '../components/base'
 import CartaoTroca from '../components/CartaoTroca'
-import { LIMITES, podeGerirViaturas, podeVistoriar } from '../config'
+import { CONFERENCIA_SEMANAL, LIMITES, podeGerirViaturas, podeVistoriar } from '../config'
 import { km, nomeCompleto } from '../lib/formato'
-import { avaliar, exigida, itensDa, travaDeOutro } from '../lib/vistoria'
+import { avaliar, diaDeConferencia, exigida, itensDa, travaDeOutro } from '../lib/vistoria'
 import { atuaComoGestor, escalaDoDia } from '../lib/escala'
 import FiguraVtr, { ModeloVtr } from '../components/FiguraVtr'
 
@@ -146,7 +146,7 @@ export default function Vistoria({ vtrId }) {
     }
   }
 
-  const ordem = useMemo(() => viaturas.filter((v) => v.situacao !== 'baixada'), [viaturas])
+  const ordem = useMemo(() => viaturas.filter(exigida), [viaturas])
 
   if (!vtr) {
     return (
@@ -298,17 +298,48 @@ export default function Vistoria({ vtrId }) {
             />
 
             <div className="bloco">
-              {itensDa(vtr).map((it) => (
-                <ItemTique
-                  key={it.id}
-                  item={it}
-                  valor={reg.itens?.[it.id]}
-                  onChange={(v) => mudarItem(it.id, v)}
-                  nivel={nivelItem(it)}
-                  desativado={somenteLeitura}
-                />
-              ))}
+              {itensDa(vtr, hoje)
+                .filter((it) => !it.semanal)
+                .map((it) => (
+                  <ItemTique
+                    key={it.id}
+                    item={it}
+                    valor={reg.itens?.[it.id]}
+                    onChange={(v) => mudarItem(it.id, v)}
+                    nivel={nivelItem(it)}
+                    desativado={somenteLeitura}
+                  />
+                ))}
             </div>
+
+            {diaDeConferencia(hoje) && (
+              <>
+                <h2 className="secao">
+                  <Icone nome="CalendarCheck" /> Conferência semanal
+                </h2>
+                <p className="tela-sub" style={{ margin: '-4px 0 8px', fontSize: 14 }}>
+                  Toda {CONFERENCIA_SEMANAL.nomeDia}: condição de pneus e pastilhas, palhetas e filtro do A/C.
+                </p>
+                <div className="bloco">
+                  {itensDa(vtr, hoje)
+                    .filter((it) => it.semanal)
+                    .map((it) =>
+                      it.tipo === 'condicao' ? (
+                        <ItemCondicao key={it.id} item={it} valor={reg.itens?.[it.id]} onChange={(v) => mudarItem(it.id, v)} desativado={somenteLeitura} />
+                      ) : (
+                        <ItemTique
+                          key={it.id}
+                          item={it}
+                          valor={reg.itens?.[it.id]}
+                          onChange={(v) => mudarItem(it.id, v)}
+                          nivel={nivelItem(it)}
+                          desativado={somenteLeitura}
+                        />
+                      ),
+                    )}
+                </div>
+              </>
+            )}
 
             <div className={`bloco obs ${temAlt && !(reg.obs || '').trim() ? 'exigida' : ''}`}>
               <label htmlFor="obs">{temAlt ? 'Descreva a alteração' : 'Observações (opcional)'}</label>

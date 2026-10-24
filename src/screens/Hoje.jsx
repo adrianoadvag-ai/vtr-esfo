@@ -3,15 +3,15 @@ import { Cabecalho, Icone, Selo, SeloNivel } from '../components/base'
 import { APP_NOME, FUNCOES, dadosCompletos, podeGerirViaturas, podeVistoriar, rotuloVaga } from '../config'
 import { escalaDoDia, juntar, papelNoDia, proximosServicos, rotinaDo } from '../lib/escala'
 import { dataCurta, horaCurta, nomeCompleto } from '../lib/formato'
-import { avaliar, exigida, travaDeOutro } from '../lib/vistoria'
+import { avaliar, diaDeConferencia, exigida, travaDeOutro } from '../lib/vistoria'
 import FiguraVtr, { ModeloVtr } from '../components/FiguraVtr'
+import { textoSituacao } from '../lib/situacao'
 
-const SITUACAO = { manutencao: 'Em manutenção', baixada: 'Baixada' }
 
 export default function Hoje() {
   const { viaturas, vistoria, enviadasHoje, hoje, ir, usuario, api, escalas, usuarios } = useApp()
   const registros = vistoria?.registros || {}
-  const lista = viaturas.filter((v) => v.situacao !== 'baixada' || registros[v.id])
+  const lista = viaturas.filter((v) => exigida(v) || registros[v.id])
   const avaliacoes = Object.fromEntries(lista.map((v) => [v.id, avaliar(v, registros[v.id], hoje)]))
   const concluidas = lista.filter((v) => registros[v.id] && avaliacoes[v.id].completo)
   const exigidas = lista.filter(exigida)
@@ -43,6 +43,11 @@ export default function Hoje() {
           </button>
         )}
         <CartaoEscala hoje={hoje} escalas={escalas} usuarios={usuarios} usuario={usuario} ir={ir} />
+        {diaDeConferencia(hoje) && exigidas.length > 0 && (
+          <div className="aviso-conferencia" role="note">
+            <Icone nome="CalendarCheck" /> Hoje tem conferência semanal: condição de pneus e pastilhas, palhetas e filtro do A/C.
+          </div>
+        )}
         <div className="progresso">
           <div style={{ color: 'var(--tinta-2)' }}>
             {exigidas.length === 0 ? 'Nenhuma viatura cadastrada.' : `${conferidasHoje} de ${exigidas.length} viaturas conferidas hoje`}
@@ -147,7 +152,7 @@ function detalhe(v, a, temRegistro, ja) {
   }
   if (temRegistro) return `Falta: ${a.pendentes.slice(0, 2).join(', ')}${a.pendentes.length > 2 ? '…' : ''}`
   if (ja) return `Enviada às ${horaCurta(ja.enviadaEm)}`
-  return v.motivoSituacao ? `${SITUACAO[v.situacao]}: ${v.motivoSituacao}` : SITUACAO[v.situacao] || ''
+  return textoSituacao(v)
 }
 
 function Status({ a, temRegistro, ja }) {

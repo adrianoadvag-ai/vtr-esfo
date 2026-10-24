@@ -1,17 +1,17 @@
 // Viaturas iniciais, a partir do relatório de 20 out. 2026.
-// O coordenador corrige os dados na tela Viaturas.
+// O coordenador corrige os dados na tela Viaturas. Placa e final do cartão vêm da planilha de gestão (19/10/2026).
 
 export const VIATURAS_INICIAIS = [
-  { prefixo: '17692', modelo: 'Renault/Master', tipo: 'furgao', combustivel: 'diesel', usaArla: false, temRadio: true, nova: true, kmAtual: 2713, ordem: 1 },
-  { prefixo: '16843', modelo: 'Ford/Ranger', tipo: 'picape', combustivel: 'diesel', usaArla: true, temRadio: true, nova: false, kmAtual: 29670, kmProxTroca: 45000, dataUltimaTroca: '2026-08-03', ordem: 2 },
-  { prefixo: '13659', modelo: 'Chevrolet/Trailblazer', tipo: 'suvGrande', combustivel: 'diesel', usaArla: false, temRadio: true, nova: false, kmAtual: 97042, dataUltimaTroca: '2026-06-09', ordem: 3 },
-  { prefixo: '14058', modelo: 'Chevrolet/Trailblazer', tipo: 'suvGrande', combustivel: 'diesel', usaArla: false, temRadio: true, nova: false, kmAtual: 91660, kmProxTroca: 96464, dataUltimaTroca: '2026-08-24', ordem: 4 },
-  { prefixo: '15603', modelo: 'Renault/Duster', tipo: 'suv', combustivel: 'flex', usaArla: false, temRadio: true, nova: false, kmAtual: 37510, dataProxTroca: '2026-11-04', ordem: 5 },
-  { prefixo: '15591', modelo: 'Renault/Duster', tipo: 'suv', combustivel: 'flex', usaArla: false, temRadio: true, nova: false, kmAtual: 47717, kmProxTroca: 53482, dataProxTroca: '2026-11-07', ordem: 6 },
-  { prefixo: '18148', modelo: 'Renault/Duster', tipo: 'suv', combustivel: 'flex', usaArla: false, temRadio: true, nova: true, kmAtual: 8252, ordem: 7 },
-  { prefixo: '17950', modelo: 'Renault/Duster', tipo: 'suv', combustivel: 'flex', usaArla: false, temRadio: true, nova: true, kmAtual: 8022, ordem: 8 },
-  { prefixo: '18170', modelo: 'Renault/Duster', tipo: 'suv', combustivel: 'flex', usaArla: false, temRadio: true, nova: true, kmAtual: 8560, ordem: 9 },
-  { prefixo: 'C4', modelo: 'Comando EsFO', tipo: 'sedan', combustivel: 'flex', usaArla: false, temRadio: false, nova: false, kmAtual: 74418, kmProxTroca: 78150, dataProxTroca: '2027-02-02', ordem: 10 },
+  { prefixo: '17692', placa: 'UBF7F34', cartaoFinal: '5529', modelo: 'Renault/Master', tipo: 'furgao', combustivel: 'diesel', usaArla: false, temRadio: true, nova: true, kmAtual: 2713, ordem: 1 },
+  { prefixo: '16843', placa: 'TAR3J48', cartaoFinal: '6330', modelo: 'Ford/Ranger', tipo: 'picape', combustivel: 'diesel', usaArla: true, temRadio: true, nova: false, kmAtual: 29670, kmProxTroca: 45000, dataUltimaTroca: '2026-08-03', ordem: 2 },
+  { prefixo: '13659', placa: 'BDD4E29', cartaoFinal: '6297', modelo: 'Chevrolet/Trailblazer', tipo: 'suvGrande', combustivel: 'diesel', usaArla: false, temRadio: true, nova: false, kmAtual: 97042, dataUltimaTroca: '2026-06-09', ordem: 3 },
+  { prefixo: '14058', placa: 'BDS5F07', cartaoFinal: '6304', ano: '2020', modelo: 'Chevrolet/Trailblazer', tipo: 'suvGrande', combustivel: 'diesel', usaArla: false, temRadio: true, nova: false, kmAtual: 91660, kmProxTroca: 96464, dataUltimaTroca: '2026-08-24', ordem: 4 },
+  { prefixo: '15603', placa: 'RHM9H96', cartaoFinal: '6319', modelo: 'Renault/Duster', tipo: 'suv', combustivel: 'flex', usaArla: false, temRadio: true, nova: false, kmAtual: 37510, dataProxTroca: '2026-11-04', ordem: 5 },
+  { prefixo: '15591', placa: 'RHM9H98', cartaoFinal: '6320', modelo: 'Renault/Duster', tipo: 'suv', combustivel: 'flex', usaArla: false, temRadio: true, nova: false, kmAtual: 47717, kmProxTroca: 53482, dataProxTroca: '2026-11-07', ordem: 6 },
+  { prefixo: '18148', placa: 'UBF8H99', cartaoFinal: '6336', modelo: 'Renault/Duster', tipo: 'suv', combustivel: 'flex', usaArla: false, temRadio: true, nova: true, kmAtual: 8252, ordem: 7 },
+  { prefixo: '17950', placa: 'UBF3H08', cartaoFinal: '6334', modelo: 'Renault/Duster', tipo: 'suv', combustivel: 'flex', usaArla: false, temRadio: true, nova: true, kmAtual: 8022, ordem: 8 },
+  { prefixo: '18170', placa: 'UBF8H56', cartaoFinal: '6335', modelo: 'Renault/Duster', tipo: 'suv', combustivel: 'flex', usaArla: false, temRadio: true, nova: true, kmAtual: 8560, ordem: 9 },
+  { prefixo: 'C4', placa: 'BEM9H62', cartaoFinal: '6311', modelo: 'Comando EsFO', tipo: 'sedan', combustivel: 'flex', usaArla: false, temRadio: false, nova: false, kmAtual: 74418, kmProxTroca: 78150, dataProxTroca: '2027-02-02', ordem: 10 },
 ].map((v) => ({ situacao: 'ativa', ...v, id: `vtr-${v.prefixo.toLowerCase()}` }))
 
 import { hojeISO, segundaDa, somarDias } from '../lib/formato'

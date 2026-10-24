@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react'
 import { useApp } from '../App'
 import { Cabecalho, Icone, Selo, SeloNivel, useCarregar } from '../components/base'
-import { SITUACOES, podeGerirViaturas } from '../config'
+import { COMBUSTIVEIS, ORDENS_SERVICO, SITUACAO_INFO, SITUACOES, podeGerirViaturas } from '../config'
 import { combustivelTexto, dataBR, dataCurta, km, mensagemErro } from '../lib/formato'
 import { leiturasDa, recorrencias, serieKm, trocasDa } from '../lib/frota'
 import { trocaDeOleo } from '../lib/vistoria'
 import FiguraVtr, { ModeloVtr } from '../components/FiguraVtr'
 import { TIPOS_VTR, tipoDaViatura } from '../lib/tipo-vtr'
-import { comSituacao } from '../lib/situacao'
+import { comSituacao, situacaoDe, textoOS } from '../lib/situacao'
 
 // Ficha de uma viatura: situação, KM ao longo do tempo, alterações que se repetem, pendências e trocas de óleo
 export default function FichaViatura({ id }) {
@@ -35,7 +35,8 @@ export default function FichaViatura({ id }) {
     )
   }
 
-  const situacao = vtr.situacao || 'ativa'
+  const situacao = situacaoDe(vtr)
+  const info = SITUACAO_INFO[situacao]
   const troca = trocaDeOleo(vtr, null, hoje)
   const pend = ocorrencias.filter((o) => o.viaturaId === vtr.id)
   const abertas = pend.filter((o) => o.status === 'aberta')
@@ -53,7 +54,16 @@ export default function FichaViatura({ id }) {
       return
     }
     if (nova === situacao && !pedido) return
-    setPedido({ situacao: nova, motivo: nova === situacao ? vtr.motivoSituacao || '' : '', previsao: nova === situacao ? vtr.previsaoRetorno || '' : '', erro: '' })
+    const mesma = nova === situacao
+    setPedido({
+      situacao: nova,
+      motivo: mesma ? vtr.motivoSituacao || '' : '',
+      previsao: mesma ? vtr.previsaoRetorno || '' : '',
+      ordemServico: mesma ? vtr.ordemServico || '' : '',
+      numeroOS: mesma ? vtr.numeroOS || '' : '',
+      oficina: mesma ? vtr.oficina || '' : '',
+      erro: '',
+    })
   }
 
   async function salvarSituacao(nova, dados) {
@@ -62,7 +72,7 @@ export default function FichaViatura({ id }) {
       await api.salvarViatura(comSituacao(vtr, nova, dados, usuario, hoje))
       await recarregarViaturas()
       setPedido(null)
-      avisar(`VTR ${vtr.prefixo}: ${SITUACOES[nova].toLowerCase()}.`)
+      avisar(`VTR ${vtr.prefixo}: ${nova === 'ativa' ? '300' : SITUACOES[nova].toLowerCase()}.`)
     } catch (e) {
       avisar(mensagemErro(e, 'Não foi possível mudar a situação.'))
     } finally {
@@ -72,7 +82,7 @@ export default function FichaViatura({ id }) {
 
   function confirmarPedido(e) {
     e.preventDefault()
-    if (!pedido.motivo.trim()) return setPedido({ ...pedido, erro: 'Descreva o motivo.' })
+    if (SITUACAO_INFO[pedido.situacao].motivo && !pedido.motivo.trim()) return setPedido({ ...pedido, erro: 'Descreva o motivo.' })
     salvarSituacao(pedido.situacao, pedido)
   }
 
@@ -110,7 +120,7 @@ export default function FichaViatura({ id }) {
             <div>
               <dt>Situação</dt>
               <dd>
-                <Selo nivel={situacao === 'ativa' ? 'ok' : situacao === 'manutencao' ? 'atencao' : 'neutro'}>{SITUACOES[situacao]}</Selo>
+                <Selo nivel={info.selo}>{SITUACOES[situacao]}</Selo>
               </dd>
             </div>
             <div className={troca.alerta ? 'destaque' : ''}>
@@ -122,10 +132,11 @@ export default function FichaViatura({ id }) {
               <dd>{ultima ? `${dataBR(ultima.data)}${ultima.comb != null ? ` · ${combustivelTexto(ultima.comb)}` : ''}` : vtr.ultimaVistoria ? dataBR(vtr.ultimaVistoria) : '—'}</dd>
             </div>
           </dl>
-          {situacao !== 'ativa' && (
+          {situacao !== 'ativa' && (info.motivo || info.os || vtr.motivoSituacao) && (
             <div className={`motivo-situacao ${situacao}`}>
-              <strong>{situacao === 'baixada' ? 'Motivo da baixa' : 'Manutenção'}</strong>
-              <p>{vtr.motivoSituacao || 'Motivo não informado.'}</p>
+              <strong>{situacao === 'baixada' ? 'Motivo da baixa' : SITUACOES[situacao]}</strong>
+              <p>{vtr.motivoSituacao || (info.motivo ? 'Motivo não informado.' : 'Sem observação.')}</p>
+              {textoOS(vtr) && <span>{textoOS(vtr)}</span>}
               <span>
                 {[
                   vtr.situacaoDesde && `Desde ${dataBR(vtr.situacaoDesde)}`,
@@ -137,10 +148,50 @@ export default function FichaViatura({ id }) {
               </span>
               {gestor && !pedido && (
                 <button className="botao texto" onClick={() => escolherSituacao(situacao)}>
-                  <Icone nome="Pencil" tamanho={16} /> {vtr.motivoSituacao ? 'Editar motivo' : 'Informar motivo'}
+                  <Icone nome="Pencil" tamanho={16} /> {vtr.motivoSituacao ? 'Editar' : 'Informar motivo'}
                 </button>
               )}
             </div>
+          )}
+          {(vtr.placa || vtr.ano || vtr.renavam || vtr.chassi || vtr.cartaoFinal || vtr.combustivel) && (
+            <dl className="ficha-dados identificacao">
+              {vtr.placa && (
+                <div>
+                  <dt>Placa</dt>
+                  <dd>{vtr.placa}</dd>
+                </div>
+              )}
+              {vtr.ano && (
+                <div>
+                  <dt>Ano</dt>
+                  <dd>{vtr.ano}</dd>
+                </div>
+              )}
+              {vtr.combustivel && (
+                <div>
+                  <dt>Combustível</dt>
+                  <dd>{COMBUSTIVEIS[vtr.combustivel] || vtr.combustivel}</dd>
+                </div>
+              )}
+              {vtr.cartaoFinal && (
+                <div>
+                  <dt>Cartão de abastecimento</dt>
+                  <dd>final {vtr.cartaoFinal}</dd>
+                </div>
+              )}
+              {vtr.renavam && (
+                <div>
+                  <dt>Renavam</dt>
+                  <dd>{vtr.renavam}</dd>
+                </div>
+              )}
+              {vtr.chassi && (
+                <div>
+                  <dt>Chassi</dt>
+                  <dd className="quebra">{vtr.chassi}</dd>
+                </div>
+              )}
+            </dl>
           )}
         </div>
 
@@ -156,23 +207,61 @@ export default function FichaViatura({ id }) {
             </div>
             {pedido && (
               <form className="bloco pad form" style={{ marginTop: 12 }} onSubmit={confirmarPedido}>
+                <p className="tela-sub" style={{ margin: 0, fontSize: 14 }}>
+                  {SITUACAO_INFO[pedido.situacao].explica}.
+                </p>
                 <label>
-                  {pedido.situacao === 'baixada' ? 'Motivo da baixa' : 'Manutenção que está sendo feita'}
+                  {pedido.situacao === 'baixada'
+                    ? 'Motivo da baixa'
+                    : pedido.situacao === 'usoInterno'
+                      ? 'Motivo / restrição de uso'
+                      : 'Observação (opcional)'}
                   <textarea
                     value={pedido.motivo}
                     onChange={(e) => setPedido({ ...pedido, motivo: e.target.value, erro: '' })}
-                    placeholder={pedido.situacao === 'baixada' ? 'Ex.: freio dianteiro com ruído, aguardando oficina' : 'Ex.: troca das pastilhas de freio na oficina do quartel'}
+                    placeholder={
+                      pedido.situacao === 'baixada'
+                        ? 'Ex.: sem freio; deixada no Setor de Transporte para abrir OS'
+                        : pedido.situacao === 'usoInterno'
+                          ? 'Ex.: problema no câmbio, só deslocamentos curtos'
+                          : ''
+                    }
                     autoFocus
                   />
                 </label>
-                <label>
-                  Previsão de retorno (opcional)
-                  <input className="entrada" type="date" value={pedido.previsao} min={hoje} onChange={(e) => setPedido({ ...pedido, previsao: e.target.value })} />
-                </label>
+                {SITUACAO_INFO[pedido.situacao].os && (
+                  <>
+                    <label>
+                      Ordem de serviço
+                      <select className="entrada" value={pedido.ordemServico} onChange={(e) => setPedido({ ...pedido, ordemServico: e.target.value })}>
+                        <option value="">—</option>
+                        {ORDENS_SERVICO.map((o) => (
+                          <option key={o} value={o}>
+                            {o}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <div className="dupla">
+                      <label>
+                        Nº da OS
+                        <input className="entrada" value={pedido.numeroOS} onChange={(e) => setPedido({ ...pedido, numeroOS: e.target.value })} />
+                      </label>
+                      <label>
+                        Oficina
+                        <input className="entrada" value={pedido.oficina} onChange={(e) => setPedido({ ...pedido, oficina: e.target.value })} />
+                      </label>
+                    </div>
+                    <label>
+                      Previsão de retorno (opcional)
+                      <input className="entrada" type="date" value={pedido.previsao} min={hoje} onChange={(e) => setPedido({ ...pedido, previsao: e.target.value })} />
+                    </label>
+                  </>
+                )}
                 {pedido.erro && <div className="erro-form">{pedido.erro}</div>}
                 <div className="botoes">
                   <button className="botao" disabled={mudando}>
-                    {pedido.situacao === situacao ? 'Salvar motivo' : `Confirmar: ${SITUACOES[pedido.situacao].toLowerCase()}`}
+                    {pedido.situacao === situacao ? 'Salvar' : `Confirmar: ${SITUACOES[pedido.situacao].toLowerCase()}`}
                   </button>
                   <button type="button" className="botao secundario" onClick={() => setPedido(null)} disabled={mudando}>
                     Cancelar
@@ -181,7 +270,7 @@ export default function FichaViatura({ id }) {
               </form>
             )}
             <p className="tela-sub" style={{ margin: '8px 0 0' }}>
-              Em manutenção ou baixada, a VTR deixa de ser exigida na vistoria do dia. Informe o motivo para que todos saibam o que está acontecendo.
+              300, uso interno e uso exclusivo entram na vistoria do dia. Baixada sai da vistoria e vai para o relatório com o motivo; fora da frota sai das listas.
             </p>
           </>
         )}

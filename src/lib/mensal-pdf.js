@@ -116,7 +116,7 @@ export async function gerarPdfMensal({ resumo: r, brasoes, geradoPor, hoje }) {
   // Números da frota
   const f = r.frota
   const numeros = [
-    [String(f.ativas), `VTR ativas${f.manutencao || f.baixadas ? ` (${f.manutencao} em manutenção, ${f.baixadas} baixadas)` : ''}`],
+    [String(f.ativas), `VTR em condições${f.baixadas ? ` (${f.baixadas} baixadas)` : ''}`],
     [km(f.kmRodados), 'km rodados no período'],
     [String(f.alteracoes), 'alterações registradas'],
     [String(f.pendencias), 'pendências em aberto'],
@@ -175,7 +175,7 @@ export async function gerarPdfMensal({ resumo: r, brasoes, geradoPor, hoje }) {
   for (const x of comAlgo) {
     const itens = [
       ...(x.situacao !== 'ativa'
-        ? [{ selo: x.situacao === 'manutencao' ? 'MANUTENÇÃO' : 'BAIXADA', cor: COR.atencao, texto: linhaSituacao(x.vtr).replace(/^[^·]+·\s*/, '') }]
+        ? [{ selo: SITUACOES[x.situacao].toUpperCase(), cor: x.situacao === 'baixada' ? COR.critico : COR.atencao, texto: linhaSituacao(x.vtr).replace(/^[^·]+·\s*/, '') }]
         : []),
       ...x.alteracoes.map((g) => ({
         selo: NIVEIS[g.nivel].nome.toUpperCase(),

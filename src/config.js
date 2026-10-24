@@ -22,6 +22,11 @@ export const TROCA = {
   revisaoNovaKm: 10000,
 }
 
+// Conferência semanal mais detalhada (itens com `semanal: true`): dia da semana em que entra na vistoria (1 = segunda)
+export const CONFERENCIA_SEMANAL = { dia: 1, nomeDia: 'segunda-feira' }
+// Condição (pneus e pastilhas), como na planilha. "Troca urgente" é alteração; "Regular" aparece em destaque no relatório.
+export const CONDICOES = ['Excelente', 'Bom', 'Regular', 'Troca urgente']
+
 // Níveis de gravidade
 export const NIVEIS = {
   critico: { nome: 'Crítico', ordem: 3 },
@@ -41,16 +46,61 @@ export const ITENS = [
     alts: ['Baixo', 'Não foi possível verificar'],
     nivel: 'atencao',
   },
+  // Fluidos: como na ficha da planilha (arrefecimento, freio e direção separados). No relatório, saem numa linha só quando todos estão S/A.
   {
-    id: 'fluidos',
-    nome: 'Fluidos',
-    detalhe: 'Arrefecimento, freio e direção',
-    icone: 'Droplets',
-    rel: 'Fluídos',
+    id: 'arrefecimento',
+    nome: 'Fluido de arrefecimento',
+    detalhe: 'Radiador',
+    icone: 'Thermometer',
+    rel: 'Fluido de arrefecimento',
     okTexto: 'S/A',
-    alts: ['Arrefecimento baixo', 'Fluido de freio baixo', 'Fluido de direção baixo', 'Vazamento'],
+    alts: ['Baixo', 'Vazamento', 'Não foi possível verificar'],
     nivel: 'atencao',
-    niveis: { 'Fluido de freio baixo': 'critico', Vazamento: 'critico' },
+    niveis: { Vazamento: 'critico' },
+    grupo: 'fluidos',
+  },
+  {
+    id: 'fluidoFreio',
+    nome: 'Fluido de freio',
+    icone: 'Droplets',
+    rel: 'Fluido de freio',
+    okTexto: 'S/A',
+    alts: ['Baixo', 'Vazamento', 'Não foi possível verificar'],
+    nivel: 'critico',
+    niveis: { 'Não foi possível verificar': 'atencao' },
+    grupo: 'fluidos',
+  },
+  {
+    id: 'direcao',
+    nome: 'Fluido da direção hidráulica',
+    detalhe: 'Direção elétrica: marque S/A',
+    icone: 'Droplet',
+    rel: 'Fluido da direção',
+    okTexto: 'S/A',
+    alts: ['Baixo', 'Vazamento', 'Não foi possível verificar'],
+    nivel: 'atencao',
+    grupo: 'fluidos',
+  },
+  {
+    id: 'limpador',
+    nome: 'Água do limpador de para-brisa',
+    icone: 'SprayCan',
+    rel: 'Água do limpador',
+    okTexto: 'S/A',
+    alts: ['Baixa', 'Vazia', 'Esguicho não funciona'],
+    nivel: 'info',
+    grupo: 'fluidos',
+  },
+  {
+    id: 'cambio',
+    nome: 'Óleo do câmbio',
+    detalhe: 'Verificar vazamento',
+    icone: 'Cog',
+    rel: 'Óleo do câmbio',
+    okTexto: 'S/A',
+    alts: ['Vazamento', 'Ruído ou tranco nas marchas'],
+    nivel: 'atencao',
+    grupo: 'fluidos',
   },
   {
     id: 'sinais',
@@ -115,6 +165,47 @@ export const ITENS = [
     nivel: 'atencao',
     compacto: true,
   },
+  // Conferência semanal (segunda-feira): condição de pneus e pastilhas, palhetas e filtro do A/C, como na planilha
+  {
+    id: 'condPneus',
+    nome: 'Condição dos pneus',
+    detalhe: 'Desgaste da banda e estepe',
+    icone: 'CircleDot',
+    rel: 'Condição dos pneus',
+    tipo: 'condicao',
+    semanal: true,
+    nivel: 'critico',
+  },
+  {
+    id: 'condPastilhas',
+    nome: 'Condição das pastilhas de freio',
+    icone: 'Disc3',
+    rel: 'Condição das pastilhas',
+    tipo: 'condicao',
+    semanal: true,
+    nivel: 'critico',
+  },
+  {
+    id: 'palhetas',
+    nome: 'Palhetas do limpador',
+    icone: 'Wind',
+    rel: 'Palhetas do vidro',
+    okTexto: 'S/A',
+    alts: ['Ressecadas', 'Riscando o vidro', 'Quebradas'],
+    nivel: 'info',
+    semanal: true,
+  },
+  {
+    id: 'filtroAC',
+    nome: 'Filtro do A/C',
+    detalhe: 'Cheiro, fluxo de ar, gelando',
+    icone: 'Fan',
+    rel: 'Filtro do A/C',
+    okTexto: 'S/A',
+    alts: ['Sujo', 'Mau cheiro', 'A/C não gela'],
+    nivel: 'info',
+    semanal: true,
+  },
 ]
 
 // Acesso ao app. A função na missão (abaixo) é que define o que cada um faz.
@@ -171,7 +262,29 @@ export const podeMontarEscala = (u) => liberado(u) && (comando(u) || funcaoDe(u)
 // Excluir um relatório enviado (ex.: testes): supervisores e gestores, além do comandante e do administrador
 export const podeExcluirRelatorio = (u) => liberado(u) && (comando(u) || ['responsavel', 'supervisor'].includes(funcaoDe(u)))
 
-export const SITUACOES = { ativa: 'Ativa', manutencao: 'Em manutenção', baixada: 'Baixada' }
+// Situação da VTR, com os mesmos nomes da planilha "Gestão das Viaturas EsFO" (24 out. 2026).
+// A chave 'ativa' continua no banco; na tela ela aparece como 300 (em condições, disponível).
+// 'manutencao' (usada até 24/10/2026) é lida como 'baixada' — ver situacaoDe() em lib/situacao.js.
+export const SITUACOES = {
+  ativa: '300',
+  usoInterno: 'Uso interno',
+  usoExclusivo: 'Uso exclusivo',
+  baixada: 'Baixada',
+  foraDaFrota: 'Fora da frota',
+}
+// vistoria: entra na vistoria do dia · motivo: exige motivo · os: pede OS e oficina · selo: cor do selo
+export const SITUACAO_INFO = {
+  ativa: { vistoria: true, motivo: false, os: false, selo: 'ok', explica: 'Em condições, disponível' },
+  usoInterno: { vistoria: true, motivo: true, os: false, selo: 'atencao', explica: 'Roda só em uso interno (informe a restrição)' },
+  usoExclusivo: { vistoria: true, motivo: false, os: false, selo: 'neutro', explica: 'Reservada a um uso (ex.: comando)' },
+  baixada: { vistoria: false, motivo: true, os: true, selo: 'critico', explica: 'Fora de operação: oficina, pane, acidente, inquérito técnico' },
+  foraDaFrota: { vistoria: false, motivo: false, os: false, selo: 'neutro', explica: 'Não pertence mais à EsFO; fica só no cadastro' },
+}
+// Combustível (como na planilha: DIESEL S10, GAS, GAS/ETANOL). A chave é a gravada no banco.
+export const COMBUSTIVEIS = { diesel: 'Diesel S10', gasolina: 'Gasolina', flex: 'Flex (gasolina/etanol)' }
+
+// Situação da ordem de serviço (coluna "Ordem de Serviço" da planilha)
+export const ORDENS_SERVICO = ['Sem necessidade', 'Aguardando autorização', 'Em andamento', 'Inquérito Técnico']
 
 // Escala da missão: segunda a sexta, um responsável e um supervisor por dia. Os gestores não entram na escala.
 export const ESCALA = {

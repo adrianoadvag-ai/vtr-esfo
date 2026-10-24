@@ -1,7 +1,7 @@
 // Lê o texto do relatório (formato do WhatsApp) e o transforma em seções,
 // para mostrar formatado no app e gerar o PDF. Funciona também com relatórios antigos.
 
-const OK = /^(S\/A|Normal|Operante|VTR nova)$/i
+const OK = /^(S\/A|Normal|Operante|VTR nova|Excelente|Bom)$/i
 const NEUTROS = /^(KM|Combustível|Arla|Próx\. troca|Data da próx\. troca|Última troca)$/i
 
 export function estruturar(texto = '') {

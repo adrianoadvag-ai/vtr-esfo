@@ -1,6 +1,7 @@
 // Histórico da frota a partir dos relatórios enviados: ficha por viatura e relatório mensal.
 import { INICIO_RELATORIOS, NIVEIS } from '../config'
 import { avaliar, trocaDeOleo } from './vistoria'
+import { naFrota, situacaoDe } from './situacao'
 
 // Achados que não são defeito da viatura (resolvem-se sozinhos ou dependem do cadastro atual)
 const NAO_RECORRENTES = new Set(['combustivel', 'arla', 'troca'])
@@ -91,7 +92,7 @@ export function resumoMensal({ mes, hoje, vistorias, viaturas, ocorrencias }) {
   const noPeriodo = (d) => d && d >= de && d <= ate
   const doPeriodo = vazio ? [] : vistorias.filter((v) => noPeriodo(v.data))
 
-  const porViatura = viaturas.map((vtr) => {
+  const porViatura = viaturas.filter(naFrota).map((vtr) => {
     const l = leiturasDa(vtr, doPeriodo)
     const kms = l.map((x) => x.km).filter(Boolean)
     // Alterações agrupadas: a mesma alteração em vários dias vira uma linha só
@@ -114,7 +115,7 @@ export function resumoMensal({ mes, hoje, vistorias, viaturas, ocorrencias }) {
     const kmFinal = kms.length ? Math.max(...kms) : null
     return {
       vtr,
-      situacao: vtr.situacao || 'ativa',
+      situacao: situacaoDe(vtr),
       vistorias: new Set(l.filter((x) => !x.naoVistoriada).map((x) => x.data)).size,
       naoVistoriada: l.filter((x) => x.naoVistoriada).length,
       kmInicial,
@@ -136,8 +137,7 @@ export function resumoMensal({ mes, hoje, vistorias, viaturas, ocorrencias }) {
     vazio,
     emAndamento: ate === hoje,
     frota: {
-      ativas: n('ativa'),
-      manutencao: n('manutencao'),
+      ativas: porViatura.length - n('baixada'),
       baixadas: n('baixada'),
       kmRodados: porViatura.reduce((s, x) => s + x.rodado, 0),
       alteracoes: porViatura.reduce((s, x) => s + x.totalAlteracoes, 0),

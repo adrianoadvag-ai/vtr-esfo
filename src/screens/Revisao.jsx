@@ -6,6 +6,7 @@ import { dataExtensa, nomeCompleto } from '../lib/formato'
 import { ocorrenciasDoDia } from '../lib/ocorrencias'
 import { avaliar, exigida, idRodada, montarRelatorio, travaDeOutro } from '../lib/vistoria'
 import { atuaComoGestor, escalaDoDia } from '../lib/escala'
+import { baixada } from '../lib/situacao'
 
 export default function Revisao() {
   const { viaturas, vistoria, hoje, ir, api, usuario, ocorrencias, avisar, recarregarViaturas, recarregarOcorrencias, escalas, usuarios: equipe } = useApp()
@@ -53,8 +54,8 @@ export default function Revisao() {
   const idsIncluidos = new Set(incluidas.map((v) => v.id))
   const abertas = ocorrencias.filter((o) => o.status === 'aberta')
   const abertasDestas = abertas.filter((o) => idsIncluidos.has(o.viaturaId))
-  // Em manutenção ou baixadas: entram no relatório com o motivo
-  const foraDeServico = viaturas.filter((v) => !exigida(v) && !idsIncluidos.has(v.id))
+  // Baixadas: entram no relatório com o motivo
+  const foraDeServico = viaturas.filter((v) => baixada(v) && !idsIncluidos.has(v.id))
   const pronto = incluidas.length > 0 && (responsaveis.length > 0 || auxiliares.length > 0) && (limpeza.ok || limpeza.obs?.trim())
 
   const texto = montarRelatorio({
@@ -181,7 +182,7 @@ export default function Revisao() {
 
         {foraDeServico.length > 0 && (
           <>
-            <h2 className="secao">Fora de serviço ({foraDeServico.length})</h2>
+            <h2 className="secao">Baixadas ({foraDeServico.length})</h2>
             <div className="bloco">
               {foraDeServico.map((v, i) => (
                 <button
@@ -193,7 +194,7 @@ export default function Revisao() {
                   <span className="prefixo">{v.prefixo}</span>
                   <span className="texto">{v.motivoSituacao || 'Motivo não informado'}</span>
                   <span className="meta">
-                    <Selo nivel={v.situacao === 'manutencao' ? 'atencao' : 'neutro'}>{SITUACOES[v.situacao]}</Selo>
+                    <Selo nivel="critico">{SITUACOES.baixada}</Selo>
                   </span>
                 </button>
               ))}

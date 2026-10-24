@@ -1,7 +1,7 @@
 // Regras da vistoria: o que falta preencher, gravidade dos achados e texto do relatório.
-import { ITENS, LIMITES, NIVEIS, TROCA, rotuloVaga } from '../config'
+import { CONFERENCIA_SEMANAL, ITENS, LIMITES, NIVEIS, TROCA, rotuloVaga } from '../config'
 import { combustivelTexto, dataBR, dataExtensa, diasAte, km, saudacao } from './formato'
-import { linhaSituacao } from './situacao'
+import { infoSituacao, linhaSituacao, situacaoDe } from './situacao'
 
 // Identificador da rodada: a 1ª do dia é a própria data; as seguintes, data-2, data-3…
 // Trava de VTR: vale enquanto o celular de quem vistoria der sinal de vida (renova a cada minuto)
@@ -14,7 +14,11 @@ export const travaDeOutro = (rodada, vtrId, uid) => {
 
 export const idRodada = (data, seq) => (seq > 1 ? `${data}-${seq}` : data)
 
-export const itensDa = (vtr) => ITENS.filter((i) => !i.so || i.so(vtr))
+// Dia da conferência semanal (segunda-feira): entram os itens com `semanal: true`
+export const diaDeConferencia = (data) => Boolean(data) && new Date(`${data}T12:00:00`).getDay() === CONFERENCIA_SEMANAL.dia
+
+// Itens da vistoria desta VTR nesta data
+export const itensDa = (vtr, data) => ITENS.filter((i) => (!i.so || i.so(vtr)) && (!i.semanal || diaDeConferencia(data)))
 
 export const registroVazio = () => ({ itens: {} })
 
@@ -48,7 +52,7 @@ export function trocaDeOleo(vtr, kmHoje, hoje) {
 
 // Avalia o registro de uma VTR: completo? quais achados e qual a gravidade?
 export function avaliar(vtr, reg = {}, hoje) {
-  const itens = itensDa(vtr)
+  const itens = itensDa(vtr, hoje)
   const pendentes = []
   const achados = []
 
@@ -69,7 +73,7 @@ export function avaliar(vtr, reg = {}, hoje) {
 
   for (const it of itens) {
     const r = reg.itens?.[it.id]
-    if (!r || !r.estado) pendentes.push(it.nome)
+    if (!r || !r.estado || (it.tipo === 'condicao' && !r.condicao)) pendentes.push(it.nome)
     else if (r.estado === 'alt') {
       const opcoes = r.alts?.length ? r.alts : ['Com alteração']
       const nivel = opcoes.reduce((n, o) => maior(n, it.niveis?.[o] || it.nivel), 'info')
@@ -97,7 +101,7 @@ export function avaliar(vtr, reg = {}, hoje) {
   return { completo: pendentes.length === 0, pendentes, achados, nivel, estado }
 }
 
-export const exigida = (vtr) => (vtr.situacao || 'ativa') === 'ativa'
+export const exigida = (vtr) => infoSituacao(vtr).vistoria
 
 // Monta o texto do relatório no formato usado no WhatsApp
 export function montarRelatorio({ data, viaturas, registros, limpeza, responsaveis, auxiliares = [], supervisor, pendenciasAbertas = [], foraDeServico = [], totalFrota, agora = new Date() }) {
@@ -149,7 +153,7 @@ export function montarRelatorio({ data, viaturas, registros, limpeza, responsave
       if (r.por) L.push(`* Registrado por: ${r.por}`)
       return
     }
-    if ((v.situacao || 'ativa') !== 'ativa') L.push(`* Situação: ${linhaSituacao(v, { maiuscula: false })}`)
+    if (situacaoDe(v) !== 'ativa') L.push(`* Situação: ${linhaSituacao(v, { maiuscula: false })}`)
     L.push(`* KM: ${km(r.km)}`)
     const t = trocaDeOleo(v, r.km, data)
     if (t.nova) {
@@ -162,20 +166,32 @@ export function montarRelatorio({ data, viaturas, registros, limpeza, responsave
       L.push(`* Próx. troca: ${[kmTxt, dataTxt].filter(Boolean).join(' ou ')}`)
     }
     if (v.usaArla) L.push(`* Arla: ${combustivelTexto(r.arla).replace(' de tanque', '')}`)
-    const it = Object.fromEntries(itensDa(v).map((x) => [x.id, x]))
+    const it = Object.fromEntries(itensDa(v, data).map((x) => [x.id, x]))
     const linha = (id) => {
       const d = it[id]
       if (!d) return
       const s = r.itens?.[id]
+      if (d.tipo === 'condicao') return L.push(`* ${d.rel}: ${s?.condicao || '-'}`)
       L.push(`* ${d.rel}: ${s?.estado === 'alt' ? (s.alts?.length ? s.alts.join(', ') : 'Com alteração') : d.okTexto}`)
     }
+    // Fluidos: uma linha só quando todos estão S/A; senão, uma linha por item com alteração
+    const fluidos = () => {
+      const grupo = itensDa(v, data).filter((x) => x.grupo === 'fluidos')
+      const comAltF = grupo.filter((x) => r.itens?.[x.id]?.estado === 'alt')
+      for (const x of comAltF) linha(x.id)
+      const ok = grupo.filter((x) => !comAltF.includes(x))
+      if (ok.length) {
+        const t = juntar(ok.map((x) => x.rel.replace(/^Fluido (de |da )?/, '').toLowerCase()))
+        L.push(`* ${comAltF.length ? 'Demais fluidos' : 'Fluídos'} (${t}): S/A`)
+      }
+    }
     linha('oleo')
-    linha('fluidos')
+    fluidos()
     L.push(`* Combustível: ${combustivelTexto(r.comb)}`)
     linha('sinais')
     linha('radio')
     // Itens novos: uma linha só quando tudo está sem alteração
-    const compactos = itensDa(v).filter((x) => x.compacto)
+    const compactos = itensDa(v, data).filter((x) => x.compacto)
     const comAlt = compactos.filter((x) => r.itens?.[x.id]?.estado === 'alt')
     for (const x of comAlt) linha(x.id)
     const semAlt = compactos.filter((x) => !comAlt.includes(x))
@@ -183,6 +199,8 @@ export function montarRelatorio({ data, viaturas, registros, limpeza, responsave
       const t = juntar(semAlt.map((x) => x.rel.toLowerCase()))
       L.push(`* ${t[0].toUpperCase()}${t.slice(1)}: S/A`)
     }
+    // Conferência semanal (segunda-feira)
+    for (const x of itensDa(v, data).filter((i) => i.semanal)) linha(x.id)
     if (r.obs && r.obs.trim()) L.push(`* Obs: ${r.obs.trim()}`)
     if (por) L.push(por)
   })
