@@ -1626,5 +1626,6 @@ button.pessoa:active,
 .selo-linha { display: block; margin-top: 4px; }
 .selo-linha:empty { display: none; }
 @media (max-width: 400px) {
-  .vtr-desc .figura-vtr { width: 44px; height: 22px; }
+  .vtr-desc .figura-vtr { width: 52px; height: 26px; }
 }
+img.figura-vtr { object-fit: contain; }

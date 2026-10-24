@@ -1,7 +1,14 @@
-// Silhueta da viatura conforme o tipo (furgão, SUV, picape, sedã/hatch, moto).
-// Desenhos genéricos, sem reproduzir nenhum modelo de fábrica.
+// Figura da viatura conforme o tipo. Furgão, picape, SUV, SUV grande e sedã usam as
+// ilustrações das viaturas da EsFO (src/assets/viaturas); a moto usa a silhueta desenhada.
 
 import { TIPOS_VTR, tipoDaViatura } from '../lib/tipo-vtr'
+import imgFurgao from '../assets/viaturas/furgao.webp'
+import imgPicape from '../assets/viaturas/picape.webp'
+import imgSuv from '../assets/viaturas/suv.webp'
+import imgSuvGrande from '../assets/viaturas/suvGrande.webp'
+import imgSedan from '../assets/viaturas/sedan.webp'
+
+const IMAGENS = { furgao: imgFurgao, picape: imgPicape, suv: imgSuv, suvGrande: imgSuvGrande, sedan: imgSedan }
 
 const Roda = ({ x, r }) => (
   <>
@@ -149,6 +156,17 @@ const DESENHOS = {
 
 export default function FiguraVtr({ vtr, tipo, tamanho = 64, className = '' }) {
   const t = tipo || tipoDaViatura(vtr)
+  if (IMAGENS[t])
+    return (
+      <img
+        className={`figura-vtr ${className}`}
+        src={IMAGENS[t]}
+        width={tamanho}
+        height={Math.round(tamanho / 2)}
+        alt={TIPOS_VTR[t]}
+        draggable="false"
+      />
+    )
   return (
     <svg
       className={`figura-vtr ${className}`}
