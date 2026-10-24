@@ -18,7 +18,7 @@ App para a vistoria diária das viaturas da Escola de Formação de Oficiais (AP
 - **Conferência semanal (segunda-feira)**: na vistoria de segunda entram condição dos pneus e das pastilhas (Excelente, Bom, Regular, Troca urgente), palhetas e filtro do A/C. "Troca urgente" é alteração crítica; "Regular" aparece em destaque. O dia está em `CONFERENCIA_SEMANAL` (`src/config.js`).
 - **Motivo da situação**: ao colocar a VTR em *Uso interno* ou *Baixada* (na ficha ou em *Editar viatura*), é obrigatório descrever o motivo; a previsão de retorno é opcional. O app grava desde quando e quem mudou, mostra o motivo na ficha, na lista de *Viaturas*, na tela inicial e no relatório mensal, e o leva para os relatórios: o relatório do dia (texto do WhatsApp, tela e PDF) traz a seção *VTR fora de serviço* com todas as VTR em manutenção ou baixadas, o motivo, desde quando, quem mudou e a previsão de retorno; a VTR em manutenção que for vistoriada traz o mesmo na linha *Situação*; e o PDF mensal mostra a situação e o motivo de cada VTR. Voltando a *Ativa*, o motivo sai.
 - **Ficha de cada viatura** (toque na VTR em *Viaturas*): KM ao longo do tempo, alterações que se repetem, pendências, trocas de óleo e todas as vistorias.
-- **Relatório mensal** (em *Histórico*): só as viaturas, contando a partir de 24/10/2026 — situação, KM rodado, alterações (agrupadas), pendências em aberto e troca de óleo, com PDF.
+- **Relatório mensal** (em *Histórico*): a partir de 24/10/2026, com a tabela **no formato da aba *Gestão*** da planilha "Gestão das Viaturas EsFO" (as 19 colunas, na mesma ordem: data da conferência, prefixo, KM, próxima troca, modelo/placa, combustível, final do cartão, STATUS, troca de óleo, condição de pneus e pastilhas, fluido de freio, óleo do câmbio, palhetas, filtro do A/C, OS, nº OS, oficina e detalhamento com as pendências abertas numeradas). Depois vêm KM e vistorias do mês e as alterações agrupadas. Sai em **PDF (paisagem)** e em **planilha .xlsx** (abas *Gestão* e *Mês*), que pode ser aberta no Google Planilhas para comparar ou copiar linhas; o app não escreve na planilha oficial.
 - **Funções**: *Comandante da Missão* (oficial), *Gestor* (3º ano), *Supervisor* (1º ano /1) e *Responsável* (1º ano /2). O comandante escolhe a função ao liberar o acesso. Todos vistoriam (juntos, editando a mesma vistoria), cuidam das viaturas (cadastro, situação, troca de óleo, exclusão) e resolvem pendências. Os **supervisores montam a escala**. Supervisores e gestores podem **excluir relatórios** do histórico (ex.: testes): saem junto as pendências e fotos dele, e o KM volta ao do relatório anterior. O *Administrador* tem acesso total. No banco, as funções continuam gravadas com as chaves antigas (`coordenador`, `supervisor`, `responsavel`, `auxiliar`); a correspondência está em `src/config.js`.
 - Funciona como app no celular (PWA) e continua funcionando sem sinal na garagem.
 
@@ -38,6 +38,8 @@ src/
   lib/frota.js         histórico por viatura e resumo do mês
   lib/situacao.js      situação da VTR com motivo, previsão, data e responsável
   lib/mensal-pdf.js    PDF do relatório mensal
+  lib/gestao.js        linha de cada VTR no formato da aba Gestão
+  lib/gestao-xlsx.js   arquivo .xlsx do relatório mensal
   components/FiguraVtr.jsx  figura da viatura por tipo
   assets/viaturas/     ilustrações das VTR (furgão, picape, SUV, SUV grande, sedã)
   lib/tipo-vtr.js      tipos de viatura e dedução pelo modelo

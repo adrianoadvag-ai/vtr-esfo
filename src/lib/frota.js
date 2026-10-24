@@ -2,6 +2,7 @@
 import { INICIO_RELATORIOS, NIVEIS } from '../config'
 import { avaliar, trocaDeOleo } from './vistoria'
 import { naFrota, situacaoDe } from './situacao'
+import { linhaGestao } from './gestao'
 
 // Achados que não são defeito da viatura (resolvem-se sozinhos ou dependem do cadastro atual)
 const NAO_RECORRENTES = new Set(['combustivel', 'arla', 'troca'])
@@ -59,6 +60,14 @@ export function trocasDa(vtr) {
   const lista = [...(vtr.trocas || [])]
   if (vtr.dataUltimaTroca && !lista.some((t) => t.data === vtr.dataUltimaTroca)) lista.push({ data: vtr.dataUltimaTroca, km: vtr.kmUltimaTroca })
   return lista.sort((a, b) => b.data.localeCompare(a.data))
+}
+
+// Registros da VTR nos relatórios enviados, do mais antigo ao mais novo: [{ data, reg }]
+export function registrosDa(vtr, vistorias = []) {
+  return vistorias
+    .filter((v) => v.registros?.[vtr.id] && (!v.incluidas || v.incluidas.includes(vtr.id)))
+    .sort((a, b) => a.data.localeCompare(b.data) || (a.enviadaEm || 0) - (b.enviadaEm || 0))
+    .map((v) => ({ data: v.data, reg: v.registros[vtr.id] }))
 }
 
 // ---------- Relatório mensal ----------
@@ -126,6 +135,8 @@ export function resumoMensal({ mes, hoje, vistorias, viaturas, ocorrencias }) {
       pendencias,
       trocas: (vtr.trocas || []).filter((t) => noPeriodo(t.data)).sort((a, b) => a.data.localeCompare(b.data)),
       troca: trocaDeOleo(vtr, null, hoje),
+      // Linha no formato da aba "Gestão" da planilha
+      gestao: linhaGestao(vtr, registrosDa(vtr, doPeriodo), pendencias),
     }
   })
 

@@ -2,7 +2,8 @@
 import { NIVEIS, SITUACOES } from '../config'
 import { dataBR, diaMes, km } from './formato'
 import { nomeMes } from './frota'
-import { linhaSituacao } from './situacao'
+import { detalheSituacao } from './situacao'
+import { COLUNAS_GESTAO, destaqueGestao } from './gestao'
 
 function carregarImagem(src) {
   return new Promise((ok) => {
@@ -23,14 +24,28 @@ const limpar = (s = '') =>
     .replace(/→/g, '->')
     .trim()
 
+// "CHEVROLET/TRAILBLAZER/BDS5F07" -> linhas por barra, juntando partes curtas ("FORD/RANGER/" + placa)
+const splitModelo = (v) => {
+  const partes = v.split('/')
+  const linhas = []
+  for (let i = 0; i < partes.length; i++) {
+    const p = partes[i] + (i < partes.length - 1 ? '/' : '')
+    const ultima = linhas.at(-1)
+    if (ultima && ultima.length + p.length <= 15) linhas[linhas.length - 1] = ultima + p
+    else linhas.push(p)
+  }
+  return linhas.join('\n')
+}
+
 const maiuscula = (t) => (t ? t[0].toUpperCase() + t.slice(1) : t)
 
 export async function gerarPdfMensal({ resumo: r, brasoes, geradoPor, hoje }) {
   const { jsPDF } = await import('jspdf')
-  const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
-  const L = 15
-  const W = 180
-  const ALTURA = 297
+  // Paisagem: a tabela da aba Gestão tem 19 colunas
+  const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' })
+  const L = 10
+  const W = 277
+  const ALTURA = 210
   const COR = { tinta: [14, 26, 43], cinza: [74, 90, 112], azul: [0, 69, 138], ouro: [245, 197, 49], critico: [180, 35, 24], atencao: [168, 88, 0], ok: [30, 122, 70], fundo: [237, 241, 246], linha: [217, 224, 234] }
   let y = 14
 
@@ -133,17 +148,74 @@ export async function gerarPdfMensal({ resumo: r, brasoes, geradoPor, hoje }) {
   })
   y += 24
 
-  // Quadro das viaturas
-  tituloSecao('Situação das viaturas')
+  // Tabela no formato da aba "Gestão" da planilha (mesmas colunas, mesma ordem)
+  function tabelaGestao() {
+    const pad = 1
+    const lh = 2.6
+    const cabecalho = () => {
+      fonte('bold', 5.4, [255, 255, 255])
+      const tit = COLUNAS_GESTAO.map((c) => pdf.splitTextToSize(limpar(c.titulo), c.w - pad * 2))
+      const h = Math.max(...tit.map((t) => t.length)) * 2.4 + 2.4
+      pdf.setFillColor(12, 42, 90)
+      pdf.rect(L, y, W, h, 'F')
+      let x = L
+      COLUNAS_GESTAO.forEach((c, i) => {
+        tit[i].forEach((t, k) => pdf.text(t, x + c.w / 2, y + 2.6 + k * 2.4, { align: 'center' }))
+        x += c.w
+      })
+      y += h
+    }
+    cabecalho()
+    for (const xv of r.porViatura) {
+      const g = xv.gestao
+      fonte('normal', 5.8)
+      // Modelo/placa e combustível quebram nas barras, nunca no meio da palavra
+      const texto = (c) => {
+        const v = limpar(g[c.chave] ?? '')
+        if (c.chave === 'modelo') return splitModelo(v)
+        return c.chave === 'comb' ? v.replace(/\//, '/\n') : v
+      }
+      const cel = COLUNAS_GESTAO.map((c) => pdf.splitTextToSize(texto(c), c.w - pad * 2))
+      const h = Math.max(...cel.map((t) => t.length)) * lh + 2.2
+      if (y + h > ALTURA - 16) {
+        pdf.addPage()
+        y = 15
+        cabecalho()
+      }
+      let x = L
+      COLUNAS_GESTAO.forEach((c, i) => {
+        const d = destaqueGestao(c.chave, g[c.chave])
+        if (d) {
+          pdf.setFillColor(...(d === 'critico' ? [253, 232, 230] : [253, 240, 222]))
+          pdf.rect(x, y, c.w, h, 'F')
+        }
+        fonte(d || c.chave === 'prefixo' ? 'bold' : 'normal', c.chave === 'prefixo' ? 7 : 5.8, d ? COR[d] : COR.tinta)
+        const esq = c.chave === 'detalhamento'
+        cel[i].forEach((t, k) => pdf.text(t, esq ? x + pad : x + c.w / 2, y + 2.6 + k * lh, { align: esq ? 'left' : 'center' }))
+        pdf.setDrawColor(...COR.linha)
+        pdf.setLineWidth(0.15)
+        pdf.rect(x, y, c.w, h)
+        x += c.w
+      })
+      y += h
+    }
+    y += 4
+  }
+
+  tituloSecao('Gestão das viaturas (formato da planilha)')
+  tabelaGestao()
+
+  // KM e troca de óleo no mês (o que só o app registra)
+  tituloSecao('KM e vistorias no mês')
   tabela(
     [
-      { titulo: 'VTR', w: 16 },
-      { titulo: 'Modelo', w: 32 },
-      { titulo: 'Situação', w: 24 },
-      { titulo: 'KM no período', w: 34, direita: true },
-      { titulo: 'Rodado', w: 18, direita: true },
-      { titulo: 'Vistorias', w: 16, direita: true },
-      { titulo: 'Troca de óleo / revisão', w: 40 },
+      { titulo: 'VTR', w: 20 },
+      { titulo: 'Modelo', w: 52 },
+      { titulo: 'STATUS', w: 30 },
+      { titulo: 'KM no período', w: 50, direita: true },
+      { titulo: 'Rodado', w: 30, direita: true },
+      { titulo: 'Vistorias', w: 25, direita: true },
+      { titulo: 'Troca de óleo / revisão', w: 70 },
     ],
     r.porViatura.map((x) => [
       x.vtr.prefixo,
@@ -175,7 +247,7 @@ export async function gerarPdfMensal({ resumo: r, brasoes, geradoPor, hoje }) {
   for (const x of comAlgo) {
     const itens = [
       ...(x.situacao !== 'ativa'
-        ? [{ selo: SITUACOES[x.situacao].toUpperCase(), cor: x.situacao === 'baixada' ? COR.critico : COR.atencao, texto: linhaSituacao(x.vtr).replace(/^[^·]+·\s*/, '') }]
+        ? [{ selo: SITUACOES[x.situacao].toUpperCase(), cor: x.situacao === 'baixada' ? COR.critico : COR.atencao, texto: [x.vtr.motivoSituacao, detalheSituacao(x.vtr)].filter(Boolean).join(' - ') || 'Sem observação' }]
         : []),
       ...x.alteracoes.map((g) => ({
         selo: NIVEIS[g.nivel].nome.toUpperCase(),

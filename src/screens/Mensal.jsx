@@ -7,6 +7,8 @@ import { mesAnterior, mesDe, mesSeguinte, nomeMes, resumoMensal } from '../lib/f
 import { gerarPdfMensal } from '../lib/mensal-pdf'
 import FiguraVtr from '../components/FiguraVtr'
 import { textoSituacao } from '../lib/situacao'
+import { COLUNAS_GESTAO, destaqueGestao } from '../lib/gestao'
+import { gerarXlsxMensal } from '../lib/gestao-xlsx'
 
 // Relatório do mês: situação de cada viatura, KM rodado, alterações, pendências e troca de óleo, com PDF
 export default function Mensal({ mes: mesRota }) {
@@ -25,6 +27,30 @@ export default function Mensal({ mes: mesRota }) {
     setGerando(true)
     try {
       return await gerarPdfMensal({ resumo: r, brasoes: [brasaoApmg, brasaoEsfo], geradoPor: nomeCompleto(usuario), hoje })
+    } finally {
+      setGerando(false)
+    }
+  }
+
+  function salvarArquivo(blob, nome) {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = nome
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 30000)
+  }
+
+  async function planilha() {
+    setGerando(true)
+    try {
+      const { blob, nome } = await gerarXlsxMensal({ resumo: r })
+      salvarArquivo(blob, nome)
+      avisar('Planilha baixada.')
+    } catch {
+      avisar('Não foi possível gerar a planilha.')
     } finally {
       setGerando(false)
     }
@@ -89,6 +115,9 @@ export default function Mensal({ mes: mesRota }) {
                   <Icone nome="Share2" /> Enviar PDF
                 </button>
               )}
+              <button className="botao secundario" onClick={planilha} disabled={gerando}>
+                <Icone nome="FileSpreadsheet" /> Baixar planilha (.xlsx)
+              </button>
             </div>
 
             <div className="numeros">
@@ -113,7 +142,13 @@ export default function Mensal({ mes: mesRota }) {
               </div>
             </div>
 
-            <h2 className="secao">Viaturas</h2>
+            <h2 className="secao">Gestão das viaturas</h2>
+            <p className="tela-sub" style={{ margin: '-4px 0 8px', fontSize: 14 }}>
+              Mesmas colunas da aba <em>Gestão</em> da planilha. Arraste para o lado para ver todas.
+            </p>
+            <TabelaGestao linhas={r.porViatura.map((x) => x.gestao)} />
+
+            <h2 className="secao">Detalhe por viatura</h2>
             {r.porViatura.map((x) => (
               <FichaMensal key={x.vtr.id} x={x} ir={ir} />
             ))}
@@ -121,6 +156,38 @@ export default function Mensal({ mes: mesRota }) {
         )}
       </main>
     </>
+  )
+}
+
+function TabelaGestao({ linhas }) {
+  return (
+    <div className="tabela-gestao-rolagem" tabIndex={0} aria-label="Tabela no formato da aba Gestão">
+      <table className="tabela-gestao">
+        <thead>
+          <tr>
+            {COLUNAS_GESTAO.map((c) => (
+              <th key={c.chave} className={`col-${c.chave}`}>
+                {c.titulo}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {linhas.map((l) => (
+            <tr key={l.prefixo}>
+              {COLUNAS_GESTAO.map((c) => {
+                const d = destaqueGestao(c.chave, l[c.chave])
+                return (
+                  <td key={c.chave} className={`col-${c.chave} ${d ? `dest-${d}` : ''}`}>
+                    {l[c.chave]}
+                  </td>
+                )
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }
 

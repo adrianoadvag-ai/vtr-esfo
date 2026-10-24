@@ -1679,3 +1679,17 @@ details.fora-frota summary { cursor: pointer; color: var(--tinta-2); font-weight
 
 .aviso-conferencia { display: flex; gap: 8px; align-items: flex-start; background: var(--azul-claro); color: var(--tinta); border-radius: var(--raio); padding: 10px 12px; margin: 0 0 12px; font-size: 15px; }
 .aviso-conferencia .lucide { flex: none; margin-top: 2px; color: var(--azul); }
+
+/* Relatório mensal: tabela no formato da aba Gestão da planilha */
+.tabela-gestao-rolagem { overflow-x: auto; background: var(--cartao); border: 1px solid var(--linha); border-radius: var(--raio); box-shadow: var(--sombra); -webkit-overflow-scrolling: touch; }
+.tabela-gestao { border-collapse: collapse; font-size: 13px; min-width: 1500px; }
+.tabela-gestao th, .tabela-gestao td { border-bottom: 1px solid var(--linha); border-right: 1px solid var(--linha); padding: 6px 8px; vertical-align: top; text-align: center; }
+.tabela-gestao th { background: var(--noite); color: #fff; font-weight: 600; font-size: 12px; line-height: 1.25; position: sticky; top: 0; }
+.tabela-gestao .col-prefixo { position: sticky; left: 0; background: var(--cartao); font-family: var(--fonte-num); font-weight: 700; font-size: 16px; z-index: 1; }
+.tabela-gestao th.col-prefixo { background: var(--noite); z-index: 2; font-size: 12px; font-family: var(--fonte); }
+.tabela-gestao .col-detalhamento { text-align: left; white-space: pre-line; min-width: 320px; }
+.tabela-gestao .col-modelo { min-width: 150px; }
+.tabela-gestao .dest-critico { background: var(--critico-fundo); color: var(--critico); font-weight: 600; }
+.tabela-gestao .dest-atencao { background: var(--atencao-fundo); color: var(--atencao); font-weight: 600; }
+.tabela-gestao td { white-space: nowrap; }
+.tabela-gestao td.col-detalhamento { white-space: pre-line; }
