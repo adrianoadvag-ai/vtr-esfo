@@ -2,6 +2,7 @@
 import { CONFERENCIA_SEMANAL, ITENS, LIMITES, NIVEIS, TROCA, rotuloVaga } from '../config'
 import { combustivelTexto, dataBR, dataExtensa, diasAte, nomeDiaSemana, km, saudacao } from './formato'
 import { infoSituacao, linhaSituacao, situacaoDe } from './situacao'
+import { textoPendencia } from './pendencia'
 
 // Identificador da rodada: a 1ª do dia é a própria data; as seguintes, data-2, data-3…
 // Trava de VTR: vale enquanto o celular de quem vistoria der sinal de vida (renova a cada minuto)
@@ -77,12 +78,20 @@ export function avaliar(vtr, reg = {}, hoje) {
     else if (r.estado === 'alt') {
       const opcoes = r.alts?.length ? r.alts : ['Com alteração']
       const nivel = opcoes.reduce((n, o) => maior(n, it.niveis?.[o] || it.nivel), 'info')
-      achados.push({ nivel, itemId: it.id, item: it.nome, texto: `${it.nome}: ${opcoes.join(', ')}` })
+      const nota = (r.nota || '').trim()
+      // A descrição do vistoriador é o que vai para a pendência e para o detalhamento
+      if (!nota) pendentes.push(`Descrição: ${it.nome}`)
+      achados.push({ nivel, itemId: it.id, item: it.nome, texto: `${it.nome}: ${opcoes.join(', ')}`, nota })
     }
   }
 
+  // Outras pendências (fora do checklist), anotadas na vistoria
+  for (const e of reg.extras || []) {
+    const t = (e.texto || '').trim()
+    if (!t) pendentes.push('Descrição da outra pendência')
+    else achados.push({ nivel: 'atencao', itemId: `extra-${e.id}`, item: 'Outra pendência', texto: `Outra pendência: ${t}`, nota: t })
+  }
   const temAlt = achados.length > 0
-  if (temAlt && !(reg.obs && reg.obs.trim())) pendentes.push('Observação da alteração')
 
   if (reg.comb !== undefined && reg.comb !== null && reg.comb <= LIMITES.combustivelAtencao) {
     achados.push({ nivel: 'atencao', itemId: 'combustivel', item: 'Combustível', texto: `Combustível: ${combustivelTexto(reg.comb)}` })
@@ -123,7 +132,8 @@ export function montarRelatorio({ data, viaturas, registros, limpeza, responsave
     L.push('')
     L.push(`⚠️ *Alterações (${alteracoes.length})*`)
     for (const x of alteracoes) {
-      L.push(`- ${NIVEIS[x.nivel].nome.toUpperCase()} · ${x.v.prefixo} ${x.v.modelo}: ${x.texto}`)
+      const nota = x.nota && !String(x.itemId).startsWith('extra') ? ` (${x.nota})` : ''
+      L.push(`- ${NIVEIS[x.nivel].nome.toUpperCase()} · ${x.v.prefixo} ${x.v.modelo}: ${x.texto}${nota}`)
     }
   }
 
@@ -132,7 +142,7 @@ export function montarRelatorio({ data, viaturas, registros, limpeza, responsave
   if (antigas.length) {
     L.push('')
     L.push(`📌 *Pendências em aberto (${antigas.length})*`)
-    for (const p of antigas) L.push(`- ${p.prefixo}: ${p.texto} (desde ${dataBR(p.abertaEm)})`)
+    for (const p of antigas) L.push(`- ${p.prefixo}: ${textoPendencia(p)} (desde ${dataBR(p.abertaEm)})`)
   }
 
   // VTR em manutenção ou baixadas (não vistoriadas neste relatório), com o motivo
@@ -171,8 +181,9 @@ export function montarRelatorio({ data, viaturas, registros, limpeza, responsave
       const d = it[id]
       if (!d) return
       const s = r.itens?.[id]
-      if (d.tipo === 'condicao') return L.push(`* ${d.rel}: ${s?.condicao || '-'}`)
-      L.push(`* ${d.rel}: ${s?.estado === 'alt' ? (s.alts?.length ? s.alts.join(', ') : 'Com alteração') : d.okTexto}`)
+      const nota = s?.estado === 'alt' && s.nota?.trim() ? ` (${s.nota.trim()})` : ''
+      if (d.tipo === 'condicao') return L.push(`* ${d.rel}: ${s?.condicao || '-'}${nota}`)
+      L.push(`* ${d.rel}: ${s?.estado === 'alt' ? (s.alts?.length ? s.alts.join(', ') : 'Com alteração') : d.okTexto}${nota}`)
     }
     // Fluidos: uma linha só quando todos estão S/A; senão, uma linha por item com alteração
     const fluidos = () => {
@@ -201,6 +212,7 @@ export function montarRelatorio({ data, viaturas, registros, limpeza, responsave
     }
     // Conferência semanal (segunda-feira)
     for (const x of itensDa(v, data).filter((i) => i.semanal)) linha(x.id)
+    for (const e of r.extras || []) if (e.texto?.trim()) L.push(`* Outra pendência: ${e.texto.trim()}`)
     if (r.obs && r.obs.trim()) L.push(`* Obs: ${r.obs.trim()}`)
     if (por) L.push(por)
   })

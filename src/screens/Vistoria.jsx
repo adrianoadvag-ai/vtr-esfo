@@ -3,13 +3,14 @@ import { useApp } from '../App'
 import { Cabecalho, FotoMini, Icone, ItemCondicao, ItemTique, Marcador } from '../components/base'
 import CartaoTroca from '../components/CartaoTroca'
 import { CONFERENCIA_SEMANAL, LIMITES, podeGerirViaturas, podeVistoriar } from '../config'
-import { km, nomeCompleto } from '../lib/formato'
+import { dataBR, km, nomeCompleto } from '../lib/formato'
+import { abertasPorItem, textoPendencia } from '../lib/ocorrencias'
 import { avaliar, diaDeConferencia, exigida, itensDa, travaDeOutro } from '../lib/vistoria'
 import { atuaComoGestor, escalaDoDia } from '../lib/escala'
 import FiguraVtr, { ModeloVtr } from '../components/FiguraVtr'
 
 export default function Vistoria({ vtrId }) {
-  const { viaturas, vistoria, hoje, ir, api, usuario, avisar, escalas, usuarios, recarregarViaturas } = useApp()
+  const { viaturas, vistoria, hoje, ir, api, usuario, avisar, escalas, usuarios, recarregarViaturas, ocorrencias } = useApp()
   const vtr = viaturas.find((v) => v.id === vtrId)
   const enviada = vistoria?.status === 'enviada'
   const pode = !enviada && podeVistoriar(usuario)
@@ -119,6 +120,19 @@ export default function Vistoria({ vtrId }) {
       return novo
     })
   }
+  // Alterações que dependem do estado atual (outras pendências, atualização de pendência aberta)
+  const mudarCom = (fn) => {
+    if (somenteLeitura) return
+    setReg((r) => {
+      const novo = fn(r)
+      gravar(novo)
+      return novo
+    })
+  }
+  const novaExtra = () => mudarCom((r) => ({ ...r, extras: [...(r.extras || []), { id: Date.now().toString(36), texto: '' }] }))
+  const mudarExtra = (id, texto) => mudarCom((r) => ({ ...r, extras: (r.extras || []).map((e) => (e.id === id ? { ...e, texto } : e)) }))
+  const tirarExtra = (id) => mudarCom((r) => ({ ...r, extras: (r.extras || []).filter((e) => e.id !== id) }))
+  const atualizarPendencia = (oid, texto) => mudarCom((r) => ({ ...r, atualizar: { ...(r.atualizar || {}), [oid]: texto } }))
   const mudarItem = (id, valor) => {
     if (somenteLeitura) return
     setReg((r) => {
@@ -165,7 +179,10 @@ export default function Vistoria({ vtrId }) {
   const kmNum = reg.km === '' || reg.km === undefined ? null : Number(reg.km)
   const kmMenor = kmNum !== null && vtr.kmAtual && kmNum < vtr.kmAtual
   const kmSalto = kmNum !== null && vtr.kmAtual && kmNum - vtr.kmAtual > LIMITES.saltoKm
-  const temAlt = Object.values(reg.itens || {}).some((x) => x.estado === 'alt')
+  // Pendências abertas desta VTR: as do checklist aparecem no próprio item; as demais (avulsas ou da planilha) numa seção à parte
+  const pendItem = abertasPorItem(ocorrencias, vtrId)
+  const idsItens = new Set(itensDa(vtr, hoje).map((i) => i.id))
+  const outrasAbertas = Object.values(pendItem).filter((o) => !idsItens.has(o.itemId) && !['combustivel', 'arla', 'troca'].includes(o.itemId))
   const nivelItem = (it) => {
     const v = reg.itens?.[it.id]
     if (v?.estado !== 'alt') return null
@@ -308,6 +325,7 @@ export default function Vistoria({ vtrId }) {
                     onChange={(v) => mudarItem(it.id, v)}
                     nivel={nivelItem(it)}
                     desativado={somenteLeitura}
+                    pendencia={pendItem[it.id]}
                   />
                 ))}
             </div>
@@ -325,7 +343,7 @@ export default function Vistoria({ vtrId }) {
                     .filter((it) => it.semanal)
                     .map((it) =>
                       it.tipo === 'condicao' ? (
-                        <ItemCondicao key={it.id} item={it} valor={reg.itens?.[it.id]} onChange={(v) => mudarItem(it.id, v)} desativado={somenteLeitura} />
+                        <ItemCondicao key={it.id} item={it} valor={reg.itens?.[it.id]} onChange={(v) => mudarItem(it.id, v)} desativado={somenteLeitura} pendencia={pendItem[it.id]} />
                       ) : (
                         <ItemTique
                           key={it.id}
@@ -334,6 +352,7 @@ export default function Vistoria({ vtrId }) {
                           onChange={(v) => mudarItem(it.id, v)}
                           nivel={nivelItem(it)}
                           desativado={somenteLeitura}
+                          pendencia={pendItem[it.id]}
                         />
                       ),
                     )}
@@ -341,13 +360,66 @@ export default function Vistoria({ vtrId }) {
               </>
             )}
 
-            <div className={`bloco obs ${temAlt && !(reg.obs || '').trim() ? 'exigida' : ''}`}>
-              <label htmlFor="obs">{temAlt ? 'Descreva a alteração' : 'Observações (opcional)'}</label>
+            <h2 className="secao">Outras pendências</h2>
+            <p className="tela-sub" style={{ margin: '-4px 0 8px', fontSize: 14 }}>
+              O que não está nos itens acima (lataria, estepe, bateria do cartão…). Cada uma vira pendência da VTR.
+            </p>
+            <div className="bloco pad outras-pendencias">
+              {outrasAbertas.map((o) => (
+                <div key={o.id} className="outra-aberta">
+                  <small>Aberta desde {dataBR(o.abertaEm)}{o.origem === 'planilha' ? ' (planilha)' : ''}</small>
+                  {reg.atualizar?.[o.id] !== undefined ? (
+                    <textarea
+                      value={reg.atualizar[o.id]}
+                      onChange={(e) => atualizarPendencia(o.id, e.target.value)}
+                      disabled={somenteLeitura}
+                      rows={2}
+                    />
+                  ) : (
+                    <p>
+                      {textoPendencia(o)}
+                      {!somenteLeitura && (
+                        <button className="botao texto" onClick={() => atualizarPendencia(o.id, o.descricao || o.texto || '')}>
+                          <Icone nome="Pencil" tamanho={14} /> Atualizar
+                        </button>
+                      )}
+                    </p>
+                  )}
+                </div>
+              ))}
+              {(reg.extras || []).map((e) => (
+                <div key={e.id} className={`nota-item outra-nova ${(e.texto || '').trim() ? '' : 'exigida'}`}>
+                  <span>Nova pendência</span>
+                  <textarea
+                    value={e.texto}
+                    onChange={(ev) => mudarExtra(e.id, ev.target.value)}
+                    placeholder="Ex.: para-lama traseiro esquerdo batido à frente da roda"
+                    disabled={somenteLeitura}
+                    rows={2}
+                    autoFocus={!e.texto}
+                  />
+                  {!somenteLeitura && (
+                    <button className="botao texto perigo" onClick={() => tirarExtra(e.id)}>
+                      <Icone nome="X" tamanho={14} /> Remover
+                    </button>
+                  )}
+                </div>
+              ))}
+              {outrasAbertas.length === 0 && !(reg.extras || []).length && <p className="tela-sub" style={{ margin: 0 }}>Nenhuma pendência fora do checklist.</p>}
+              {!somenteLeitura && (
+                <button className="botao secundario" onClick={novaExtra}>
+                  <Icone nome="Plus" /> Outra pendência
+                </button>
+              )}
+            </div>
+
+            <div className="bloco obs">
+              <label htmlFor="obs">Observações do dia (opcional)</label>
               <textarea
                 id="obs"
                 value={reg.obs || ''}
                 onChange={(e) => mudar({ obs: e.target.value })}
-                placeholder={temAlt ? 'O que foi encontrado, avisos no painel, desde quando…' : 'Ex.: situação do pneu resolvida'}
+                placeholder="Comentários que não são pendência. Ex.: VTR lavada, pneus calibrados"
                 disabled={somenteLeitura}
               />
               <div className="fotos">

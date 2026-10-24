@@ -93,7 +93,7 @@ export default function Revisao() {
       const kms = Object.fromEntries(
         incluidas.filter((v) => !registros[v.id].naoVistoriada && registros[v.id].km).map((v) => [v.id, Number(registros[v.id].km)]),
       )
-      const novasOcorrencias = ocorrenciasDoDia({ data: hoje, viaturas: incluidas, registros: regsIncluidos, abertas, por: eu, relatorioId: vistoria.id })
+      const { novas: novasOcorrencias, atualizadas } = ocorrenciasDoDia({ data: hoje, viaturas: incluidas, registros: regsIncluidos, abertas, por: eu, relatorioId: vistoria.id })
       // Incompletas e as que ficaram de fora seguem para a próxima rodada do dia
       const restantes = Object.fromEntries(Object.entries(registros).filter(([id]) => !idsIncluidos.has(id)))
       const seq = (vistoria.seq || 1) + 1
@@ -105,6 +105,7 @@ export default function Revisao() {
         limpeza,
         kms,
         novasOcorrencias,
+        atualizarOcorrencias: atualizadas,
         por: eu,
         viaturas,
         incluidas: [...idsIncluidos],

@@ -52,7 +52,8 @@ import brasaoApmg from '../assets/brasao-apmg.png'
 import brasaoEsfo from '../assets/brasao-esfo.png'
 import logoViatura from '../assets/logo-app.webp'
 import { CONDICOES, NIVEIS } from '../config'
-import { fracao, iniciais } from '../lib/formato'
+import { dataBR, fracao, iniciais } from '../lib/formato'
+import { textoPendencia } from '../lib/pendencia'
 
 export { brasaoApmg, brasaoEsfo, logoViatura }
 
@@ -170,12 +171,40 @@ export function Marcador({ valor, onChange, rotulo, icone, desativado }) {
 }
 
 // Item conferido por tique: um toque = S/A; o botão de alerta abre as opções de alteração
-export function ItemTique({ item, valor, onChange, nivel, desativado }) {
+// Descrição da alteração no próprio item: vira a pendência e entra no detalhamento
+function NotaItem({ item, valor, onChange, desativado }) {
+  const vazia = !(valor?.nota || '').trim()
+  return (
+    <label className={`nota-item ${vazia ? 'exigida' : ''}`}>
+      <span>Descreva a alteração</span>
+      <textarea
+        value={valor?.nota || ''}
+        onChange={(e) => onChange({ ...valor, nota: e.target.value })}
+        placeholder={`O que foi encontrado em ${item.nome.toLowerCase()}, desde quando, providência…`}
+        disabled={desativado}
+        rows={2}
+      />
+    </label>
+  )
+}
+
+// Pendência já aberta para este item (aparece mesmo com o item S/A, para quem vistoria saber)
+function AvisoPendencia({ pendencia }) {
+  if (!pendencia) return null
+  return (
+    <div className="pendencia-item">
+      <Icone nome="Wrench" tamanho={14} /> Pendência aberta desde {dataBR(pendencia.abertaEm)}: {textoPendencia(pendencia)}
+    </div>
+  )
+}
+
+export function ItemTique({ item, valor, onChange, nivel, desativado, pendencia }) {
   const estado = valor?.estado
   const alts = valor?.alts || []
   const marcarOk = () => onChange(estado === 'ok' ? null : { estado: 'ok' })
-  const marcarAlt = () => onChange(estado === 'alt' ? null : { estado: 'alt', alts: [] })
-  const alternar = (o) => onChange({ estado: 'alt', alts: alts.includes(o) ? alts.filter((x) => x !== o) : [...alts, o] })
+  // Ao marcar alteração num item que já tem pendência aberta, a descrição anterior vem preenchida para atualizar
+  const marcarAlt = () => onChange(estado === 'alt' ? null : { estado: 'alt', alts: [], nota: pendencia?.descricao || '' })
+  const alternar = (o) => onChange({ ...valor, estado: 'alt', alts: alts.includes(o) ? alts.filter((x) => x !== o) : [...alts, o] })
   return (
     <div className={`item ${estado === 'alt' ? `alt nivel-${nivel || 'critico'}` : ''}`}>
       <div className="linha">
@@ -206,23 +235,29 @@ export function ItemTique({ item, valor, onChange, nivel, desativado }) {
         </button>
       </div>
       {estado === 'alt' && (
-        <div className="opcoes">
-          {item.alts.map((o) => (
-            <button key={o} className={`opcao ${alts.includes(o) ? 'marcada' : ''}`} onClick={() => alternar(o)} disabled={desativado}>
-              {o}
-            </button>
-          ))}
-        </div>
+        <>
+          <div className="opcoes">
+            {item.alts.map((o) => (
+              <button key={o} className={`opcao ${alts.includes(o) ? 'marcada' : ''}`} onClick={() => alternar(o)} disabled={desativado}>
+                {o}
+              </button>
+            ))}
+          </div>
+          <NotaItem item={item} valor={valor} onChange={onChange} desativado={desativado} />
+        </>
       )}
+      {estado !== 'alt' && <AvisoPendencia pendencia={pendencia} />}
     </div>
   )
 }
 
 // Item de condição (pneus, pastilhas): Excelente, Bom, Regular ou Troca urgente. "Troca urgente" conta como alteração.
-export function ItemCondicao({ item, valor, onChange, desativado }) {
+export function ItemCondicao({ item, valor, onChange, desativado, pendencia }) {
   const atual = valor?.condicao
   const escolher = (c) =>
-    onChange(atual === c ? null : c === 'Troca urgente' ? { estado: 'alt', condicao: c, alts: [c] } : { estado: 'ok', condicao: c })
+    onChange(
+      atual === c ? null : c === 'Troca urgente' ? { estado: 'alt', condicao: c, alts: [c], nota: valor?.nota || pendencia?.descricao || '' } : { estado: 'ok', condicao: c },
+    )
   return (
     <div className={`item ${atual === 'Troca urgente' ? 'alt nivel-critico' : ''}`}>
       <div className="linha">
@@ -248,6 +283,7 @@ export function ItemCondicao({ item, valor, onChange, desativado }) {
           </button>
         ))}
       </div>
+      {atual === 'Troca urgente' ? <NotaItem item={item} valor={valor} onChange={onChange} desativado={desativado} /> : <AvisoPendencia pendencia={pendencia} />}
     </div>
   )
 }

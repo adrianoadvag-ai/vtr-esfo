@@ -233,7 +233,7 @@ export async function cancelarRegistro(vid, vtrId) {
   await updateDoc(ref, new FieldPath('registros', vtrId), deleteField(), new FieldPath('travas', vtrId), deleteField())
 }
 
-export async function enviarVistoria(vid, data, { relatorio, responsaveis, auxiliares, supervisor, limpeza, kms, novasOcorrencias, por, viaturas, incluidas, restantes, proxima }) {
+export async function enviarVistoria(vid, data, { relatorio, responsaveis, auxiliares, supervisor, limpeza, kms, novasOcorrencias, atualizarOcorrencias = [], por, viaturas, incluidas, restantes, proxima }) {
   const b = writeBatch(db)
   b.set(
     doc(db, 'vistorias', vid),
@@ -245,6 +245,8 @@ export async function enviarVistoria(vid, data, { relatorio, responsaveis, auxil
     if (k > atual) b.update(doc(db, 'viaturas', v), { kmAtual: k, ultimaVistoria: data })
   }
   for (const o of novasOcorrencias) b.set(doc(collection(db, 'ocorrencias')), o)
+  // Descrição atualizada pelo vistoriador nas pendências que já estavam abertas
+  for (const { id, ...campos } of atualizarOcorrencias) b.update(doc(db, 'ocorrencias', id), campos)
   // O que estava incompleto continua na próxima rodada do dia
   if (Object.keys(restantes).length) b.set(doc(db, 'vistorias', proxima.id), { data, seq: proxima.seq, registros: restantes })
   await b.commit()
@@ -268,6 +270,13 @@ export async function excluirRelatorio(vid, { ocorrencias = [], fotos = [], kms 
 
 export async function listarOcorrencias() {
   return lista(await getDocs(collection(db, 'ocorrencias'))).sort((a, b) => b.abertaEm.localeCompare(a.abertaEm))
+}
+
+// Cria pendências de uma vez (ex.: importação do detalhamento da planilha)
+export async function criarOcorrencias(lista) {
+  const b = writeBatch(db)
+  for (const o of lista) b.set(doc(collection(db, 'ocorrencias')), o)
+  await b.commit()
 }
 
 export const resolverOcorrencia = (oid, { por, nota, data }) =>

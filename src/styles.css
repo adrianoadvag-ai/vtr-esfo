@@ -1693,3 +1693,25 @@ details.fora-frota summary { cursor: pointer; color: var(--tinta-2); font-weight
 .tabela-gestao .dest-atencao { background: var(--atencao-fundo); color: var(--atencao); font-weight: 600; }
 .tabela-gestao td { white-space: nowrap; }
 .tabela-gestao td.col-detalhamento { white-space: pre-line; }
+
+/* Descrição da alteração no item e pendência já aberta */
+.nota-item { display: block; margin: 10px 0 2px; }
+.nota-item span { display: block; font-size: 13px; font-weight: 600; color: var(--tinta-2); margin-bottom: 4px; }
+.nota-item textarea { min-height: 56px; font-size: 15px; }
+.nota-item.exigida textarea { border-color: var(--critico); }
+.pendencia-item { margin: 8px 0 0 52px; font-size: 13px; color: var(--atencao); line-height: 1.35; }
+.pendencia-item .lucide { vertical-align: -2px; margin-right: 2px; }
+
+.outras-pendencias { display: grid; gap: 12px; }
+.outra-aberta { border-left: 3px solid var(--atencao); padding-left: 10px; }
+.outra-aberta small { color: var(--tinta-2); font-size: 12px; }
+.outra-aberta p { margin: 2px 0 0; }
+.outra-aberta .botao.texto { padding: 0 0 0 6px; min-height: 0; font-size: 14px; display: inline-flex; gap: 4px; align-items: center; }
+.outra-aberta textarea { margin-top: 4px; min-height: 56px; }
+.outra-nova .botao.texto { padding: 4px 0 0; min-height: 0; font-size: 14px; display: inline-flex; gap: 4px; align-items: center; }
+
+.importar-planilha { margin-bottom: 16px; border: 1px dashed var(--azul); }
+.importar-vtr { display: grid; grid-template-columns: 64px 1fr; gap: 8px; padding: 8px 0; border-top: 1px solid var(--linha); }
+.importar-vtr .prefixo { font-size: 20px; }
+.importar-vtr ol { margin: 0; padding-left: 18px; font-size: 14px; }
+.importar-vtr small { color: var(--tinta-2); }

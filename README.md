@@ -7,7 +7,7 @@ App para a vistoria diária das viaturas da Escola de Formação de Oficiais (AP
 - Checklist por tiques: **um toque = S/A**. O botão de alerta abre as opções de alteração e exige observação.
 - Combustível e Arla numa **barra de 8 partes**, como o marcador do painel.
 - Relatório gerado no formato do grupo, pronto para **copiar ou abrir no WhatsApp**, com as alterações no topo.
-- **Pendências** (ex.: freio da 16843) ficam abertas e reaparecem nos relatórios até o coordenador resolver.
+- **Pendências** = o *Detalhamento atualizado* da planilha. Ao marcar um item com alteração, o vistoriador **descreve a alteração no próprio item** (obrigatório); ao enviar, cada item vira uma pendência com esse texto e a data. O que não está no checklist (lataria, estepe…) entra em **+ Outra pendência**. Pendências já abertas aparecem no item e na seção *Outras pendências* da vistoria, e o vistoriador pode **atualizar** o texto; só quem resolve, na tela *Pendências*, tira a pendência da lista. A observação do dia continua opcional e não vira pendência. Em *Pendências*, supervisores e gestores podem **importar uma vez** o detalhamento da planilha de 19/10/2026 (`src/data/detalhamento-planilha.js`).
 - **Troca de óleo na tela de vistoria**: quem vistoria preenche a última troca (data e KM da etiqueta); a próxima é calculada (10.000 km e 6 meses) e pode ser alterada se a etiqueta disser outra coisa. VTR nova (sem troca) mostra a revisão dos 10.000 km. Alerta quando faltam 1.000 km ou 15 dias.
 - **Escala** de segunda a sexta como na planilha: um responsável e um supervisor por dia (os gestores não entram na escala), com a rotina de manutenção do dia e o **total de escalas** de cada um, contado a partir do primeiro relatório enviado. Os supervisores montam pelo app; todos veem e podem copiar para o WhatsApp. A escala de hoje aparece na tela inicial e preenche os responsáveis do relatório.
 - **Equipe**: lista dos integrantes com ficha (telefone, WhatsApp, e-mail, pelotão e próximos serviços). Depois de liberado, cada cadete completa os próprios dados em *Meus dados*.
@@ -36,6 +36,8 @@ src/
   lib/escala.js        regras da escala semanal
   screens/             telas: Hoje, Vistoria, Revisão, Relatório, Pendências, Escala, Histórico, Mensal, Viaturas, Ficha da viatura, Equipe
   lib/frota.js         histórico por viatura e resumo do mês
+  lib/ocorrencias.js   pendências: criação e atualização no envio
+  data/detalhamento-planilha.js  detalhamento da planilha (19/10/2026) para importar
   lib/situacao.js      situação da VTR com motivo, previsão, data e responsável
   lib/mensal-pdf.js    PDF do relatório mensal
   lib/gestao.js        linha de cada VTR no formato da aba Gestão

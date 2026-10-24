@@ -1,9 +1,19 @@
-// Transforma as alterações do dia em ocorrências (pendências) que ficam abertas até serem resolvidas.
+// Pendências: nascem das alterações da vistoria (com a descrição escrita pelo vistoriador no item)
+// e das "outras pendências" anotadas na vistoria; ficam abertas até alguém resolver na tela Pendências.
 import { avaliar } from './vistoria'
 
+export { textoPendencia } from './pendencia'
+
+// Pendências abertas de uma VTR, por item ({ itemId: pendência })
+export function abertasPorItem(ocorrencias = [], vtrId) {
+  return Object.fromEntries(ocorrencias.filter((o) => o.viaturaId === vtrId && o.status === 'aberta').map((o) => [o.itemId, o]))
+}
+
+// No envio: novas pendências e descrições atualizadas das que já estavam abertas
 export function ocorrenciasDoDia({ data, viaturas, registros, abertas, por, relatorioId }) {
-  const chaves = new Set(abertas.map((o) => `${o.viaturaId}:${o.itemId}`))
+  const porChave = new Map(abertas.map((o) => [`${o.viaturaId}:${o.itemId}`, o]))
   const novas = []
+  const atualizadas = []
   for (const v of viaturas) {
     const reg = registros[v.id]
     if (!reg) continue
@@ -12,8 +22,15 @@ export function ocorrenciasDoDia({ data, viaturas, registros, abertas, por, rela
       // Combustível baixo não vira pendência: resolve-se no próximo abastecimento
       if (x.itemId === 'combustivel' || x.itemId === 'arla') continue
       const chave = `${v.id}:${x.itemId}`
-      if (chaves.has(chave)) continue
-      chaves.add(chave)
+      const existente = porChave.get(chave)
+      if (existente) {
+        // Já aberta: o vistoriador pode ter atualizado a descrição
+        if (x.nota && x.nota.trim() !== (existente.descricao || '').trim()) {
+          atualizadas.push({ id: existente.id, descricao: x.nota.trim(), atualizadaEm: data, atualizadaPor: por })
+        }
+        continue
+      }
+      porChave.set(chave, {})
       novas.push({
         viaturaId: v.id,
         prefixo: v.prefixo,
@@ -21,6 +38,7 @@ export function ocorrenciasDoDia({ data, viaturas, registros, abertas, por, rela
         itemId: x.itemId,
         item: x.item,
         texto: x.texto,
+        descricao: (x.nota || '').trim(),
         nivel: x.nivel,
         obs: reg.obs || '',
         abertaEm: data,
@@ -30,6 +48,13 @@ export function ocorrenciasDoDia({ data, viaturas, registros, abertas, por, rela
         ...(relatorioId ? { relatorioId } : {}),
       })
     }
+    // Pendências abertas (avulsas ou da planilha) que o vistoriador atualizou na vistoria
+    for (const [id, texto] of Object.entries(reg.atualizar || {})) {
+      const o = abertas.find((x) => x.id === id)
+      if (o && texto.trim() && texto.trim() !== (o.descricao || o.texto || '').trim()) {
+        atualizadas.push({ id, descricao: texto.trim(), atualizadaEm: data, atualizadaPor: por })
+      }
+    }
   }
-  return novas
+  return { novas, atualizadas }
 }

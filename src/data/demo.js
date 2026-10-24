@@ -177,7 +177,7 @@ export async function cancelarRegistro(vid, vtrId) {
   gravar()
 }
 
-export async function enviarVistoria(vid, data, { relatorio, responsaveis, auxiliares, supervisor, limpeza, kms, novasOcorrencias, por, incluidas, restantes, proxima }) {
+export async function enviarVistoria(vid, data, { relatorio, responsaveis, auxiliares, supervisor, limpeza, kms, novasOcorrencias, atualizarOcorrencias = [], por, incluidas, restantes, proxima }) {
   const d = ler()
   const v = d.vistorias[vid]
   if (!v) throw new Error('Nada para enviar.')
@@ -188,6 +188,7 @@ export async function enviarVistoria(vid, data, { relatorio, responsaveis, auxil
     if (vtr && k > (vtr.kmAtual || 0)) vtr.kmAtual = k
   }
   for (const o of novasOcorrencias) d.ocorrencias.push({ ...o, id: id() })
+  for (const { id: oid, ...campos } of atualizarOcorrencias) Object.assign(d.ocorrencias.find((x) => x.id === oid) || {}, campos)
   if (Object.keys(restantes).length) d.vistorias[proxima.id] = { data, seq: proxima.seq, registros: restantes }
   gravar()
 }
@@ -211,6 +212,12 @@ export async function excluirRelatorio(vid, { ocorrencias = [], kms = {} }) {
 
 export async function listarOcorrencias() {
   return copia(ler().ocorrencias).sort((a, b) => b.abertaEm.localeCompare(a.abertaEm))
+}
+
+export async function criarOcorrencias(lista) {
+  const d = ler()
+  for (const o of lista) d.ocorrencias.push({ ...o, id: id() })
+  gravar()
 }
 
 export async function resolverOcorrencia(oid, { por, nota, data }) {

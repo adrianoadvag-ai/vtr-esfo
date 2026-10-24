@@ -9,6 +9,7 @@ import FiguraVtr from '../components/FiguraVtr'
 import { textoSituacao } from '../lib/situacao'
 import { COLUNAS_GESTAO, destaqueGestao } from '../lib/gestao'
 import { gerarXlsxMensal } from '../lib/gestao-xlsx'
+import { textoPendencia } from '../lib/pendencia'
 
 // Relatório do mês: situação de cada viatura, KM rodado, alterações, pendências e troca de óleo, com PDF
 export default function Mensal({ mes: mesRota }) {
@@ -248,7 +249,7 @@ function FichaMensal({ x, ir }) {
             <li key={o.id}>
               <Selo nivel="neutro">Pendência</Selo>
               <span>
-                {o.texto}
+                {textoPendencia(o)}
                 <small>em aberto desde {dataBR(o.abertaEm)}</small>
               </span>
             </li>

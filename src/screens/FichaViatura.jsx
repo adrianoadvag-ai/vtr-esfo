@@ -8,6 +8,7 @@ import { trocaDeOleo } from '../lib/vistoria'
 import FiguraVtr, { ModeloVtr } from '../components/FiguraVtr'
 import { TIPOS_VTR, tipoDaViatura } from '../lib/tipo-vtr'
 import { comSituacao, situacaoDe, textoOS } from '../lib/situacao'
+import { textoPendencia } from '../lib/pendencia'
 
 // Ficha de uma viatura: situação, KM ao longo do tempo, alterações que se repetem, pendências e trocas de óleo
 export default function FichaViatura({ id }) {
@@ -315,7 +316,7 @@ export default function FichaViatura({ id }) {
           <div className="bloco">
             {[...abertas, ...resolvidas.slice(0, 5)].map((o) => (
               <div className="achado" key={o.id} style={{ gridTemplateColumns: '1fr' }}>
-                <span className="texto">{o.texto}</span>
+                <span className="texto">{textoPendencia(o)}</span>
                 <span className="meta" style={{ gridColumn: 1 }}>
                   {o.status === 'aberta' ? <SeloNivel nivel={o.nivel} /> : <Selo nivel="ok">Resolvida {dataBR(o.resolvidaEm)}</Selo>} aberta em{' '}
                   {dataBR(o.abertaEm)}
