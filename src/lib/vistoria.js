@@ -2,7 +2,6 @@
 import { CONFERENCIA_SEMANAL, ITENS, LIMITES, NIVEIS, TROCA, rotuloVaga } from '../config'
 import { combustivelTexto, dataBR, dataExtensa, diasAte, nomeDiaSemana, km, saudacao } from './formato'
 import { infoSituacao, linhaSituacao, situacaoDe } from './situacao'
-import { textoPendencia } from './pendencia'
 
 // Identificador da rodada: a 1ª do dia é a própria data; as seguintes, data-2, data-3…
 // Trava de VTR: vale enquanto o celular de quem vistoria der sinal de vida (renova a cada minuto)
@@ -113,7 +112,7 @@ export function avaliar(vtr, reg = {}, hoje) {
 export const exigida = (vtr) => infoSituacao(vtr).vistoria
 
 // Monta o texto do relatório no formato usado no WhatsApp
-export function montarRelatorio({ data, viaturas, registros, limpeza, responsaveis, auxiliares = [], supervisor, pendenciasAbertas = [], foraDeServico = [], totalFrota, agora = new Date() }) {
+export function montarRelatorio({ data, viaturas, registros, limpeza, responsaveis, auxiliares = [], supervisor, foraDeServico = [], totalFrota, agora = new Date() }) {
   const L = []
   L.push(`Com licença, Senhores. ${saudacao(agora)}`)
   L.push('')
@@ -137,13 +136,8 @@ export function montarRelatorio({ data, viaturas, registros, limpeza, responsave
     }
   }
 
-  const hojeIds = new Set(alteracoes.map((x) => `${x.v.id}:${x.itemId}`))
-  const antigas = pendenciasAbertas.filter((p) => !hojeIds.has(`${p.viaturaId}:${p.itemId}`))
-  if (antigas.length) {
-    L.push('')
-    L.push(`📌 *Pendências em aberto (${antigas.length})*`)
-    for (const p of antigas) L.push(`- ${p.prefixo}: ${textoPendencia(p)} (desde ${dataBR(p.abertaEm)})`)
-  }
+  // Pendências antigas não entram no relatório do WhatsApp: ficam na tela Pendências, na ficha e no mensal.
+  // As novas do dia já aparecem acima, em Alterações, e no item de cada VTR.
 
   // VTR em manutenção ou baixadas (não vistoriadas neste relatório), com o motivo
   if (foraDeServico.length) {
