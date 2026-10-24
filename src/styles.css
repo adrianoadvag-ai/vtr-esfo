@@ -1715,3 +1715,14 @@ details.fora-frota summary { cursor: pointer; color: var(--tinta-2); font-weight
 .importar-vtr .prefixo { font-size: 20px; }
 .importar-vtr ol { margin: 0; padding-left: 18px; font-size: 14px; }
 .importar-vtr small { color: var(--tinta-2); }
+
+/* Filtros da lista de pendências */
+.filtros-pendencias { display: grid; gap: 6px; margin: -4px 0 14px; }
+.filtro-rotulo { font-size: 12px; font-weight: 600; color: var(--tinta-2); text-transform: uppercase; letter-spacing: 0.04em; }
+.chips.rolagem { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+.chip { flex: none; border: 1.5px solid var(--linha); background: var(--cartao); color: var(--tinta); border-radius: 999px; padding: 6px 12px; font-size: 14px; font-weight: 500; display: inline-flex; gap: 6px; align-items: center; }
+.chip b { font-weight: 600; color: var(--tinta-2); font-variant-numeric: tabular-nums; }
+.chip.marcado { background: var(--noite); border-color: var(--noite); color: #fff; }
+.chip.marcado b { color: var(--ouro); }
+.chip.nivel-critico:not(.marcado) { border-color: var(--critico); color: var(--critico); }
+.chip.nivel-atencao:not(.marcado) { border-color: var(--atencao); color: var(--atencao); }

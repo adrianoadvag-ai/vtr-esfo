@@ -15,8 +15,16 @@ export default function Pendencias() {
   const abertas = ocorrencias
     .filter((o) => o.status === 'aberta')
     .sort((a, b) => NIVEIS[b.nivel].ordem - NIVEIS[a.nivel].ordem || a.abertaEm.localeCompare(b.abertaEm))
-  const resolvidas = ocorrencias.filter((o) => o.status === 'resolvida')
-  const lista = verResolvidas ? resolvidas : abertas
+  const resolvidas = ocorrencias.filter((o) => o.status === 'resolvida').sort((a, b) => (b.resolvidaEm || '').localeCompare(a.resolvidaEm || ''))
+  const base = verResolvidas ? resolvidas : abertas
+  // Filtros: viatura e gravidade
+  const [vtrFiltro, setVtrFiltro] = useState('')
+  const [nivelFiltro, setNivelFiltro] = useState('')
+  const ordemVtr = Object.fromEntries(viaturas.map((v, i) => [v.prefixo, i]))
+  const contaVtr = base.reduce((m, o) => ({ ...m, [o.prefixo]: (m[o.prefixo] || 0) + 1 }), {})
+  const prefixos = Object.keys(contaVtr).sort((a, b) => (ordemVtr[a] ?? 99) - (ordemVtr[b] ?? 99) || a.localeCompare(b))
+  const contaNivel = base.filter((o) => !vtrFiltro || o.prefixo === vtrFiltro).reduce((m, o) => ({ ...m, [o.nivel]: (m[o.nivel] || 0) + 1 }), {})
+  const lista = base.filter((o) => (!vtrFiltro || o.prefixo === vtrFiltro) && (!nivelFiltro || o.nivel === nivelFiltro))
 
   async function resolver(o) {
     await api.resolverOcorrencia(o.id, { por: nomeCompleto(usuario), nota, data: hoje })
@@ -41,8 +49,38 @@ export default function Pendencias() {
             Resolvidas ({resolvidas.length})
           </button>
         </div>
+        {base.length > 0 && (
+          <div className="filtros-pendencias">
+            <span className="filtro-rotulo">Viatura</span>
+            <div className="chips rolagem">
+              <button className={`chip ${!vtrFiltro ? 'marcado' : ''}`} onClick={() => setVtrFiltro('')}>
+                Todas <b>{base.length}</b>
+              </button>
+              {prefixos.map((p) => (
+                <button key={p} className={`chip ${vtrFiltro === p ? 'marcado' : ''}`} onClick={() => setVtrFiltro(vtrFiltro === p ? '' : p)}>
+                  {p} <b>{contaVtr[p]}</b>
+                </button>
+              ))}
+            </div>
+            <span className="filtro-rotulo">Gravidade</span>
+            <div className="chips">
+              <button className={`chip ${!nivelFiltro ? 'marcado' : ''}`} onClick={() => setNivelFiltro('')}>
+                Todas
+              </button>
+              {['critico', 'atencao', 'info']
+                .filter((n) => contaNivel[n])
+                .map((n) => (
+                  <button key={n} className={`chip nivel-${n} ${nivelFiltro === n ? 'marcado' : ''}`} onClick={() => setNivelFiltro(nivelFiltro === n ? '' : n)}>
+                    {NIVEIS[n].nome} <b>{contaNivel[n]}</b>
+                  </button>
+                ))}
+            </div>
+          </div>
+        )}
         {lista.length === 0 ? (
-          <div className="bloco vazio">{verResolvidas ? 'Nenhuma pendência resolvida ainda.' : 'Nenhuma pendência em aberto.'}</div>
+          <div className="bloco vazio">
+            {base.length ? 'Nenhuma pendência com esse filtro.' : verResolvidas ? 'Nenhuma pendência resolvida ainda.' : 'Nenhuma pendência em aberto.'}
+          </div>
         ) : (
           <div className="bloco">
             {lista.map((o) => {
