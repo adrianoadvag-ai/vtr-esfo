@@ -10,7 +10,6 @@ const porNome = (a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR')
 
 // A lista de integrantes sai separada por função na missão
 const GRUPOS = [...Object.entries(FUNCOES).map(([k, f]) => ({ funcao: k, nome: f.grupo })), { funcao: null, nome: 'Sem função definida' }]
-const NOMES_PAPEL = { responsavel: 'Responsável', auxiliar: 'Auxiliar', supervisor: 'Supervisor' }
 const voltarOu = (rota) => (window.history.length > 1 ? window.history.back() : (window.location.hash = `/${rota}`))
 
 // Lista de integrantes: todos veem; o coordenador também libera os acessos aqui
@@ -262,7 +261,7 @@ export function Integrante({ id }) {
                   <Icone nome="CalendarDays" />
                 </div>
                 <div className="rotulo">{dataCurta(s.dia)}</div>
-                <Selo nivel={s.papel === 'supervisor' ? 'neutro' : 'ok'}>{NOMES_PAPEL[s.papel]}</Selo>
+                <Selo nivel={s.papel === 'supervisor' ? 'neutro' : 'ok'}>{FUNCOES[s.papel].nome}</Selo>
               </button>
             ))
           )}
@@ -290,7 +289,7 @@ export function Integrante({ id }) {
                 </select>
               </label>
               <p className="tela-sub" style={{ margin: 0, fontSize: 14 }}>
-                Todos vistoriam, cuidam das viaturas e resolvem pendências. Os responsáveis montam a escala. Responsáveis e supervisores podem excluir
+                Todos vistoriam, cuidam das viaturas e resolvem pendências. Os supervisores montam a escala. Supervisores e gestores podem excluir
                 relatórios.
               </p>
               {usuario.perfil === 'admin' && !proprio && u.perfil !== 'pendente' && (

@@ -226,30 +226,14 @@ function Formatado({ r }) {
         <div>
           <strong>Limpeza:</strong> {r.limpeza}
         </div>
-        {r.responsaveis.length > 0 && (
-          <div style={{ marginTop: 8 }}>
-            <strong>Responsável do dia:</strong>
-            {r.responsaveis.map((n) => (
+        {r.assinaturas.map((a) => (
+          <div style={{ marginTop: 8 }} key={a.rotulo}>
+            <strong>{a.rotulo}:</strong>
+            {a.nomes.map((n) => (
               <div key={n}>{n}</div>
             ))}
           </div>
-        )}
-        {r.auxiliares.length > 0 && (
-          <div style={{ marginTop: 8 }}>
-            <strong>Auxiliar do responsável:</strong>
-            {r.auxiliares.map((n) => (
-              <div key={n}>{n}</div>
-            ))}
-          </div>
-        )}
-        {r.supervisor.length > 0 && (
-          <div style={{ marginTop: 8 }}>
-            <strong>Supervisor:</strong>
-            {r.supervisor.map((n) => (
-              <div key={n}>{n}</div>
-            ))}
-          </div>
-        )}
+        ))}
       </div>
     </>
   )

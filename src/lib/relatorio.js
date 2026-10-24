@@ -5,7 +5,10 @@ const OK = /^(S\/A|Normal|Operante|VTR nova)$/i
 const NEUTROS = /^(KM|Combustível|Arla|Próx\. troca|Data da próx\. troca|Última troca|Situação)$/i
 
 export function estruturar(texto = '') {
-  const r = { saudacao: '', titulo: '', alteracoes: [], pendencias: [], vtrs: [], limpeza: '', responsaveis: [], auxiliares: [], supervisor: [] }
+  // assinaturas: quem assinou, com o nome da função como estava no relatório
+  // (os antigos dizem "Responsável do dia / Auxiliar / Supervisor"; os novos, "Responsável / Supervisor / Gestor")
+  const r = { saudacao: '', titulo: '', alteracoes: [], pendencias: [], vtrs: [], limpeza: '', assinaturas: [] }
+  let assinatura = null
   let secao = null
   let vtr = null
   for (const bruta of texto.split('\n')) {
@@ -22,12 +25,13 @@ export function estruturar(texto = '') {
       r.vtrs.push(vtr)
     } else if (l.startsWith('Condições gerais de limpeza')) {
       r.limpeza = l.replace(/^Condições gerais de limpeza:\s*/, '')
-      secao = null
-    } else if (l.startsWith('Responsável do dia')) secao = 'resp'
-    else if (/^Supervisor:?$/.test(l)) secao = 'sup'
-    else if (/^Auxiliar( do responsável)?:?$/.test(l)) secao = 'aux'
-    else if (secao === 'sup') r.supervisor.push(l)
-    else if (secao === 'aux') r.auxiliares.push(l)
+      secao = 'assin'
+    } else if ((secao === 'assin' || l.startsWith('Responsável do dia')) && /^[^*\-:]+:$/.test(l)) {
+      // "Responsável:", "Supervisores:", "Gestor:" … abre um bloco de assinatura
+      secao = 'assin'
+      assinatura = { rotulo: l.slice(0, -1).trim(), nomes: [] }
+      r.assinaturas.push(assinatura)
+    } else if (secao === 'assin' && assinatura) assinatura.nomes.push(l)
     else if (secao === 'alt' && l.startsWith('- ')) {
       const t = l.slice(2)
       const nivel = /^CRÍTICO/i.test(t) ? 'critico' : /^ATENÇÃO/i.test(t) ? 'atencao' : 'info'
@@ -40,7 +44,7 @@ export function estruturar(texto = '') {
       const valor = i > 0 ? t.slice(i + 1).trim() : ''
       const destaque = rotulo !== 'Obs' && !NEUTROS.test(rotulo) && valor && !OK.test(valor) && !/: S\/A$/.test(t)
       vtr.linhas.push({ rotulo, valor, destaque })
-    } else if (secao === 'resp') r.responsaveis.push(l)
+    }
   }
   return r
 }
@@ -213,41 +217,18 @@ export async function gerarPdf({ texto, data, enviadaEm, enviadaPor, brasoes, no
     linhasDe(r.limpeza, W - lw).forEach((t, i) => pdf.text(t, L + lw, y + i * 4.8))
     y += 8
   }
-  if (r.responsaveis.length) {
-    garantir(6 + r.responsaveis.length * 5)
+  r.assinaturas.forEach((a, i) => {
+    garantir(6 + a.nomes.length * 5)
+    if (i) y += 2
     fonte('bold', 10)
-    pdf.text('Responsável do dia:', L, y)
+    pdf.text(`${limpar(a.rotulo)}:`, L, y)
     y += 5
     fonte('normal', 10)
-    for (const n of r.responsaveis) {
+    for (const n of a.nomes) {
       pdf.text(limpar(n), L, y)
       y += 5
     }
-  }
-  if (r.auxiliares.length) {
-    garantir(6 + r.auxiliares.length * 5)
-    y += 2
-    fonte('bold', 10)
-    pdf.text('Auxiliar do responsável:', L, y)
-    y += 5
-    fonte('normal', 10)
-    for (const n of r.auxiliares) {
-      pdf.text(limpar(n), L, y)
-      y += 5
-    }
-  }
-  if (r.supervisor.length) {
-    garantir(6 + r.supervisor.length * 5)
-    y += 2
-    fonte('bold', 10)
-    pdf.text('Supervisor:', L, y)
-    y += 5
-    fonte('normal', 10)
-    for (const n of r.supervisor) {
-      pdf.text(limpar(n), L, y)
-      y += 5
-    }
-  }
+  })
 
   // Rodapé com numeração
   const total = pdf.getNumberOfPages()

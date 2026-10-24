@@ -1,5 +1,5 @@
 // Regras da escala semanal: dias, vagas, quem está de serviço e texto para o WhatsApp.
-import { ESCALA, FUNCOES, ROTINA, funcaoDe } from '../config'
+import { ESCALA, FUNCOES, ROTINA, funcaoDe, rotuloVaga } from '../config'
 import { NOMES_DIAS, dataCurta, diaDaSemana, diaMes, hojeISO, nomeCompleto, segundaDa, somarDias } from './formato'
 
 // No fim de semana, a tela já abre na semana seguinte
@@ -24,9 +24,9 @@ export function papelNoDia(diaEsc, u) {
   return null
 }
 
-// Quem vistoria como supervisor: o supervisor escalado no dia ou quem tem a função de supervisor
-// (desde que não esteja escalado como responsável ou auxiliar naquele dia)
-export function atuaComoSupervisor(diaEsc, u) {
+// Quem vistoria como gestor (3º ano, chave 'supervisor'): o gestor escalado no dia ou quem tem essa função
+// (desde que não esteja escalado como supervisor ou responsável naquele dia)
+export function atuaComoGestor(diaEsc, u) {
   const papel = papelNoDia(diaEsc, u)
   if (papel === 'responsavel' || papel === 'auxiliar') return false
   return papel === 'supervisor' || funcaoDe(u) === 'supervisor'
@@ -61,9 +61,10 @@ export function textoEscala(semana, escala) {
     const d = escala?.dias?.[dia]
     const resp = nomesResponsaveis(d)
     L.push('', `*${NOMES_DIAS[diaDaSemana(dia)]} – ${diaMes(dia)}*`)
-    L.push(`${resp.length > 1 ? 'Responsáveis' : 'Responsável'}: ${juntar(resp) || 'a definir'}`)
-    L.push(`Auxiliar: ${juntar(nomesAuxiliares(d)) || 'a definir'}`)
-    L.push(`Supervisor: ${d?.supervisor?.nome || 'a definir'}`)
+    const aux = nomesAuxiliares(d)
+    L.push(`${rotuloVaga('auxiliares', aux.length)}: ${juntar(aux) || 'a definir'}`)
+    L.push(`${rotuloVaga('responsaveis', resp.length)}: ${juntar(resp) || 'a definir'}`)
+    L.push(`${rotuloVaga('supervisor')}: ${d?.supervisor?.nome || 'a definir'}`)
     L.push(`Rotina: ${rotinaDo(dia)}`)
   }
   return L.join('\n')
@@ -92,9 +93,9 @@ export function escalaDoDia(escalas, dia, usuarios) {
 // Total de escalas de cada um, por papel, a partir do primeiro dia de missão com relatório
 // (como na planilha: inclui as semanas já lançadas)
 export const PAPEIS = [
-  { papel: 'responsavel', nome: 'Responsáveis', funcao: 'responsavel' },
-  { papel: 'auxiliar', nome: 'Auxiliares', funcao: 'auxiliar' },
-  { papel: 'supervisor', nome: 'Supervisores', funcao: 'supervisor' },
+  { papel: 'supervisor', nome: FUNCOES.supervisor.grupo, funcao: 'supervisor' },
+  { papel: 'responsavel', nome: FUNCOES.responsavel.grupo, funcao: 'responsavel' },
+  { papel: 'auxiliar', nome: FUNCOES.auxiliar.grupo, funcao: 'auxiliar' },
 ]
 
 export function totaisEscala(escalas = [], inicio, usuarios = []) {

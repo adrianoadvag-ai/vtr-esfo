@@ -1,5 +1,5 @@
 // Regras da vistoria: o que falta preencher, gravidade dos achados e texto do relatório.
-import { ITENS, LIMITES, NIVEIS } from '../config'
+import { ITENS, LIMITES, NIVEIS, rotuloVaga } from '../config'
 import { combustivelTexto, dataBR, dataExtensa, diasAte, km, saudacao } from './formato'
 
 // Identificador da rodada: a 1ª do dia é a própria data; as seguintes, data-2, data-3…
@@ -168,21 +168,16 @@ export function montarRelatorio({ data, viaturas, registros, limpeza, responsave
       ? `Condições gerais de limpeza: necessita limpeza${limpeza.obs ? ` (${limpeza.obs})` : ''}.`
       : 'Condições gerais de limpeza: Limpeza realizada dentro do padrão.',
   )
-  if (responsaveis.length) {
+  // Assinaturas: Responsável (1º ano /2), Supervisor (1º ano /1) e Gestor (3º ano)
+  const assinar = (campo, nomes) => {
+    if (!nomes.length) return
     L.push('')
-    L.push('Responsável do dia:')
-    for (const n of responsaveis) L.push(n)
+    L.push(`${rotuloVaga(campo, nomes.length)}:`)
+    for (const n of nomes) L.push(n)
   }
-  if (auxiliares.length) {
-    L.push('')
-    L.push('Auxiliar do responsável:')
-    for (const n of auxiliares) L.push(n)
-  }
-  if (supervisor) {
-    L.push('')
-    L.push('Supervisor:')
-    L.push(supervisor)
-  }
+  assinar('auxiliares', auxiliares)
+  assinar('responsaveis', responsaveis)
+  assinar('supervisor', supervisor ? [supervisor] : [])
   return L.join('\n')
 }
 

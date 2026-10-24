@@ -16,12 +16,13 @@ export const VIATURAS_INICIAIS = [
 
 import { hojeISO, segundaDa, somarDias } from '../lib/formato'
 
-// Equipe da demonstração, a partir da escala de out. 2026 (funções: coordenador, supervisor, responsável, auxiliar)
+// Equipe da demonstração, a partir da escala de out. 2026
+// (chaves de função: coordenador = Comandante, supervisor = Gestor, responsavel = Supervisor, auxiliar = Responsável)
 const pessoa = (id, posto, nome, funcao, extra = {}) => ({ id: `demo-${id}`, posto, nome, funcao, perfil: funcao === 'coordenador' ? 'coordenador' : 'vistoriador', email: `${id}@exemplo.com`, ...extra })
 
 export const USUARIOS_DEMO = [
   pessoa('romeiro', 'Cad.', 'Romeiro', 'responsavel', { perfil: 'admin', nomeInteiro: 'Adriano Romeiro', pelotao: '1º Pelotão Alfa', telefone: '41999990001' }),
-  pessoa('tenente', 'Ten.', 'Coordenador', 'coordenador'),
+  pessoa('tenente', 'Ten.', 'Comandante', 'coordenador'),
   pessoa('barata', 'Cad.', 'Barata', 'supervisor'),
   pessoa('matumoto', 'Cad.', 'Matumoto', 'supervisor'),
   pessoa('vinicius', 'Cad.', 'Vinícius', 'supervisor'),

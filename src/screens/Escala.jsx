@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useApp } from '../App'
 import { Cabecalho, Icone, Selo, useCarregar } from '../components/base'
-import { FUNCOES, funcaoDe, podeMontarEscala } from '../config'
+import { FUNCOES, funcaoDe, podeMontarEscala, rotuloVaga } from '../config'
 import { diasDa, papelNoDia, rotinaDo, semanaPadrao, textoEscala, totaisEscala, vagasAuxiliar, vagasDo } from '../lib/escala'
 import { NOMES_DIAS, mensagemErro, dataExtensa, diaDaSemana, diaMes, hojeISO, horaCurta, nomeCompleto, somarDias } from '../lib/formato'
 
@@ -120,8 +120,8 @@ export default function Escala({ semana: semanaRota }) {
                   </div>
                 )}
                 {[
-                  { chave: 'auxiliares', funcao: 'auxiliar', rotulo: 'Auxiliar', vagas: vagasAuxiliar() },
-                  { chave: 'responsaveis', funcao: 'responsavel', rotulo: vagas > 1 ? 'Responsáveis' : 'Responsável', vagas },
+                  { chave: 'auxiliares', funcao: 'auxiliar', rotulo: rotuloVaga('auxiliares', vagasAuxiliar()), vagas: vagasAuxiliar() },
+                  { chave: 'responsaveis', funcao: 'responsavel', rotulo: rotuloVaga('responsaveis', vagas), vagas },
                 ].map((col) => (
                   <div className="dia-linha" key={col.chave}>
                     <span className="dia-rotulo">{col.rotulo}</span>
@@ -149,14 +149,14 @@ export default function Escala({ semana: semanaRota }) {
                   </div>
                 ))}
                 <div className="dia-linha">
-                  <span className="dia-rotulo">Supervisor</span>
+                  <span className="dia-rotulo">{rotuloVaga('supervisor')}</span>
                   <div className="dia-nomes">
                     {gestor ? (
                       <SeletorPessoa
                         valor={d?.supervisor}
                         ativos={ativos}
                         funcao="supervisor"
-                        rotulo={`Supervisor de ${NOMES_DIAS[diaDaSemana(dia)]}`}
+                        rotulo={`${rotuloVaga('supervisor')} de ${NOMES_DIAS[diaDaSemana(dia)]}`}
                         onChange={(novo) => salvar(dia, { supervisor: novo })}
                       />
                     ) : (
@@ -184,7 +184,7 @@ export default function Escala({ semana: semanaRota }) {
         )}
         {!gestor && (
           <p className="tela-sub" style={{ fontSize: 13, textAlign: 'center' }}>
-            Trocas de serviço: fale com os responsáveis da missão.
+            Trocas de serviço: fale com os supervisores da missão.
           </p>
         )}
 

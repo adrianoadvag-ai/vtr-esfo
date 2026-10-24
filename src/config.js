@@ -111,17 +111,29 @@ export const PERFIS = {
   pendente: 'Aguardando liberação',
   vistoriador: 'Integrante',
   supervisao: 'Integrante',
-  coordenador: 'Coordenador',
+  coordenador: 'Comandante da Missão',
   admin: 'Administrador',
 }
 
-// Funções na missão, na ordem em que aparecem na Equipe
+// Funções na missão, na ordem em que aparecem na Equipe.
+// ATENÇÃO: as chaves são as gravadas no banco e nas regras do Firestore; só os nomes exibidos mudaram (24 out. 2026).
+//   chave 'coordenador' → Comandante da Missão (oficial)
+//   chave 'supervisor'  → Gestor (3º ano)          — na escala: campo `supervisor`
+//   chave 'responsavel' → Supervisor (1º ano /1)    — na escala: campo `responsaveis` (dois na segunda)
+//   chave 'auxiliar'    → Responsável (1º ano /2)   — na escala: campo `auxiliares`
 export const FUNCOES = {
-  coordenador: { nome: 'Coordenador', grupo: 'Coordenação', quem: 'Oficial responsável pela missão' },
-  supervisor: { nome: 'Supervisor', grupo: 'Supervisores', quem: 'Cadete do 3º ano' },
-  responsavel: { nome: 'Responsável', grupo: 'Responsáveis', quem: 'Cadete do 1º ano /1' },
-  auxiliar: { nome: 'Auxiliar do responsável', grupo: 'Auxiliares', quem: 'Cadete do 1º ano /2' },
+  coordenador: { nome: 'Comandante da Missão', grupo: 'Comando da missão', quem: 'Oficial' },
+  supervisor: { nome: 'Gestor', grupo: 'Gestores', quem: 'Cadete do 3º ano' },
+  responsavel: { nome: 'Supervisor', grupo: 'Supervisores', quem: 'Cadete do 1º ano /1' },
+  auxiliar: { nome: 'Responsável', grupo: 'Responsáveis', quem: 'Cadete do 1º ano /2' },
 }
+// Nome exibido de cada vaga da escala (singular e plural)
+export const ROTULO = {
+  auxiliares: { um: 'Responsável', varios: 'Responsáveis' },
+  responsaveis: { um: 'Supervisor', varios: 'Supervisores' },
+  supervisor: { um: 'Gestor', varios: 'Gestores' },
+}
+export const rotuloVaga = (campo, n = 1) => (n > 1 ? ROTULO[campo].varios : ROTULO[campo].um)
 
 // Função de um integrante (quem foi liberado antes das funções é deduzido do perfil antigo)
 export function funcaoDe(u) {
@@ -138,19 +150,19 @@ export const perfilPara = (u, funcao) => (u.perfil === 'admin' ? 'admin' : funca
 const liberado = (u) => Boolean(u) && Boolean(u.perfil) && u.perfil !== 'pendente'
 const comando = (u) => Boolean(u) && (u.perfil === 'coordenador' || u.perfil === 'admin')
 
-// Coordenador e administrador: liberam a equipe e definem as funções
+// Comandante da Missão e administrador: liberam a equipe e definem as funções
 export const podeGerir = comando
 // Todos os integrantes liberados: vistoria, viaturas (cadastro, situação, troca de óleo, exclusão) e pendências
 export const podeVistoriar = liberado
 export const podeGerirViaturas = liberado
-// Escala: montada pelos responsáveis (coordenador e administrador também podem)
+// Escala: montada pelos supervisores (1º ano /1); comandante e administrador também podem
 export const podeMontarEscala = (u) => liberado(u) && (comando(u) || funcaoDe(u) === 'responsavel')
-// Excluir um relatório enviado (ex.: testes): responsáveis e supervisores, além do coordenador e do administrador
+// Excluir um relatório enviado (ex.: testes): supervisores e gestores, além do comandante e do administrador
 export const podeExcluirRelatorio = (u) => liberado(u) && (comando(u) || ['responsavel', 'supervisor'].includes(funcaoDe(u)))
 
 export const SITUACOES = { ativa: 'Ativa', manutencao: 'Em manutenção', baixada: 'Baixada' }
 
-// Escala da missão: segunda a sexta. Na segunda são dois responsáveis; todo dia, um auxiliar e um supervisor.
+// Escala da missão: segunda a sexta. Todo dia um responsável, um supervisor (dois na segunda) e um gestor.
 export const ESCALA = {
   dias: [1, 2, 3, 4, 5], // 1 = segunda … 5 = sexta
   vagas: { 1: 2, 2: 1, 3: 1, 4: 1, 5: 1 },

@@ -1,6 +1,6 @@
 import { useApp } from '../App'
 import { Cabecalho, Icone, Selo, SeloNivel } from '../components/base'
-import { APP_NOME, dadosCompletos, podeGerirViaturas, podeVistoriar } from '../config'
+import { APP_NOME, FUNCOES, dadosCompletos, podeGerirViaturas, podeVistoriar, rotuloVaga } from '../config'
 import { escalaDoDia, juntar, papelNoDia, proximosServicos, rotinaDo } from '../lib/escala'
 import { dataCurta, horaCurta, nomeCompleto } from '../lib/formato'
 import { avaliar, exigida, travaDeOutro } from '../lib/vistoria'
@@ -168,11 +168,12 @@ function CartaoEscala({ hoje, escalas, usuarios, usuario, ir }) {
   const proximo = proximosServicos(Object.values(escalas), usuario, hoje).find((s) => s.dia > hoje)
   if (!rotina && !proximo) return null
   const resp = (d?.responsaveis || []).map((p) => p.nome).filter(Boolean)
+  const aux = (d?.auxiliares || []).map((p) => p.nome).filter(Boolean)
   return (
     <button className={`bloco cartao-escala ${papel ? 'meu' : ''}`} onClick={() => ir('escala')}>
       {papel && (
         <div className="faixa-servico">
-          {papel === 'responsavel' ? 'Você é o responsável de hoje' : papel === 'auxiliar' ? 'Você é o auxiliar de hoje' : 'Você supervisiona hoje'}
+          Você é o {FUNCOES[papel].nome.toLowerCase()} de hoje
         </div>
       )}
       {rotina && (
@@ -180,15 +181,15 @@ function CartaoEscala({ hoje, escalas, usuarios, usuario, ir }) {
           <div className="linha-escala">
             <Icone nome="CalendarDays" tamanho={18} />
             <span>
-              <small>{resp.length > 1 ? 'Responsáveis' : 'Responsável'} hoje</small>
+              <small>{rotuloVaga('auxiliares', aux.length)}</small>
+              {juntar(aux) || 'A definir'}
+            </span>
+            <span>
+              <small>{rotuloVaga('responsaveis', resp.length)}</small>
               {juntar(resp) || 'A definir'}
             </span>
             <span>
-              <small>Auxiliar</small>
-              {juntar((d?.auxiliares || []).map((p) => p.nome).filter(Boolean)) || 'A definir'}
-            </span>
-            <span>
-              <small>Supervisor</small>
+              <small>{rotuloVaga('supervisor')}</small>
               {d?.supervisor?.nome || 'A definir'}
             </span>
           </div>
@@ -201,7 +202,7 @@ function CartaoEscala({ hoje, escalas, usuarios, usuario, ir }) {
       {proximo && (
         <div className="proximo-servico">
           Seu próximo serviço: <strong>{dataCurta(proximo.dia)}</strong>
-          {proximo.papel === 'supervisor' ? ' (supervisor)' : proximo.papel === 'auxiliar' ? ' (auxiliar)' : ''}
+          {` (${FUNCOES[proximo.papel].nome.toLowerCase()})`}
         </div>
       )}
     </button>

@@ -4,7 +4,7 @@ import { Cabecalho, FotoMini, Icone, ItemTique, Marcador } from '../components/b
 import { LIMITES, podeGerirViaturas, podeVistoriar } from '../config'
 import { km, nomeCompleto } from '../lib/formato'
 import { avaliar, exigida, itensDa, travaDeOutro, trocaDeOleo } from '../lib/vistoria'
-import { atuaComoSupervisor, escalaDoDia } from '../lib/escala'
+import { atuaComoGestor, escalaDoDia } from '../lib/escala'
 
 export default function Vistoria({ vtrId }) {
   const { viaturas, vistoria, hoje, ir, api, usuario, avisar, escalas, usuarios } = useApp()
@@ -98,9 +98,9 @@ export default function Vistoria({ vtrId }) {
     if (posseRef.current !== 'minha') return
     const { por: _p, em: _e, ...limpo } = r
     const { id, seq } = rodada.current
-    // O supervisor que vistoria continua identificado como supervisor no relatório
-    const sup = atuaComoSupervisor(escalaDoDia(escalas, hoje, usuarios), usuario)
-    const por = `${nomeCompleto(usuario)}${sup ? ' (supervisor)' : ''}`
+    // O gestor (3º ano) que vistoria continua identificado como gestor no relatório
+    const gestor = atuaComoGestor(escalaDoDia(escalas, hoje, usuarios), usuario)
+    const por = `${nomeCompleto(usuario)}${gestor ? ' (gestor)' : ''}`
     api.salvarRegistro(id, hoje, seq, vtrId, limpo, por).catch((e) => avisar(e.message))
   }
   useEffect(() => () => {

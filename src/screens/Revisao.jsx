@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../App'
 import { Cabecalho, Icone, SeloNivel, useCarregar } from '../components/base'
-import { NIVEIS, funcaoDe } from '../config'
+import { NIVEIS, funcaoDe, rotuloVaga } from '../config'
 import { dataExtensa, nomeCompleto } from '../lib/formato'
 import { ocorrenciasDoDia } from '../lib/ocorrencias'
 import { avaliar, exigida, idRodada, montarRelatorio, travaDeOutro } from '../lib/vistoria'
-import { atuaComoSupervisor, escalaDoDia } from '../lib/escala'
+import { atuaComoGestor, escalaDoDia } from '../lib/escala'
 
 export default function Revisao() {
   const { viaturas, vistoria, hoje, ir, api, usuario, ocorrencias, avisar, recarregarViaturas, recarregarOcorrencias, escalas, usuarios: equipe } = useApp()
@@ -17,7 +17,7 @@ export default function Revisao() {
   const escaladosAux = (escalaHoje?.auxiliares || []).map((p) => p.nome).filter(Boolean)
   const supervisorEscala = escalaHoje?.supervisor?.nome || ''
   // Supervisor que faz a vistoria assina como supervisor, não como responsável do dia
-  const souSupervisor = atuaComoSupervisor(escalaHoje, usuario)
+  const souSupervisor = atuaComoGestor(escalaHoje, usuario)
   const naEscala = escalados.includes(eu) || escaladosAux.includes(eu) || souSupervisor
   const souAuxiliar = funcaoDe(usuario) === 'auxiliar'
   const [responsaveis, setResponsaveis] = useState(
@@ -238,23 +238,25 @@ export default function Revisao() {
           )}
         </div>
 
-        <h2 className="secao">Responsável do dia</h2>
-        <div className="chips">
-          {nomesResp.map((n) => (
-            <button key={n} className={`opcao ${responsaveis.includes(n) ? 'marcada' : ''}`} onClick={() => alternar(n)}>
-              {n}
-            </button>
-          ))}
-        </div>
-
-        <h2 className="secao">Auxiliar do responsável</h2>
+        {/* Assinaturas: Responsável (1º ano /2), Supervisor (1º ano /1) e Gestor (3º ano) */}
+        <h2 className="secao">{rotuloVaga('auxiliares')} do dia</h2>
         <div className="chips">
           {nomesAux.map((n) => (
             <button key={n} className={`opcao ${auxiliares.includes(n) ? 'marcada' : ''}`} onClick={() => alternarAux(n)}>
               {n}
             </button>
           ))}
-          {nomesAux.length === 0 && <span className="tela-sub">Nenhum auxiliar na escala de hoje.</span>}
+          {nomesAux.length === 0 && <span className="tela-sub">Nenhum responsável na escala de hoje.</span>}
+        </div>
+
+        <h2 className="secao">{rotuloVaga('responsaveis', responsaveis.length)} do dia</h2>
+        <div className="chips">
+          {nomesResp.map((n) => (
+            <button key={n} className={`opcao ${responsaveis.includes(n) ? 'marcada' : ''}`} onClick={() => alternar(n)}>
+              {n}
+            </button>
+          ))}
+          {nomesResp.length === 0 && <span className="tela-sub">Nenhum supervisor na escala de hoje.</span>}
         </div>
         {!verTodos && (
           <button className="botao texto" style={{ paddingLeft: 0 }} onClick={() => setVerTodos(true)}>
@@ -262,21 +264,25 @@ export default function Revisao() {
           </button>
         )}
 
-        <h2 className="secao">Supervisor</h2>
+        <h2 className="secao">{rotuloVaga('supervisor')}</h2>
         <div className="chips">
           {supervisores.map((n) => (
-            <button key={n} className={`opcao ${supervisor === n ? 'marcada' : ''}`} onClick={() => {
+            <button
+              key={n}
+              className={`opcao ${supervisor === n ? 'marcada' : ''}`}
+              onClick={() => {
                 mexeu.current = true
                 setSupervisor(supervisor === n ? '' : n)
-              }}>
+              }}
+            >
               {n}
             </button>
           ))}
-          {supervisores.length === 0 && <span className="tela-sub">Nenhum supervisor na escala de hoje.</span>}
+          {supervisores.length === 0 && <span className="tela-sub">Nenhum gestor na escala de hoje.</span>}
         </div>
         {responsaveis.length === 0 && auxiliares.length === 0 && supervisor && (
           <p className="tela-sub" style={{ margin: '8px 0 0' }}>
-            Sem responsável marcado: o relatório sai assinado só pelo supervisor.
+            Ninguém marcado como responsável ou supervisor: o relatório sai assinado só pelo gestor.
           </p>
         )}
 

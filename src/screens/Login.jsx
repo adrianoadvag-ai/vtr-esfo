@@ -93,7 +93,7 @@ function LoginFirebase() {
         <div>
           <h2>{aba === 'entrar' ? 'Entrar' : 'Criar acesso'}</h2>
           <p style={{ margin: 0 }}>
-            {aba === 'entrar' ? 'Use o e-mail e a senha do seu cadastro.' : 'O coordenador da missão libera o acesso depois do cadastro.'}
+            {aba === 'entrar' ? 'Use o e-mail e a senha do seu cadastro.' : 'O Comandante da Missão libera o acesso depois do cadastro.'}
           </p>
         </div>
         {aba === 'cadastro' && (
@@ -151,7 +151,7 @@ export function Aguardando({ usuario }) {
       <div className="caixa">
         <h2>Cadastro recebido</h2>
         <p>
-          {usuario.nome ? `${usuario.posto} ${usuario.nome}, seu` : 'Seu'} acesso aguarda liberação do coordenador da missão. Assim que for
+          {usuario.nome ? `${usuario.posto} ${usuario.nome}, seu` : 'Seu'} acesso aguarda liberação do Comandante da Missão. Assim que for
           liberado, esta tela muda sozinha.
         </p>
         <button className="botao secundario cheio" onClick={() => api.sair()}>

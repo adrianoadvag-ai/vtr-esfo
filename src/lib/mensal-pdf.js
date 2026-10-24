@@ -154,13 +154,13 @@ export async function gerarPdfMensal({ resumo: r, brasoes, geradoPor, hoje }) {
   tabela(
     [
       { titulo: 'Dia', w: 29 },
-      { titulo: 'Responsável', w: 36 },
-      { titulo: 'Auxiliar', w: 30 },
-      { titulo: 'Supervisor', w: 30 },
+      { titulo: 'Responsável', w: 32 },
+      { titulo: 'Supervisor', w: 34 },
+      { titulo: 'Gestor', w: 30 },
       { titulo: 'Enviado por', w: 43 },
       { titulo: 'VTR', w: 12, direita: true },
     ],
-    r.porDia.map((d) => [dataCurta(d.dia), d.escalados.join(', ') || '-', d.auxiliares.join(', ') || '-', d.supervisor || '-', d.relatorios ? d.enviadoPor.join(', ') : d.aguardando ? 'Hoje, aguardando' : 'Sem relatório', d.relatorios ? String(d.viaturas) : '-']),
+    r.porDia.map((d) => [dataCurta(d.dia), d.auxiliares.join(', ') || '-', d.escalados.join(', ') || '-', d.supervisor || '-', d.relatorios ? d.enviadoPor.join(', ') : d.aguardando ? 'Hoje, aguardando' : 'Sem relatório', d.relatorios ? String(d.viaturas) : '-']),
     { cores: (li, ci) => (ci === 4 && !r.porDia[li].relatorios && !r.porDia[li].aguardando ? COR.critico : null) },
   )
 
