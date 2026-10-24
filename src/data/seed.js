@@ -4,8 +4,8 @@
 export const VIATURAS_INICIAIS = [
   { prefixo: '17692', modelo: 'Renault/Master', tipo: 'furgao', combustivel: 'diesel', usaArla: false, temRadio: true, nova: true, kmAtual: 2713, ordem: 1 },
   { prefixo: '16843', modelo: 'Ford/Ranger', tipo: 'picape', combustivel: 'diesel', usaArla: true, temRadio: true, nova: false, kmAtual: 29670, kmProxTroca: 45000, dataUltimaTroca: '2026-08-03', ordem: 2 },
-  { prefixo: '13659', modelo: 'Chevrolet/Trailblazer', tipo: 'suv', combustivel: 'diesel', usaArla: false, temRadio: true, nova: false, kmAtual: 97042, dataUltimaTroca: '2026-06-09', ordem: 3 },
-  { prefixo: '14058', modelo: 'Chevrolet/Trailblazer', tipo: 'suv', combustivel: 'diesel', usaArla: false, temRadio: true, nova: false, kmAtual: 91660, kmProxTroca: 96464, dataUltimaTroca: '2026-08-24', ordem: 4 },
+  { prefixo: '13659', modelo: 'Chevrolet/Trailblazer', tipo: 'suvGrande', combustivel: 'diesel', usaArla: false, temRadio: true, nova: false, kmAtual: 97042, dataUltimaTroca: '2026-06-09', ordem: 3 },
+  { prefixo: '14058', modelo: 'Chevrolet/Trailblazer', tipo: 'suvGrande', combustivel: 'diesel', usaArla: false, temRadio: true, nova: false, kmAtual: 91660, kmProxTroca: 96464, dataUltimaTroca: '2026-08-24', ordem: 4 },
   { prefixo: '15603', modelo: 'Renault/Duster', tipo: 'suv', combustivel: 'flex', usaArla: false, temRadio: true, nova: false, kmAtual: 37510, dataProxTroca: '2026-11-04', ordem: 5 },
   { prefixo: '15591', modelo: 'Renault/Duster', tipo: 'suv', combustivel: 'flex', usaArla: false, temRadio: true, nova: false, kmAtual: 47717, kmProxTroca: 53482, dataProxTroca: '2026-11-07', ordem: 6 },
   { prefixo: '18148', modelo: 'Renault/Duster', tipo: 'suv', combustivel: 'flex', usaArla: false, temRadio: true, nova: true, kmAtual: 8252, ordem: 7 },

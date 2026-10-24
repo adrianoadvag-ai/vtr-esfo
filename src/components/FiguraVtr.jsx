@@ -19,12 +19,20 @@ const Giroflex = ({ x, y, w = 11, h = 6 }) => (
   </>
 )
 
+// Pintura: parte de baixo cinza com friso amarelo
+const Faixa = () => (
+  <>
+    <rect className="fv-cz" x="4.4" y="45" width="143.2" height="15" />
+    <rect className="fv-am" x="4.4" y="41" width="143.2" height="3" />
+  </>
+)
+
 const DESENHOS = {
   furgao: (
     <>
       <Giroflex x={52} y={0} />
       <path className="fv-bd" d="M4 60 L4 14 Q4 6 12 6 L104 6 Q110 6 114 11 L130 32 L144 37 Q148 39 148 45 L148 60 Z" />
-      <rect className="fv-st" x="4" y="40" width="134" height="3" />
+      <Faixa />
       <polygon className="fv-wn" points="109,12 127,32 109,32" />
       <rect className="fv-wn" x="88" y="12" width="18" height="20" rx="2" />
       <rect className="fv-wn" x="12" y="12" width="24" height="14" rx="2" />
@@ -45,7 +53,7 @@ const DESENHOS = {
       <rect className="fv-bp" x="50" y="5" width="52" height="2" />
       <Giroflex x={64} y={0} h={5} />
       <path className="fv-bd" d="M4 60 L4 38 Q4 30 12 29 L30 27 L45 10 Q48 8 53 8 L100 8 Q106 8 110 12 L126 27 L142 31 Q148 33 148 41 L148 60 Z" />
-      <rect className="fv-st" x="4" y="40" width="136" height="3" />
+      <Faixa />
       <polygon className="fv-wn" points="33,27 49,12 72,12 72,27" />
       <polygon className="fv-wn" points="77,12 100,12 114,27 77,27" />
       <path className="fv-ln" d="M75 12 L75 56 M118 28 L118 56 M34 28 L34 50" />
@@ -60,12 +68,33 @@ const DESENHOS = {
       <Roda x={120} r={13} />
     </>
   ),
+  suvGrande: (
+    <>
+      <rect className="fv-bp" x="26" y="3" width="76" height="2" />
+      <Giroflex x={62} y={0} h={5} />
+      <path className="fv-bd" d="M4 60 L4 34 Q4 26 10 24 L22 8 Q24 6 28 6 L100 6 Q106 6 110 10 L126 26 L142 30 Q148 32 148 40 L148 60 Z" />
+      <Faixa />
+      <polygon className="fv-wn" points="12,24 24,10 40,10 40,24" />
+      <rect className="fv-wn" x="44" y="10" width="28" height="14" rx="1" />
+      <polygon className="fv-wn" points="77,10 100,10 114,25 77,25" />
+      <path className="fv-ln" d="M42 10 L42 56 M75 10 L75 56 M118 27 L118 56" />
+      <rect className="fv-bp" x="64" y="29" width="5" height="2" />
+      <rect className="fv-bp" x="107" y="30" width="5" height="2" />
+      <polygon className="fv-bp" points="117,18 122,18 122,24 116,24" />
+      <rect className="fv-hl" x="140" y="33" width="7" height="5" rx="1" />
+      <rect className="fv-tl" x="4" y="28" width="4" height="10" />
+      <rect className="fv-bp" x="138" y="50" width="11" height="10" rx="2" />
+      <rect className="fv-bp" x="2" y="50" width="10" height="10" rx="2" />
+      <Roda x={32} r={13} />
+      <Roda x={120} r={13} />
+    </>
+  ),
   picape: (
     <>
       <Giroflex x={82} y={0} />
       <path className="fv-bd" d="M4 60 L4 30 L68 30 L72 10 Q73 8 77 8 L108 8 Q112 8 115 12 L128 28 L144 32 Q148 34 148 40 L148 60 Z" />
       <rect className="fv-bp" x="4" y="28" width="64" height="3" />
-      <rect className="fv-st" x="4" y="40" width="136" height="3" />
+      <Faixa />
       <polygon className="fv-wn" points="76,13 92,13 92,28 74,28" />
       <polygon className="fv-wn" points="96,13 108,13 120,28 96,28" />
       <path className="fv-ln" d="M70 31 L70 56 M94 13 L94 56 M122 28 L122 56" />
@@ -84,7 +113,7 @@ const DESENHOS = {
     <>
       <Giroflex x={69} y={5} />
       <path className="fv-bd" d="M4 60 L4 42 Q4 35 12 34 L34 31 L52 15 Q56 12 62 12 L100 12 Q106 12 110 16 L124 31 L142 34 Q148 35 148 43 L148 60 Z" />
-      <rect className="fv-st" x="4" y="44" width="136" height="3" />
+      <Faixa />
       <polygon className="fv-wn" points="40,31 56,17 76,17 76,31" />
       <polygon className="fv-wn" points="81,17 100,17 112,31 81,31" />
       <path className="fv-ln" d="M79 17 L79 56 M116 31 L116 56 M40 32 L40 52" />
