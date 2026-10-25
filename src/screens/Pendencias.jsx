@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useApp } from '../App'
 import { Cabecalho, Icone, Selo, SeloNivel } from '../components/base'
+import FiguraVtr, { ModeloVtr } from '../components/FiguraVtr'
 import { NIVEIS, podeExcluirRelatorio, podeGerirViaturas } from '../config'
 import { dataBR, diasAte, mensagemErro, nomeCompleto } from '../lib/formato'
 import { DATA_PLANILHA, pendenciasDaPlanilha } from '../data/detalhamento-planilha'
@@ -24,6 +25,8 @@ export default function Pendencias() {
   const contaVtr = base.reduce((m, o) => ({ ...m, [o.prefixo]: (m[o.prefixo] || 0) + 1 }), {})
   const prefixos = Object.keys(contaVtr).sort((a, b) => (ordemVtr[a] ?? 99) - (ordemVtr[b] ?? 99) || a.localeCompare(b))
   const contaNivel = base.filter((o) => !vtrFiltro || o.prefixo === vtrFiltro).reduce((m, o) => ({ ...m, [o.nivel]: (m[o.nivel] || 0) + 1 }), {})
+  // Viatura da pendência (cadastro atual; se não estiver mais no app, usa o que ficou gravado na pendência)
+  const vtrDe = (o) => viaturas.find((v) => v.id === o.viaturaId) || { prefixo: o.prefixo, modelo: o.modelo }
   const lista = base.filter((o) => (!vtrFiltro || o.prefixo === vtrFiltro) && (!nivelFiltro || o.nivel === nivelFiltro))
   // Recolher a lista inteira (o aparelho lembra)
   const [oculta, setOcultaEstado] = useState(() => {
@@ -113,8 +116,14 @@ export default function Pendencias() {
             {lista.map((o) => {
               const dias = -diasAte(o.abertaEm, hoje)
               return (
-                <div className="achado" key={o.id}>
-                  <span className="prefixo">{o.prefixo}</span>
+                <div className="achado pendencia" key={o.id}>
+                  <span className="pend-vtr">
+                    <FiguraVtr vtr={vtrDe(o)} tamanho={52} />
+                    <span className="prefixo">{o.prefixo}</span>
+                    <span className="modelo">
+                      <ModeloVtr modelo={vtrDe(o).modelo || ''} />
+                    </span>
+                  </span>
                   <span className="texto">{textoPendencia(o)}</span>
                   <span className="meta">
                     <span style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>

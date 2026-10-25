@@ -1733,3 +1733,11 @@ details.fora-frota summary { cursor: pointer; color: var(--tinta-2); font-weight
 .recolher-lista { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 14px; margin-bottom: 8px; border: 0; color: var(--tinta); font: inherit; font-weight: 500; cursor: pointer; text-align: left; }
 .recolher-lista .recolher-acao { display: inline-flex; align-items: center; gap: 4px; color: var(--azul); font-weight: 600; }
 .recolher-lista.fechada { color: var(--tinta-2); }
+
+/* Pendência: figura, prefixo e modelo da VTR em cima do texto */
+.achado.pendencia { grid-template-columns: 1fr; }
+.achado.pendencia .meta { grid-column: 1; }
+.pend-vtr { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
+.pend-vtr .prefixo { font-size: 22px; }
+.pend-vtr .modelo { font-size: 14px; color: var(--tinta-2); font-weight: 500; min-width: 0; }
+.achado.pendencia .texto { font-size: 15px; }
