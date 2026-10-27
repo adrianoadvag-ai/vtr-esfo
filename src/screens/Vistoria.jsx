@@ -196,7 +196,8 @@ export default function Vistoria({ vtrId }) {
     const i = ordem.findIndex((v) => v.id === vtrId)
     const depois = [...ordem.slice(i + 1), ...ordem.slice(0, i)]
     const regs = { ...(vistoria?.registros || {}), [vtrId]: reg }
-    const prox = depois.find((v) => exigida(v) && !avaliar(v, regs[v.id], hoje).completo)
+    // Pula as VTR que outro cadete está vistoriando agora
+    const prox = depois.find((v) => exigida(v) && !avaliar(v, regs[v.id], hoje).completo && !travaDeOutro(vistoria, v.id, usuario.id))
     if (prox) ir(`vistoria/${prox.id}`)
     else ir(podeVistoriar(usuario) && !enviada ? 'revisao' : 'hoje')
   }

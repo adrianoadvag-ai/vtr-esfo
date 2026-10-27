@@ -19,7 +19,11 @@ export default function Hoje() {
   // Em qual relatório de hoje cada VTR já foi enviada
   const enviadaEm = {}
   for (const r of enviadasHoje) for (const id of r.incluidas || Object.keys(r.registros || {})) enviadaEm[id] = r
-  const conferidasHoje = exigidas.filter((v) => enviadaEm[v.id] || (registros[v.id] && avaliacoes[v.id].completo)).length
+  // ✔️ Pronta: vistoria completa hoje (na rodada aberta ou já enviada)
+  const pronta = (v) => Boolean(registros[v.id] ? avaliacoes[v.id].completo : enviadaEm[v.id])
+  const conferidasHoje = exigidas.filter(pronta).length
+  // Numeração fixa; as que faltam ficam em cima e as prontas descem
+  const ordenada = lista.map((v, i) => ({ v, n: i + 1 })).sort((a, b) => pronta(a.v) - pronta(b.v))
 
   const sair = (
     <button className="acao" onClick={() => api.sair()} aria-label="Sair">
@@ -50,7 +54,11 @@ export default function Hoje() {
         )}
         <div className="progresso">
           <div style={{ color: 'var(--tinta-2)' }}>
-            {exigidas.length === 0 ? 'Nenhuma viatura cadastrada.' : `${conferidasHoje} de ${exigidas.length} viaturas conferidas hoje`}
+            {exigidas.length === 0
+              ? 'Nenhuma viatura cadastrada.'
+              : conferidasHoje === exigidas.length
+                ? `Todas as ${exigidas.length} viaturas vistoriadas ✔️`
+                : `${conferidasHoje} de ${exigidas.length} viaturas vistoriadas`}
           </div>
           <div className="barra" aria-hidden="true">
             <span style={{ width: `${exigidas.length ? (conferidasHoje / exigidas.length) * 100 : 0}%` }} />
@@ -94,27 +102,28 @@ export default function Hoje() {
           </div>
         ) : (
           <ul className="bloco vtr-lista">
-            {lista.map((v, i) => {
+            {ordenada.map(({ v, n }) => {
               const a = avaliacoes[v.id]
               const temRegistro = Boolean(registros[v.id])
               const ja = enviadaEm[v.id]
+              const ok = pronta(v)
+              const trava = travaDeOutro(vistoria, v.id, usuario.id)
+              const estado = ok ? 'vistoriada' : trava ? `em vistoria por ${trava.nome}` : 'falta vistoriar'
               return (
                 <li key={v.id}>
                   <button
-                    className={`vtr-linha com-num ${!exigida(v) ? 'inativa' : ''}`}
+                    className={`vtr-linha com-num ${!exigida(v) ? 'inativa' : ''} ${ok ? 'pronta' : ''}`}
                     onClick={() => ir(`vistoria/${v.id}`)}
-                    aria-label={`${i + 1}. Viatura ${v.prefixo}, ${v.modelo}`}
+                    aria-label={`${n}. Viatura ${v.prefixo}, ${v.modelo}, ${estado}`}
                   >
-                    <span className="num">{i + 1}</span>
+                    <span className="num">{n}</span>
                     <span className="prefixo">{v.prefixo}</span>
                     <span className="vtr-desc">
                       <FiguraVtr vtr={v} tamanho={56} />
                       <span>
                       <span className="modelo"><ModeloVtr modelo={v.modelo} /></span>
                       <span className="detalhe" style={{ display: 'block' }}>
-                        {travaDeOutro(vistoria, v.id, usuario.id)
-                          ? `Em vistoria por ${travaDeOutro(vistoria, v.id, usuario.id).nome}`
-                          : detalhe(v, a, temRegistro, ja)}
+                        {trava ? `Em vistoria por ${trava.nome}` : detalhe(v, a, temRegistro, ja)}
                       </span>
                       {(temRegistro || ja) && (
                         <span className="selo-linha">
@@ -123,7 +132,18 @@ export default function Hoje() {
                       )}
                       </span>
                     </span>
-                    {!temRegistro && !ja && <Icone nome="ChevronRight" style={{ color: 'var(--tinta-2)' }} />}
+                    {ok ? (
+                      <span className="marca-pronta" title="Vistoriada">
+                        <Icone nome="CircleCheck" tamanho={30} />
+                        <small>Vistoriada</small>
+                      </span>
+                    ) : trava ? (
+                      <span className="marca-trava" title={`Em vistoria por ${trava.nome}`}>
+                        <Icone nome="Lock" tamanho={22} />
+                      </span>
+                    ) : (
+                      <Icone nome="ChevronRight" style={{ color: 'var(--tinta-2)' }} />
+                    )}
                   </button>
                 </li>
               )
