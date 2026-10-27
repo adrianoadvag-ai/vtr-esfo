@@ -35,6 +35,8 @@ export default defineConfig({
           short_name: 'VTR EsFO',
           description: 'Vistoria diária das viaturas da EsFO',
           lang: 'pt-BR',
+          // Identidade do app no celular. Trocada em 26/10/2026 porque o Chrome dizia "já instalado" depois de desinstalar.
+          id: '/vtr-esfo/?app=2',
           start_url: './',
           scope: './',
           display: 'standalone',
