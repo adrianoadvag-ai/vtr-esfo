@@ -1,6 +1,7 @@
 import { useApp } from '../App'
 import { Cabecalho, Icone, useCarregar } from '../components/base'
 import { dataCurta, horaCurta } from '../lib/formato'
+import { relatoriosPorDia } from '../lib/vistoria'
 
 export default function Historico() {
   const { api, ir, enviadasHoje } = useApp()
@@ -28,16 +29,15 @@ export default function Historico() {
           <div className="bloco vazio">Nenhum relatório enviado ainda. O primeiro aparece aqui depois do envio.</div>
         ) : (
           <ul className="bloco vtr-lista">
-            {dados.map((v) => {
+            {relatoriosPorDia(dados).map(({ doc: v, envios, vtrs: n }) => {
               const alteracoes = (v.relatorio.match(/^⚠️ \*Alterações \((\d+)\)/m) || [])[1]
-              const n = (v.relatorio.match(/^\d+\. /gm) || []).length
               return (
                 <li key={v.id}>
                   <button className="vtr-linha" style={{ gridTemplateColumns: '1fr auto' }} onClick={() => ir(`relatorio/${v.id}`)}>
                     <span>
                       <span className="modelo">{dataCurta(v.data)}</span>
                       <span className="detalhe" style={{ display: 'block' }}>
-                        {horaCurta(v.enviadaEm)} · {n} VTR · {v.enviadaPor}
+                        {envios > 1 ? `${envios} envios, último às ${horaCurta(v.enviadaEm)}` : horaCurta(v.enviadaEm)} · {n} VTR · {v.enviadaPor}
                         {alteracoes ? ` · ${alteracoes} ${alteracoes === '1' ? 'alteração' : 'alterações'}` : ' · sem alterações'}
                       </span>
                     </span>

@@ -4,12 +4,12 @@ import { Cabecalho, Icone, Selo, SeloNivel, useCarregar } from '../components/ba
 import { NIVEIS, SITUACOES, funcaoDe, rotuloVaga } from '../config'
 import { dataExtensa, nomeCompleto } from '../lib/formato'
 import { ocorrenciasDoDia } from '../lib/ocorrencias'
-import { avaliar, exigida, idRodada, montarRelatorio, travaDeOutro } from '../lib/vistoria'
+import { avaliar, exigida, idRodada, juntarEnvios, montarRelatorio, travaDeOutro } from '../lib/vistoria'
 import { atuaComoGestor, escalaDoDia } from '../lib/escala'
 import { baixada } from '../lib/situacao'
 
 export default function Revisao() {
-  const { viaturas, vistoria, hoje, ir, api, usuario, ocorrencias, avisar, recarregarViaturas, recarregarOcorrencias, escalas, usuarios: equipe } = useApp()
+  const { viaturas, vistoria, enviadasHoje, hoje, ir, api, usuario, ocorrencias, avisar, recarregarViaturas, recarregarOcorrencias, escalas, usuarios: equipe } = useApp()
   const registros = vistoria?.registros || {}
   const eu = nomeCompleto(usuario)
   // Escalados de hoje (se quem envia está na escala); senão, quem está enviando
@@ -35,7 +35,8 @@ export default function Revisao() {
     setResponsaveis(naEscala || souAuxiliar ? escalados : [eu])
     setAuxiliares(naEscala ? escaladosAux : souAuxiliar ? [eu] : escaladosAux)
   }, [chaveEscala]) // eslint-disable-line react-hooks/exhaustive-deps
-  const [limpeza, setLimpeza] = useState(vistoria?.limpeza || { ok: true, obs: '' })
+  // Limpeza: parte do que já foi informado no envio anterior de hoje
+  const [limpeza, setLimpeza] = useState(vistoria?.limpeza || enviadasHoje.at(-1)?.limpeza || { ok: true, obs: '' })
   const [verTexto, setVerTexto] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [fora, setFora] = useState([]) // concluídas que o usuário tirou deste relatório
@@ -58,15 +59,20 @@ export default function Revisao() {
   const foraDeServico = viaturas.filter((v) => baixada(v) && !idsIncluidos.has(v.id))
   const pronto = incluidas.length > 0 && (responsaveis.length > 0 || auxiliares.length > 0) && (limpeza.ok || limpeza.obs?.trim())
 
+  // Um relatório por dia: o texto soma as VTR já enviadas hoje às desta rodada
+  const dia = juntarEnvios(enviadasHoje, { incluidas: [...idsIncluidos], registros: regsIncluidos, responsaveis, auxiliares })
+  const jaEnviadas = viaturas.filter((v) => dia.registros[v.id] && !idsIncluidos.has(v.id))
+  const doDia = viaturas.filter((v) => dia.registros[v.id])
+  const idsDoDia = new Set(doDia.map((v) => v.id))
   const texto = montarRelatorio({
     data: hoje,
-    viaturas: incluidas,
-    registros: regsIncluidos,
+    viaturas: doDia,
+    registros: dia.registros,
     limpeza,
-    responsaveis,
-    auxiliares,
+    responsaveis: dia.responsaveis,
+    auxiliares: dia.auxiliares,
     pendenciasAbertas: abertasDestas,
-    foraDeServico,
+    foraDeServico: foraDeServico.filter((v) => !idsDoDia.has(v.id)),
     totalFrota: viaturas.filter(exigida).length,
   })
 
@@ -101,6 +107,7 @@ export default function Revisao() {
         relatorio: texto,
         responsaveis,
         auxiliares,
+        consolidado: true,
         supervisor: '',
         limpeza,
         kms,
@@ -114,7 +121,11 @@ export default function Revisao() {
       })
       recarregarViaturas()
       recarregarOcorrencias()
-      avisar('Relatório enviado. Copie para o WhatsApp ou baixe o PDF.')
+      avisar(
+        enviadasHoje.length
+          ? 'Relatório do dia atualizado com as novas viaturas. Copie para o WhatsApp.'
+          : 'Relatório enviado. Copie para o WhatsApp ou baixe o PDF.',
+      )
       ir(`relatorio/${vistoria.id}`)
     } catch (e) {
       avisar(e.message || 'Não foi possível enviar.')
@@ -161,6 +172,11 @@ export default function Revisao() {
             </button>
           ))}
         </div>
+        {jaEnviadas.length > 0 && (
+          <p className="tela-sub" style={{ margin: '10px 0 0' }}>
+            Já enviadas hoje, continuam no mesmo relatório: {jaEnviadas.map((v) => v.prefixo).join(', ')}
+          </p>
+        )}
         {emUso.length > 0 && (
           <p className="tela-sub" style={{ margin: '10px 0 0' }}>
             Ainda em vistoria, ficam para depois:{' '}
@@ -308,7 +324,7 @@ export default function Revisao() {
 
       <div className="rodape-fixo">
         <button className="botao cheio" disabled={!pronto || enviando} onClick={enviar}>
-          <Icone nome="Send" /> {enviando ? 'Enviando…' : 'Enviar relatório'}
+          <Icone nome="Send" /> {enviando ? 'Enviando…' : enviadasHoje.length ? 'Atualizar o relatório do dia' : 'Enviar relatório'}
         </button>
       </div>
     </>

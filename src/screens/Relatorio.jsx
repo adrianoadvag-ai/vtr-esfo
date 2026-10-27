@@ -11,6 +11,12 @@ export default function Relatorio({ data: id }) {
   const { api, ir, avisar, enviadasHoje, usuario, ocorrencias, viaturas, recarregarOcorrencias, recarregarViaturas } = useApp()
   const { dados: vistorias, carregando } = useCarregar(() => api.listarVistorias(), [id, enviadasHoje.length])
   const doc = enviadasHoje.find((v) => v.id === id) || vistorias?.find((v) => v.id === id)
+  // Envios do mesmo dia que este relatório consolidado reúne
+  const envios = doc?.consolidado
+    ? [...enviadasHoje, ...(vistorias || [])]
+        .filter((v, i, l) => v.data === doc.data && (v.enviadaEm || 0) <= (doc.enviadaEm || 0) && l.findIndex((x) => x.id === v.id) === i)
+        .sort((a, b) => (a.enviadaEm || 0) - (b.enviadaEm || 0))
+    : []
   const [verTexto, setVerTexto] = useState(false)
   const [gerando, setGerando] = useState(false)
   const [excluindo, setExcluindo] = useState(false)
@@ -24,7 +30,9 @@ export default function Relatorio({ data: id }) {
     ].filter(Boolean)
     const kms = Object.keys(plano.kms).length
     const ok = window.confirm(
-      `Excluir o relatório de ${dataBR(doc.data)} às ${horaCurta(doc.enviadaEm)}, enviado por ${doc.enviadaPor}?\n\n` +
+      (envios.length > 1
+        ? `Excluir o último envio do dia ${dataBR(doc.data)} (${horaCurta(doc.enviadaEm)}, por ${doc.enviadaPor})?\nO relatório do dia volta a ser o do envio anterior.\n\n`
+        : `Excluir o relatório de ${dataBR(doc.data)} às ${horaCurta(doc.enviadaEm)}, enviado por ${doc.enviadaPor}?\n\n`) +
         (extras.length ? `Também serão excluídas: ${extras.join(' e ')}.\n` : '') +
         (kms ? `${kms === 1 ? 'A viatura volta' : `As ${kms} viaturas voltam`} ao KM do relatório anterior.\n` : '') +
         '\nIsto não pode ser desfeito.',
@@ -110,7 +118,11 @@ export default function Relatorio({ data: id }) {
           <div className="vazio">{carregando ? 'Carregando…' : 'Relatório não encontrado.'}</div>
         ) : (
           <>
-            <p className="tela-sub">Enviado por {doc.enviadaPor}</p>
+            <p className="tela-sub">
+              {envios.length > 1
+                ? `Relatório do dia, com ${envios.length} envios: ${envios.map((e) => `${horaCurta(e.enviadaEm)} (${e.enviadaPor})`).join(', ')}`
+                : `Enviado por ${doc.enviadaPor}`}
+            </p>
 
             <div className="botoes" style={{ marginBottom: 8 }}>
               <button className="botao" onClick={copiar}>
@@ -150,7 +162,7 @@ export default function Relatorio({ data: id }) {
 
             {podeExcluirRelatorio(usuario) && (
               <button className="botao texto perigo cheio" style={{ marginTop: 16 }} onClick={excluir} disabled={excluindo}>
-                <Icone nome="Trash2" /> {excluindo ? 'Excluindo…' : 'Excluir este relatório'}
+                <Icone nome="Trash2" /> {excluindo ? 'Excluindo…' : envios.length > 1 ? 'Excluir o último envio' : 'Excluir este relatório'}
               </button>
             )}
           </>

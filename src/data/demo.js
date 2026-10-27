@@ -177,12 +177,12 @@ export async function cancelarRegistro(vid, vtrId) {
   gravar()
 }
 
-export async function enviarVistoria(vid, data, { relatorio, responsaveis, auxiliares, supervisor, limpeza, kms, novasOcorrencias, atualizarOcorrencias = [], por, incluidas, restantes, proxima }) {
+export async function enviarVistoria(vid, data, { relatorio, responsaveis, auxiliares, supervisor, limpeza, consolidado = false, kms, novasOcorrencias, atualizarOcorrencias = [], por, incluidas, restantes, proxima }) {
   const d = ler()
   const v = d.vistorias[vid]
   if (!v) throw new Error('Nada para enviar.')
   if (v.status === 'enviada') throw new Error('Esta rodada já foi enviada.')
-  Object.assign(v, { status: 'enviada', relatorio, responsaveis, auxiliares: auxiliares || [], supervisor: supervisor || '', limpeza, incluidas, enviadaEm: Date.now(), enviadaPor: por })
+  Object.assign(v, { status: 'enviada', relatorio, responsaveis, auxiliares: auxiliares || [], supervisor: supervisor || '', limpeza, consolidado, incluidas, enviadaEm: Date.now(), enviadaPor: por })
   for (const [vtrId, k] of Object.entries(kms)) {
     const vtr = d.viaturas.find((x) => x.id === vtrId)
     if (vtr && k > (vtr.kmAtual || 0)) vtr.kmAtual = k

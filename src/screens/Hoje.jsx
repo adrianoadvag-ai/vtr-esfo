@@ -3,7 +3,7 @@ import { Cabecalho, Icone, Selo, SeloNivel } from '../components/base'
 import { APP_NOME, FUNCOES, dadosCompletos, podeGerirViaturas, podeVistoriar, rotuloVaga } from '../config'
 import { escalaDoDia, juntar, papelNoDia, proximosServicos, rotinaDo } from '../lib/escala'
 import { dataCurta, horaCurta, nomeCompleto } from '../lib/formato'
-import { avaliar, diaDeConferencia, exigida, travaDeOutro } from '../lib/vistoria'
+import { avaliar, diaDeConferencia, exigida, relatoriosPorDia, travaDeOutro } from '../lib/vistoria'
 import FiguraVtr, { ModeloVtr } from '../components/FiguraVtr'
 import { textoSituacao } from '../lib/situacao'
 
@@ -67,8 +67,7 @@ export default function Hoje() {
 
         {enviadasHoje.length > 0 && (
           <ul className="bloco vtr-lista" style={{ marginBottom: 16 }} aria-label="Relatórios enviados hoje">
-            {enviadasHoje.map((r) => {
-              const n = (r.incluidas || Object.keys(r.registros || {})).length
+            {relatoriosPorDia(enviadasHoje).map(({ doc: r, envios, vtrs: n }) => {
               return (
                 <li key={r.id}>
                   <button className="vtr-linha" style={{ gridTemplateColumns: 'auto 1fr auto' }} onClick={() => ir(`relatorio/${r.id}`)}>
@@ -77,7 +76,8 @@ export default function Hoje() {
                     </Selo>
                     <span>
                       <span className="modelo">
-                        {horaCurta(r.enviadaEm)} · {n} {n === 1 ? 'viatura' : 'viaturas'}
+                        {envios > 1 ? `Relatório do dia · atualizado às ${horaCurta(r.enviadaEm)}` : horaCurta(r.enviadaEm)} · {n}{' '}
+                        {n === 1 ? 'viatura' : 'viaturas'}
                       </span>
                       <span className="detalhe" style={{ display: 'block' }}>
                         {r.enviadaPor}

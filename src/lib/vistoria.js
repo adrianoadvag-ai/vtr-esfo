@@ -14,6 +14,41 @@ export const travaDeOutro = (rodada, vtrId, uid) => {
 
 export const idRodada = (data, seq) => (seq > 1 ? `${data}-${seq}` : data)
 
+const incluidasDe = (r) => r.incluidas || Object.keys(r.registros || {})
+const unicos = (l) => Array.from(new Set(l.filter(Boolean)))
+
+// Um relatório por dia: o envio novo soma as VTR já enviadas hoje às desta rodada.
+// O registro mais recente de cada VTR vale; os nomes das assinaturas se somam.
+export function juntarEnvios(enviadas, atual) {
+  const registros = {}
+  const responsaveis = []
+  const auxiliares = []
+  for (const r of [...enviadas, atual]) {
+    for (const id of incluidasDe(r)) if (r.registros?.[id]) registros[id] = r.registros[id]
+    responsaveis.push(...(r.responsaveis || []))
+    auxiliares.push(...(r.auxiliares || []))
+  }
+  return { registros, responsaveis: unicos(responsaveis), auxiliares: unicos(auxiliares) }
+}
+
+// O que mostrar de cada dia: o envio mais recente já traz o dia inteiro (consolidado).
+// Dias antigos, de antes da junção, continuam com um item por envio.
+export function relatoriosPorDia(enviadas) {
+  const dias = {}
+  for (const r of enviadas) (dias[r.data] ||= []).push(r)
+  const linhas = []
+  for (const g of Object.values(dias)) {
+    g.sort((a, b) => (a.enviadaEm || 0) - (b.enviadaEm || 0))
+    const ult = g.at(-1)
+    if (g.length === 1 || ult.consolidado) {
+      linhas.push({ doc: ult, envios: g.length, vtrs: unicos(g.flatMap(incluidasDe)).length })
+    } else {
+      for (const r of g) linhas.push({ doc: r, envios: 1, vtrs: incluidasDe(r).length })
+    }
+  }
+  return linhas.sort((a, b) => (b.doc.enviadaEm || 0) - (a.doc.enviadaEm || 0))
+}
+
 // Dia da conferência semanal (segunda-feira): entram os itens com `semanal: true`
 export const diaDeConferencia = (data) => Boolean(data) && new Date(`${data}T12:00:00`).getDay() === CONFERENCIA_SEMANAL.dia
 

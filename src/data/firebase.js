@@ -233,11 +233,11 @@ export async function cancelarRegistro(vid, vtrId) {
   await updateDoc(ref, new FieldPath('registros', vtrId), deleteField(), new FieldPath('travas', vtrId), deleteField())
 }
 
-export async function enviarVistoria(vid, data, { relatorio, responsaveis, auxiliares, supervisor, limpeza, kms, novasOcorrencias, atualizarOcorrencias = [], por, viaturas, incluidas, restantes, proxima }) {
+export async function enviarVistoria(vid, data, { relatorio, responsaveis, auxiliares, supervisor, limpeza, consolidado = false, kms, novasOcorrencias, atualizarOcorrencias = [], por, viaturas, incluidas, restantes, proxima }) {
   const b = writeBatch(db)
   b.set(
     doc(db, 'vistorias', vid),
-    { status: 'enviada', relatorio, responsaveis, auxiliares: auxiliares || [], supervisor: supervisor || '', limpeza, incluidas, enviadaEm: Date.now(), enviadaPor: por },
+    { status: 'enviada', relatorio, responsaveis, auxiliares: auxiliares || [], supervisor: supervisor || '', limpeza, consolidado, incluidas, enviadaEm: Date.now(), enviadaPor: por },
     { merge: true },
   )
   for (const [v, k] of Object.entries(kms)) {
