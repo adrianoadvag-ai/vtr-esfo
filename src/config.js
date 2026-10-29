@@ -237,6 +237,7 @@ export const ITENS = [
 // Acesso ao app. A função na missão (abaixo) é que define o que cada um faz.
 export const PERFIS = {
   pendente: 'Aguardando liberação',
+  removido: 'Removido da missão',
   vistoriador: 'Integrante',
   supervisao: 'Integrante',
   coordenador: 'Comandante da Missão',
@@ -275,7 +276,9 @@ export function funcaoDe(u) {
 // Perfil de acesso que acompanha a função (o administrador continua administrador)
 export const perfilPara = (u, funcao) => (u.perfil === 'admin' ? 'admin' : funcao === 'coordenador' ? 'coordenador' : 'vistoriador')
 
-const liberado = (u) => Boolean(u) && Boolean(u.perfil) && u.perfil !== 'pendente'
+const liberado = (u) => Boolean(u) && Boolean(u.perfil) && !['pendente', 'removido'].includes(u.perfil)
+// Integrante ativo (liberado e não removido): aparece na Equipe, na escala e nos relatórios
+export const ativoNaMissao = liberado
 const comando = (u) => Boolean(u) && (u.perfil === 'coordenador' || u.perfil === 'admin')
 
 // Comandante da Missão e administrador: liberam a equipe e definem as funções

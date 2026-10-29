@@ -60,7 +60,7 @@ export default function App() {
     return () => clearInterval(t)
   }, [])
 
-  const liberado = usuario && usuario.perfil !== 'pendente'
+  const liberado = usuario && !['pendente', 'removido'].includes(usuario.perfil)
 
   const recarregarViaturas = useCallback(() => api.listarViaturas().then(setViaturas).catch(() => {}), [])
   const recarregarOcorrencias = useCallback(() => api.listarOcorrencias().then(setOcorrencias).catch(() => {}), [])

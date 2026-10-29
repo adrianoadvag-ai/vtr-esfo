@@ -145,6 +145,23 @@ function LoginFirebase() {
 }
 
 export function Aguardando({ usuario }) {
+  if (usuario.perfil === 'removido') {
+    return (
+      <div className="login">
+        <Topo />
+        <div className="caixa">
+          <h2>Acesso removido</h2>
+          <p>
+            {usuario.nome ? `${usuario.posto} ${usuario.nome}, seu` : 'Seu'} acesso ao app da missão foi removido. Se isso foi um engano, fale com o Comandante da
+            Missão.
+          </p>
+          <button className="botao secundario cheio" onClick={() => api.sair()}>
+            Sair
+          </button>
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="login">
       <Topo />

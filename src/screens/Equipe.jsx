@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useApp } from '../App'
 import { Avatar, Cabecalho, Icone, Selo } from '../components/base'
-import { FUNCOES, PERFIS, dadosCompletos, funcaoDe, perfilPara, podeGerir } from '../config'
-import { proximosServicos } from '../lib/escala'
-import { dataCurta, linkWhatsApp, mensagemErro, nomeCompleto, soDigitos, telefoneBR } from '../lib/formato'
+import { FUNCOES, PERFIS, ativoNaMissao, dadosCompletos, funcaoDe, perfilPara, podeGerir } from '../config'
+import { mesmaPessoa, proximosServicos } from '../lib/escala'
+import { dataBR, dataCurta, linkWhatsApp, mensagemErro, nomeCompleto, soDigitos, telefoneBR } from '../lib/formato'
 
 const PELOTOES = ['1º Pelotão Alfa', '1º Pelotão Bravo', '1º Pelotão Charlie', '2º Pelotão Alfa', '2º Pelotão Bravo', '2º Pelotão Charlie']
 const porNome = (a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR')
@@ -17,7 +17,9 @@ export default function Equipe() {
   const { api, usuario, usuarios, ir, avisar, recarregarUsuarios } = useApp()
   const gestor = podeGerir(usuario)
   const pendentes = usuarios.filter((u) => u.perfil === 'pendente').sort(porNome)
-  const ativos = usuarios.filter((u) => u.perfil !== 'pendente').sort(porNome)
+  const ativos = usuarios.filter(ativoNaMissao).sort(porNome)
+  const removidos = usuarios.filter((u) => u.perfil === 'removido').sort(porNome)
+  const [verRemovidos, setVerRemovidos] = useState(false)
   const eu = usuarios.find((u) => u.id === usuario.id) || usuario
 
   const [funcaoNova, setFuncaoNova] = useState({})
@@ -118,6 +120,33 @@ export default function Equipe() {
           )
         })}
 
+        {gestor && removidos.length > 0 && (
+          <section>
+            <button className="bloco recolher-lista" style={{ marginTop: 24 }} onClick={() => setVerRemovidos(!verRemovidos)} aria-expanded={verRemovidos}>
+              <span>Removidos da missão ({removidos.length})</span>
+              <span className="recolher-acao">
+                {verRemovidos ? 'Recolher' : 'Mostrar'} <Icone nome={verRemovidos ? 'ChevronUp' : 'ChevronDown'} tamanho={18} />
+              </span>
+            </button>
+            {verRemovidos && (
+              <ul className="bloco vtr-lista">
+                {removidos.map((u) => (
+                  <li key={u.id}>
+                    <button className="pessoa" onClick={() => ir(`integrante/${u.id}`)}>
+                      <Avatar u={u} />
+                      <span>
+                        <span className="nome">{nomeCompleto(u)}</span>
+                        <span className="detalhe">{u.removidoEm ? `Removido em ${dataBR(u.removidoEm)}${u.removidoPor ? ` por ${u.removidoPor}` : ''}` : PERFIS.removido}</span>
+                      </span>
+                      <Icone nome="ChevronRight" style={{ color: 'var(--tinta-2)' }} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
+
         {api.modo === 'demo' && gestor && (
           <button
             className="botao texto"
@@ -143,6 +172,8 @@ export function Integrante({ id }) {
   const proprio = id === usuario.id
   // O coordenador define a função dos outros; o administrador também a própria
   const podeMudarFuncao = gestor && (!proprio || usuario.perfil === 'admin')
+  const [confirmaRemover, setConfirmaRemover] = useState(false)
+  const [removendo, setRemovendo] = useState(false)
 
   if (!u) {
     return (
@@ -181,6 +212,58 @@ export function Integrante({ id }) {
   }
 
   const funcao = funcaoDe(u)
+  const removido = u.perfil === 'removido'
+  // Comandante e administrador removem; só o administrador mexe no acesso de outro administrador
+  const podeRemover = gestor && !proprio && u.perfil !== 'pendente' && (u.perfil !== 'admin' || usuario.perfil === 'admin')
+
+  // Remove da missão: bloqueia o acesso, tira da Equipe e das escalas de hoje em diante.
+  // O que a pessoa já fez (relatórios, vistorias, escalas passadas) continua no histórico.
+  async function remover() {
+    setRemovendo(true)
+    try {
+      const tira = (p) => (p && mesmaPessoa(p, u) ? null : p ?? null)
+      let dias = 0
+      for (const e of await api.listarEscalas()) {
+        const semana = e.semana || e.id
+        for (const [dia, v] of Object.entries(e.dias || {})) {
+          if (!v || dia < hoje) continue
+          const novo = {
+            ...v,
+            responsaveis: (v.responsaveis || []).map(tira),
+            auxiliares: (v.auxiliares || []).map(tira),
+            supervisor: tira(v.supervisor),
+          }
+          if (JSON.stringify(novo) !== JSON.stringify({ ...v, supervisor: v.supervisor ?? null })) {
+            await api.salvarEscalaDia(semana, dia, novo, nomeCompleto(usuario))
+            dias += 1
+          }
+        }
+      }
+      try {
+        await api.definirFuncao(u.id, { perfil: 'removido', removidoEm: hoje, removidoPor: nomeCompleto(usuario) })
+      } catch {
+        // Regras antigas do banco (sem os campos de data e autor): grava só a situação
+        await api.definirFuncao(u.id, { perfil: 'removido' })
+      }
+      await recarregarUsuarios()
+      setConfirmaRemover(false)
+      avisar(`${nomeCompleto(u)} removido da missão${dias ? ` e tirado de ${dias} ${dias === 1 ? 'dia' : 'dias'} da escala` : ''}.`)
+    } catch (e) {
+      avisar(mensagemErro(e, 'Não foi possível remover.'))
+    } finally {
+      setRemovendo(false)
+    }
+  }
+
+  async function restaurar() {
+    try {
+      await api.definirFuncao(u.id, { perfil: perfilPara(u, funcao) })
+      await recarregarUsuarios()
+      avisar(`${nomeCompleto(u)} voltou para a missão.`)
+    } catch (e) {
+      avisar(mensagemErro(e, 'Não foi possível restaurar o acesso.'))
+    }
+  }
 
   return (
     <>
@@ -196,6 +279,11 @@ export function Integrante({ id }) {
             <div style={{ marginTop: 6 }}>
               {u.perfil === 'pendente' ? (
                 <Selo nivel="atencao">{PERFIS.pendente}</Selo>
+              ) : removido ? (
+                <Selo nivel="critico">
+                  {PERFIS.removido}
+                  {u.removidoEm ? ` em ${dataBR(u.removidoEm)}` : ''}
+                </Selo>
               ) : (
                 <span className="chips">
                   <Selo nivel={funcao ? 'ok' : 'neutro'}>{funcao ? FUNCOES[funcao].nome : 'Sem função definida'}</Selo>
@@ -273,7 +361,7 @@ export function Integrante({ id }) {
           </button>
         )}
 
-        {podeMudarFuncao && (
+        {podeMudarFuncao && !removido && (
           <>
             <h2 className="secao">{u.perfil === 'pendente' ? 'Liberar acesso' : 'Função na missão'}</h2>
             <div className="bloco pad form">
@@ -299,6 +387,43 @@ export function Integrante({ id }) {
                 </label>
               )}
             </div>
+          </>
+        )}
+
+        {podeRemover && (
+          <>
+            <h2 className="secao">Acesso</h2>
+            {removido ? (
+              <div className="bloco pad form">
+                <p className="tela-sub" style={{ margin: 0, fontSize: 14 }}>
+                  Removido{u.removidoEm ? ` em ${dataBR(u.removidoEm)}` : ''}
+                  {u.removidoPor ? ` por ${u.removidoPor}` : ''}. Não entra no app nem aparece na Equipe ou na escala.
+                </p>
+                <button className="botao secundario cheio" onClick={restaurar}>
+                  Restaurar o acesso
+                </button>
+              </div>
+            ) : confirmaRemover ? (
+              <div className="bloco pad form remover-confirma">
+                <strong>Remover {nomeCompleto(u)} da missão?</strong>
+                <p className="tela-sub" style={{ margin: 0, fontSize: 14 }}>
+                  O acesso ao app é bloqueado na hora, a pessoa sai da Equipe e das escalas de hoje em diante. Relatórios, vistorias e escalas passadas continuam no
+                  histórico. Dá para restaurar depois.
+                </p>
+                <span className="botoes">
+                  <button className="botao secundario" onClick={() => setConfirmaRemover(false)} disabled={removendo}>
+                    Cancelar
+                  </button>
+                  <button className="botao perigo" onClick={remover} disabled={removendo}>
+                    {removendo ? 'Removendo…' : 'Remover'}
+                  </button>
+                </span>
+              </div>
+            ) : (
+              <button className="botao texto perigo cheio" onClick={() => setConfirmaRemover(true)}>
+                <Icone nome="Trash2" tamanho={18} /> Remover da missão
+              </button>
+            )}
           </>
         )}
       </main>

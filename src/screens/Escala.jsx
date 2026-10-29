@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useApp } from '../App'
 import { Cabecalho, Icone, Selo, useCarregar } from '../components/base'
-import { FUNCOES, funcaoDe, podeMontarEscala, rotuloVaga } from '../config'
+import { FUNCOES, ativoNaMissao, funcaoDe, podeMontarEscala, rotuloVaga } from '../config'
 import { diasDa, papelNoDia, rotinaDo, semanaPadrao, textoEscala, totaisEscala, vagasAuxiliar, vagasDo } from '../lib/escala'
 import { NOMES_DIAS, mensagemErro, dataExtensa, diaDaSemana, diaMes, hojeISO, horaCurta, nomeCompleto, somarDias } from '../lib/formato'
 
@@ -12,7 +12,7 @@ export default function Escala({ semana: semanaRota }) {
   const [escala, setEscala] = useState(undefined)
   const gestor = podeMontarEscala(usuario)
   const dias = diasDa(semana)
-  const ativos = usuarios.filter((u) => u.perfil !== 'pendente').sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR'))
+  const ativos = usuarios.filter(ativoNaMissao).sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR'))
 
   useEffect(() => {
     setEscala(undefined)

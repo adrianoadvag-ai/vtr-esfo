@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../App'
 import { Cabecalho, Icone, Selo, SeloNivel, useCarregar } from '../components/base'
-import { NIVEIS, SITUACOES, funcaoDe, rotuloVaga } from '../config'
+import { NIVEIS, SITUACOES, ativoNaMissao, funcaoDe, rotuloVaga } from '../config'
 import { dataExtensa, nomeCompleto } from '../lib/formato'
 import { ocorrenciasDoDia } from '../lib/ocorrencias'
 import { avaliar, limpezaGeral, exigida, idRodada, juntarEnvios, montarRelatorio, travaDeOutro } from '../lib/vistoria'
@@ -76,7 +76,7 @@ export default function Revisao() {
     totalFrota: viaturas.filter(exigida).length,
   })
 
-  const ativos = (usuarios || []).filter((u) => u.perfil !== 'pendente')
+  const ativos = (usuarios || []).filter(ativoNaMissao)
   const daFuncao = (f) => ativos.filter((u) => funcaoDe(u) === f).map(nomeCompleto)
   const todos = ativos.map(nomeCompleto)
   // Por padrão, só quem tem a função; "ver toda a equipe" mostra todos (para trocas de serviço)

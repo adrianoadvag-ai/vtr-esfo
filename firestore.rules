@@ -21,7 +21,7 @@ service cloud.firestore {
     function membro() {
       return logado()
         && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
-        && meuPerfil() != 'pendente';
+        && !(meuPerfil() in ['pendente', 'removido']);
     }
     // Coordenador e administrador: liberam a equipe e definem as funções
     function gestor() {
@@ -54,11 +54,13 @@ service cloud.firestore {
         && request.resource.data.perfil == resource.data.perfil
         && (request.resource.data.get('funcao', '') == resource.data.get('funcao', '')
           || (resource.data.perfil == 'admin' && funcaoValida(request.resource.data.funcao)));
-      // Coordenador libera, muda perfil e função dos outros; só o admin cria outro admin
+      // Coordenador libera, muda perfil e função dos outros e remove da missão (perfil 'removido');
+      // só o admin cria outro admin ou mexe no acesso de um admin
       allow update: if gestor() && request.auth.uid != uid
         && (request.resource.data.perfil != 'admin' || meuPerfil() == 'admin')
+        && (resource.data.perfil != 'admin' || meuPerfil() == 'admin')
         && (!('funcao' in request.resource.data) || funcaoValida(request.resource.data.funcao))
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['perfil', 'funcao']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['perfil', 'funcao', 'removidoEm', 'removidoPor']);
       allow delete: if membro() && meuPerfil() == 'admin';
     }
 

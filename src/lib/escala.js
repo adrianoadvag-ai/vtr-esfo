@@ -1,5 +1,5 @@
 // Regras da escala semanal: dias, vagas, quem está de serviço e texto para o WhatsApp.
-import { ESCALA, FUNCOES, ROTINA, funcaoDe, rotuloVaga } from '../config'
+import { ESCALA, FUNCOES, ROTINA, ativoNaMissao, funcaoDe, rotuloVaga } from '../config'
 import { NOMES_DIAS, dataCurta, diaDaSemana, diaMes, hojeISO, nomeCompleto, segundaDa, somarDias } from './formato'
 
 // No fim de semana, a tela já abre na semana seguinte
@@ -118,7 +118,7 @@ export function totaisEscala(escalas = [], inicio, usuarios = []) {
   // Quem tem a função e ainda não foi escalado aparece com zero
   for (const { papel, funcao } of PAPEIS) {
     for (const u of usuarios) {
-      if (u.perfil === 'pendente' || funcaoDe(u) !== funcao) continue
+      if (!ativoNaMissao(u) || funcaoDe(u) !== funcao) continue
       if (!totais[papel].has(u.id)) totais[papel].set(u.id, { id: u.id, nome: nomeCompleto(u), total: 0 })
     }
   }
