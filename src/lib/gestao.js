@@ -4,6 +4,7 @@ import { SITUACOES, TROCA } from '../config'
 import { km } from './formato'
 import { situacaoDe } from './situacao'
 import { textoPendencia } from './pendencia'
+import { ehManutencao } from './categoria-pendencia'
 
 // Combustível com os nomes da planilha
 const COMB_PLANILHA = { diesel: 'DIESEL S10', gasolina: 'GAS', flex: 'GAS/ETANOL' }
@@ -80,7 +81,9 @@ export function linhaGestao(vtr, regs, pendencias = []) {
   // Detalhamento: motivo da situação (se houver) e as pendências abertas, numeradas e com data
   const itens = []
   if (sit !== 'ativa' && vtr.motivoSituacao) itens.push(`${SITUACOES[sit]}: ${vtr.motivoSituacao}${vtr.situacaoDesde ? ` (${data2(vtr.situacaoDesde)})` : ''}`)
-  for (const p of [...pendencias].sort((a, b) => (a.abertaEm || '').localeCompare(b.abertaEm || ''))) {
+  // Manutenção primeiro (por data), depois as outras alterações (por data)
+  const porData = (a, b) => (a.abertaEm || '').localeCompare(b.abertaEm || '')
+  for (const p of [...pendencias.filter(ehManutencao).sort(porData), ...pendencias.filter((x) => !ehManutencao(x)).sort(porData)]) {
     itens.push(`${textoPendencia(p)}${p.abertaEm ? ` (${data2(p.abertaEm)})` : ''}`)
   }
   const detalhamento = itens.length ? itens.map((t, i) => `${i + 1}. ${t}`).join('\n') : '-'

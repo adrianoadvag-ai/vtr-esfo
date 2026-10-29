@@ -4,7 +4,7 @@ import { Icone, Toast, logoViatura } from './components/base'
 import { podeGerir } from './config'
 import { hojeISO, somarDias } from './lib/formato'
 import { semanaPadrao } from './lib/escala'
-import { idRodada } from './lib/vistoria'
+import { idRodada, trocaDeOleo } from './lib/vistoria'
 import Login, { Aguardando } from './screens/Login'
 import Hoje from './screens/Hoje'
 import Vistoria from './screens/Vistoria'
@@ -17,6 +17,8 @@ import Equipe, { Integrante, MeusDados } from './screens/Equipe'
 import Escala from './screens/Escala'
 import FichaViatura from './screens/FichaViatura'
 import Mensal from './screens/Mensal'
+import { ehManutencao } from './lib/categoria-pendencia'
+import { naFrota } from './lib/situacao'
 
 const Ctx = createContext(null)
 export const useApp = () => useContext(Ctx)
@@ -127,7 +129,11 @@ export default function App() {
   if (!liberado) return <Aguardando usuario={usuario} />
 
   const [tela, param] = rota
-  const abertas = ocorrencias.filter((o) => o.status === 'aberta').length
+  // Contador: manutenção em aberto, incluindo a troca de óleo perto ou vencida (calculada pelo app)
+  const manutAbertas = ocorrencias.filter((o) => o.status === 'aberta' && ehManutencao(o))
+  const abertas =
+    manutAbertas.length +
+    viaturas.filter((v) => naFrota(v) && trocaDeOleo(v, null, hoje).alerta && !manutAbertas.some((o) => o.viaturaId === v.id && o.itemId === 'troca')).length
   const aguardando = podeGerir(usuario) ? usuarios.filter((u) => u.perfil === 'pendente').length : 0
 
   let conteudo

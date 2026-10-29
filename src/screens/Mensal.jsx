@@ -10,6 +10,7 @@ import { textoSituacao } from '../lib/situacao'
 import { COLUNAS_GESTAO, destaqueGestao } from '../lib/gestao'
 import { gerarXlsxMensal } from '../lib/gestao-xlsx'
 import { textoPendencia } from '../lib/pendencia'
+import { ehManutencao } from '../lib/categoria-pendencia'
 
 // Relatório do mês: situação de cada viatura, KM rodado, alterações, pendências e troca de óleo, com PDF
 export default function Mensal({ mes: mesRota }) {
@@ -247,7 +248,7 @@ function FichaMensal({ x, ir }) {
           ))}
           {x.pendencias.map((o) => (
             <li key={o.id}>
-              <Selo nivel="neutro">Pendência</Selo>
+              <Selo nivel="neutro">{ehManutencao(o) ? 'Manutenção' : 'Outra alteração'}</Selo>
               <span>
                 {textoPendencia(o)}
                 <small>em aberto desde {dataBR(o.abertaEm)}</small>

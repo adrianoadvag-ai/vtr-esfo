@@ -1754,3 +1754,26 @@ details.fora-frota summary { cursor: pointer; color: var(--tinta-2); font-weight
 .marca-trava { color: var(--atencao); display: inline-flex; }
 .vtr-linha.pronta { background: var(--ok-fundo); box-shadow: inset 4px 0 0 var(--ok); }
 .vtr-linha.pronta:active { background: var(--azul-claro); }
+
+/* Pendências separadas: Manutenção × Outras alterações (29/10/2026) */
+.abas-pend { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin-bottom: 12px; background: var(--cartao); border: 1px solid var(--linha); border-radius: var(--raio); box-shadow: var(--sombra); }
+.abas-pend button { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 6px; border: 0; border-radius: 7px; background: transparent; color: var(--tinta-2); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; min-width: 0; }
+.abas-pend button b { font-family: var(--fonte-num); font-size: 15px; font-variant-numeric: tabular-nums; background: var(--papel); color: var(--tinta); border-radius: 99px; padding: 0 8px; }
+.abas-pend button.ativa { background: var(--noite); color: #fff; }
+.abas-pend button.ativa b { background: var(--ouro); color: var(--noite); }
+.bloco-manut h2.secao { display: flex; align-items: center; gap: 8px; margin: 18px 0 2px; }
+.bloco-manut h2.secao .conta { font-size: 15px; font-weight: 600; border-radius: 99px; padding: 0 9px; background: var(--azul-claro); color: var(--azul); }
+.bloco-urgente h2.secao { color: var(--critico); }
+.bloco-urgente h2.secao .conta { background: var(--critico-fundo); color: var(--critico); }
+.bloco-programada h2.secao .conta { background: var(--atencao-fundo); color: var(--atencao); }
+.explica-bloco { margin: 0 0 8px; font-size: 14px; }
+.acoes-pend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 6px; }
+.acoes-pend .botao.texto { padding: 0; }
+.acoes-pend .botao.texto.mover { color: var(--tinta-2); display: inline-flex; align-items: center; gap: 4px; }
+.grupo-vtr { margin-bottom: 8px; overflow: hidden; }
+.grupo-vtr-topo { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 14px; border: 0; background: transparent; color: var(--tinta); font: inherit; cursor: pointer; text-align: left; }
+.grupo-vtr-topo .pend-vtr { margin: 0; min-width: 0; }
+.grupo-vtr-topo .recolher-acao { display: inline-flex; align-items: center; gap: 4px; color: var(--azul); font-weight: 600; font-variant-numeric: tabular-nums; }
+.aviso-separacao { margin: 0 0 12px; padding: 10px 12px; font-size: 14px; border-radius: var(--raio); background: var(--azul-claro); color: var(--tinta); }
+.extra-tipo { display: flex; gap: 6px; flex-wrap: wrap; }
+.botoes-extra { display: flex; flex-wrap: wrap; gap: 8px; }

@@ -3,6 +3,7 @@ import { INICIO_RELATORIOS, NIVEIS } from '../config'
 import { avaliar, trocaDeOleo } from './vistoria'
 import { naFrota, situacaoDe } from './situacao'
 import { linhaGestao } from './gestao'
+import { ordenarPendencias } from './categoria-pendencia'
 
 // Achados que não são defeito da viatura (resolvem-se sozinhos ou dependem do cadastro atual)
 const NAO_RECORRENTES = new Set(['combustivel', 'arla', 'troca'])
@@ -117,9 +118,8 @@ export function resumoMensal({ mes, hoje, vistorias, viaturas, ocorrencias }) {
       }
     }
     const alteracoes = [...grupos.values()].sort((a, b) => NIVEIS[b.nivel].ordem - NIVEIS[a.nivel].ordem || b.vezes - a.vezes)
-    const pendencias = ocorrencias
-      .filter((o) => o.viaturaId === vtr.id && o.status === 'aberta')
-      .sort((a, b) => NIVEIS[b.nivel].ordem - NIVEIS[a.nivel].ordem || a.abertaEm.localeCompare(b.abertaEm))
+    // Manutenção primeiro, depois as outras alterações
+    const pendencias = ordenarPendencias(ocorrencias.filter((o) => o.viaturaId === vtr.id && o.status === 'aberta'))
     const kmInicial = kms.length ? Math.min(...kms) : null
     const kmFinal = kms.length ? Math.max(...kms) : null
     return {

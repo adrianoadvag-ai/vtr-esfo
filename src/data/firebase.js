@@ -282,6 +282,9 @@ export async function criarOcorrencias(lista) {
 export const resolverOcorrencia = (oid, { por, nota, data }) =>
   updateDoc(doc(db, 'ocorrencias', oid), { status: 'resolvida', resolvidaPor: por, notaResolucao: nota || '', resolvidaEm: data })
 
+// Muda campos de uma pendência (categoria, arquivar, reabrir)
+export const atualizarOcorrencia = (oid, campos) => updateDoc(doc(db, 'ocorrencias', oid), campos)
+
 export async function enviarFoto(data, vtrId, arquivo) {
   if (!usarStorage) {
     const imagem = await blobParaDataURL(await comprimirFoto(arquivo, 900, 0.6))

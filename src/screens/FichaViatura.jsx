@@ -9,6 +9,7 @@ import FiguraVtr, { ModeloVtr } from '../components/FiguraVtr'
 import { TIPOS_VTR, tipoDaViatura } from '../lib/tipo-vtr'
 import { comSituacao, situacaoDe, textoOS } from '../lib/situacao'
 import { textoPendencia } from '../lib/pendencia'
+import { CATEGORIAS, ehManutencao } from '../lib/categoria-pendencia'
 
 // Ficha de uma viatura: situação, KM ao longo do tempo, alterações que se repetem, pendências e trocas de óleo
 export default function FichaViatura({ id }) {
@@ -41,7 +42,9 @@ export default function FichaViatura({ id }) {
   const troca = trocaDeOleo(vtr, null, hoje)
   const pend = ocorrencias.filter((o) => o.viaturaId === vtr.id)
   const abertas = pend.filter((o) => o.status === 'aberta')
-  const resolvidas = pend.filter((o) => o.status === 'resolvida').sort((a, b) => (b.resolvidaEm || '').localeCompare(a.resolvidaEm || ''))
+  const fechadas = pend
+    .filter((o) => o.status === 'resolvida' || o.status === 'arquivada')
+    .sort((a, b) => (b.resolvidaEm || b.arquivadaEm || '').localeCompare(a.resolvidaEm || a.arquivadaEm || ''))
   const trocas = trocasDa(vtr)
   const recentes = [...leituras].reverse()
   const mostradas = verTodas ? recentes : recentes.slice(0, 8)
@@ -313,23 +316,46 @@ export default function FichaViatura({ id }) {
         {pend.length === 0 ? (
           <div className="bloco vazio">Nenhuma pendência desta viatura.</div>
         ) : (
-          <div className="bloco">
-            {[...abertas, ...resolvidas.slice(0, 5)].map((o) => (
-              <div className="achado" key={o.id} style={{ gridTemplateColumns: '1fr' }}>
-                <span className="texto">{textoPendencia(o)}</span>
-                <span className="meta" style={{ gridColumn: 1 }}>
-                  {o.status === 'aberta' ? <SeloNivel nivel={o.nivel} /> : <Selo nivel="ok">Resolvida {dataBR(o.resolvidaEm)}</Selo>} aberta em{' '}
-                  {dataBR(o.abertaEm)}
-                  {o.notaResolucao && <span style={{ display: 'block', marginTop: 4 }}>Solução: {o.notaResolucao}</span>}
-                </span>
+          [
+            ['manutencao', abertas.filter(ehManutencao)],
+            ['outras', abertas.filter((o) => !ehManutencao(o))],
+            ['fechadas', fechadas.slice(0, 5)],
+          ]
+            .filter(([, l]) => l.length)
+            .map(([id, l]) => (
+              <div key={id}>
+                <p className="filtro-rotulo" style={{ margin: '10px 0 6px' }}>
+                  {id === 'fechadas' ? 'Resolvidas e arquivadas' : CATEGORIAS[id].nome} · {id === 'fechadas' ? fechadas.length : l.length}
+                </p>
+                <div className="bloco">
+                  {l.map((o) => (
+                    <div className="achado" key={o.id} style={{ gridTemplateColumns: '1fr' }}>
+                      <span className="texto">{textoPendencia(o)}</span>
+                      <span className="meta" style={{ gridColumn: 1 }}>
+                        {o.status === 'resolvida' ? (
+                          <Selo nivel="ok">Resolvida {dataBR(o.resolvidaEm)}</Selo>
+                        ) : o.status === 'arquivada' ? (
+                          <Selo nivel="neutro">Arquivada {dataBR(o.arquivadaEm)}</Selo>
+                        ) : id === 'manutencao' ? (
+                          <SeloNivel nivel={o.nivel} />
+                        ) : null}{' '}
+                        aberta em {dataBR(o.abertaEm)}
+                        {o.notaResolucao && (
+                          <span style={{ display: 'block', marginTop: 4 }}>
+                            {o.status === 'arquivada' ? 'Motivo' : 'Solução'}: {o.notaResolucao}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                  {id === 'fechadas' && fechadas.length > 5 && (
+                    <button className="botao texto cheio" onClick={() => ir('pendencias')}>
+                      Ver todas na aba Pendências
+                    </button>
+                  )}
+                </div>
               </div>
-            ))}
-            {resolvidas.length > 5 && (
-              <button className="botao texto cheio" onClick={() => ir('pendencias')}>
-                Ver todas na aba Pendências
-              </button>
-            )}
-          </div>
+            ))
         )}
 
         <h2 className="secao">Trocas de óleo</h2>

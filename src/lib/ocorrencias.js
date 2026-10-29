@@ -2,6 +2,7 @@
 // e das "outras pendências" anotadas na vistoria; ficam abertas até alguém resolver na tela Pendências.
 import { ITENS } from '../config'
 import { avaliar } from './vistoria'
+import { categoriaDe } from './categoria-pendencia'
 
 // Itens que não viram pendência (ex.: limpeza, resolvida lavando a VTR)
 const SEM_PENDENCIA = new Set(ITENS.filter((i) => i.semPendencia).map((i) => i.id))
@@ -48,6 +49,8 @@ export function ocorrenciasDoDia({ data, viaturas, registros, abertas, por, rela
         abertaEm: data,
         abertaPor: por,
         status: 'aberta',
+        // Manutenção ou outras alterações (escolhida na vistoria; senão, deduzida pelo item e pelo texto)
+        categoria: x.categoria || categoriaDe({ itemId: x.itemId, item: x.item, texto: x.texto, descricao: x.nota }),
         // Relatório que abriu a pendência (se ele for excluído, ela sai junto)
         ...(relatorioId ? { relatorioId } : {}),
       })

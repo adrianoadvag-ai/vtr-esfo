@@ -226,6 +226,13 @@ export async function resolverOcorrencia(oid, { por, nota, data }) {
   gravar()
 }
 
+// Muda campos de uma pendência (categoria, arquivar, reabrir)
+export async function atualizarOcorrencia(oid, campos) {
+  const o = ler().ocorrencias.find((x) => x.id === oid)
+  if (o) Object.assign(o, campos)
+  gravar()
+}
+
 export async function enviarFoto(_data, _vtrId, arquivo) {
   const blob = await comprimirFoto(arquivo, 800, 0.6)
   return blobParaDataURL(blob)

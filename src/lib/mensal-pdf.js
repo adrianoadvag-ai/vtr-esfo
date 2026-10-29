@@ -5,6 +5,7 @@ import { nomeMes } from './frota'
 import { detalheSituacao } from './situacao'
 import { COLUNAS_GESTAO, destaqueGestao } from './gestao'
 import { textoPendencia } from './pendencia'
+import { ehManutencao } from './categoria-pendencia'
 
 function carregarImagem(src) {
   return new Promise((ok) => {
@@ -255,7 +256,7 @@ export async function gerarPdfMensal({ resumo: r, brasoes, geradoPor, hoje }) {
         cor: g.nivel === 'critico' ? COR.critico : g.nivel === 'atencao' ? COR.atencao : COR.cinza,
         texto: `${g.texto} - ${g.vezes > 1 ? `${g.vezes} vistorias, de ${diaMes(g.primeira)} a ${diaMes(g.ultima)}` : `em ${diaMes(g.ultima)}`}`,
       })),
-      ...x.pendencias.map((o) => ({ selo: 'PENDÊNCIA', cor: COR.cinza, texto: `${textoPendencia(o)} - em aberto desde ${dataBR(o.abertaEm)}` })),
+      ...x.pendencias.map((o) => ({ selo: ehManutencao(o) ? 'MANUTENÇÃO' : 'OUTRA ALTERAÇÃO', cor: COR.cinza, texto: `${textoPendencia(o)} - em aberto desde ${dataBR(o.abertaEm)}` })),
       ...x.trocas.map((t) => ({ selo: 'TROCA', cor: COR.ok, texto: `Troca de óleo em ${dataBR(t.data)}${t.km ? ` aos ${km(t.km)} km` : ''}${t.por ? ` (${t.por})` : ''}` })),
     ]
     fonte('normal', 9.5)

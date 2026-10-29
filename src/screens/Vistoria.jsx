@@ -8,6 +8,7 @@ import { abertasPorItem, textoPendencia } from '../lib/ocorrencias'
 import { avaliar, diaDeConferencia, exigida, itensDa, travaDeOutro } from '../lib/vistoria'
 import { atuaComoGestor, escalaDoDia } from '../lib/escala'
 import FiguraVtr, { ModeloVtr } from '../components/FiguraVtr'
+import { CATEGORIAS, categoriaDe } from '../lib/categoria-pendencia'
 
 export default function Vistoria({ vtrId }) {
   const { viaturas, vistoria, hoje, ir, api, usuario, avisar, escalas, usuarios, recarregarViaturas, ocorrencias } = useApp()
@@ -129,7 +130,8 @@ export default function Vistoria({ vtrId }) {
       return novo
     })
   }
-  const novaExtra = () => mudarCom((r) => ({ ...r, extras: [...(r.extras || []), { id: Date.now().toString(36), texto: '' }] }))
+  const novaExtra = (categoria) => mudarCom((r) => ({ ...r, extras: [...(r.extras || []), { id: Date.now().toString(36), texto: '', categoria }] }))
+  const mudarCategoriaExtra = (id, categoria) => mudarCom((r) => ({ ...r, extras: (r.extras || []).map((e) => (e.id === id ? { ...e, categoria } : e)) }))
   const mudarExtra = (id, texto) => mudarCom((r) => ({ ...r, extras: (r.extras || []).map((e) => (e.id === id ? { ...e, texto } : e)) }))
   const tirarExtra = (id) => mudarCom((r) => ({ ...r, extras: (r.extras || []).filter((e) => e.id !== id) }))
   const atualizarPendencia = (oid, texto) => mudarCom((r) => ({ ...r, atualizar: { ...(r.atualizar || {}), [oid]: texto } }))
@@ -361,14 +363,18 @@ export default function Vistoria({ vtrId }) {
               </>
             )}
 
-            <h2 className="secao">Outras pendências</h2>
+            <h2 className="secao">Fora do checklist</h2>
             <p className="tela-sub" style={{ margin: '-4px 0 8px', fontSize: 14 }}>
-              O que não está nos itens acima (lataria, estepe, bateria do cartão…). Cada uma vira pendência da VTR.
+              O que não está nos itens acima. <b>Manutenção</b>: o que precisa ser consertado (estepe, A/C, bateria do cartão…). <b>Outra alteração</b>: o que fica só
+              registrado (lataria, ralados, bancos, acabamento).
             </p>
             <div className="bloco pad outras-pendencias">
               {outrasAbertas.map((o) => (
                 <div key={o.id} className="outra-aberta">
-                  <small>Aberta desde {dataBR(o.abertaEm)}{o.origem === 'planilha' ? ' (planilha)' : ''}</small>
+                  <small>
+                    {CATEGORIAS[categoriaDe(o)].nome} · aberta desde {dataBR(o.abertaEm)}
+                    {o.origem === 'planilha' ? ' (planilha)' : ''}
+                  </small>
                   {reg.atualizar?.[o.id] !== undefined ? (
                     <textarea
                       value={reg.atualizar[o.id]}
@@ -391,10 +397,19 @@ export default function Vistoria({ vtrId }) {
               {(reg.extras || []).map((e) => (
                 <div key={e.id} className={`nota-item outra-nova ${(e.texto || '').trim() ? '' : 'exigida'}`}>
                   <span>Nova pendência</span>
+                  {!somenteLeitura && (
+                    <span className="extra-tipo">
+                      {Object.entries(CATEGORIAS).map(([id, c]) => (
+                        <button key={id} className={`opcao ${(e.categoria || 'manutencao') === id ? 'marcada' : ''}`} onClick={() => mudarCategoriaExtra(e.id, id)}>
+                          {c.nome}
+                        </button>
+                      ))}
+                    </span>
+                  )}
                   <textarea
                     value={e.texto}
                     onChange={(ev) => mudarExtra(e.id, ev.target.value)}
-                    placeholder="Ex.: para-lama traseiro esquerdo batido à frente da roda"
+                    placeholder={e.categoria === 'outras' ? 'Ex.: para-lama traseiro esquerdo batido à frente da roda' : 'Ex.: estepe furado; A/C não gela'}
                     disabled={somenteLeitura}
                     rows={2}
                     autoFocus={!e.texto}
@@ -406,11 +421,16 @@ export default function Vistoria({ vtrId }) {
                   )}
                 </div>
               ))}
-              {outrasAbertas.length === 0 && !(reg.extras || []).length && <p className="tela-sub" style={{ margin: 0 }}>Nenhuma pendência fora do checklist.</p>}
+              {outrasAbertas.length === 0 && !(reg.extras || []).length && <p className="tela-sub" style={{ margin: 0 }}>Nada fora do checklist.</p>}
               {!somenteLeitura && (
-                <button className="botao secundario" onClick={novaExtra}>
-                  <Icone nome="Plus" /> Outra pendência
-                </button>
+                <span className="botoes-extra">
+                  <button className="botao secundario" onClick={() => novaExtra('manutencao')}>
+                    <Icone nome="Plus" /> Manutenção
+                  </button>
+                  <button className="botao secundario" onClick={() => novaExtra('outras')}>
+                    <Icone nome="Plus" /> Outra alteração
+                  </button>
+                </span>
               )}
             </div>
 

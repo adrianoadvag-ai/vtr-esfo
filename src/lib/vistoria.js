@@ -123,7 +123,7 @@ export function avaliar(vtr, reg = {}, hoje) {
   for (const e of reg.extras || []) {
     const t = (e.texto || '').trim()
     if (!t) pendentes.push('Descrição da outra pendência')
-    else achados.push({ nivel: 'atencao', itemId: `extra-${e.id}`, item: 'Outra pendência', texto: `Outra pendência: ${t}`, nota: t })
+    else achados.push({ nivel: 'atencao', itemId: `extra-${e.id}`, item: 'Outra pendência', texto: `Outra pendência: ${t}`, nota: t, ...(e.categoria ? { categoria: e.categoria } : {}) })
   }
   const temAlt = achados.length > 0
 
