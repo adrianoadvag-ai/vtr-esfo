@@ -1,6 +1,10 @@
 // Pendências: nascem das alterações da vistoria (com a descrição escrita pelo vistoriador no item)
 // e das "outras pendências" anotadas na vistoria; ficam abertas até alguém resolver na tela Pendências.
+import { ITENS } from '../config'
 import { avaliar } from './vistoria'
+
+// Itens que não viram pendência (ex.: limpeza, resolvida lavando a VTR)
+const SEM_PENDENCIA = new Set(ITENS.filter((i) => i.semPendencia).map((i) => i.id))
 
 export { textoPendencia } from './pendencia'
 
@@ -20,7 +24,7 @@ export function ocorrenciasDoDia({ data, viaturas, registros, abertas, por, rela
     const a = avaliar(v, reg, data)
     for (const x of a.achados) {
       // Combustível baixo não vira pendência: resolve-se no próximo abastecimento
-      if (x.itemId === 'combustivel' || x.itemId === 'arla') continue
+      if (x.itemId === 'combustivel' || x.itemId === 'arla' || SEM_PENDENCIA.has(x.itemId)) continue
       const chave = `${v.id}:${x.itemId}`
       const existente = porChave.get(chave)
       if (existente) {

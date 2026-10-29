@@ -4,7 +4,7 @@ import { Cabecalho, Icone, Selo, SeloNivel, useCarregar } from '../components/ba
 import { NIVEIS, SITUACOES, funcaoDe, rotuloVaga } from '../config'
 import { dataExtensa, nomeCompleto } from '../lib/formato'
 import { ocorrenciasDoDia } from '../lib/ocorrencias'
-import { avaliar, exigida, idRodada, juntarEnvios, montarRelatorio, travaDeOutro } from '../lib/vistoria'
+import { avaliar, limpezaGeral, exigida, idRodada, juntarEnvios, montarRelatorio, travaDeOutro } from '../lib/vistoria'
 import { atuaComoGestor, escalaDoDia } from '../lib/escala'
 import { baixada } from '../lib/situacao'
 
@@ -35,8 +35,6 @@ export default function Revisao() {
     setResponsaveis(naEscala || souAuxiliar ? escalados : [eu])
     setAuxiliares(naEscala ? escaladosAux : souAuxiliar ? [eu] : escaladosAux)
   }, [chaveEscala]) // eslint-disable-line react-hooks/exhaustive-deps
-  // Limpeza: parte do que já foi informado no envio anterior de hoje
-  const [limpeza, setLimpeza] = useState(vistoria?.limpeza || enviadasHoje.at(-1)?.limpeza || { ok: true, obs: '' })
   const [verTexto, setVerTexto] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [fora, setFora] = useState([]) // concluídas que o usuário tirou deste relatório
@@ -57,13 +55,15 @@ export default function Revisao() {
   const abertasDestas = abertas.filter((o) => idsIncluidos.has(o.viaturaId))
   // Baixadas: entram no relatório com o motivo
   const foraDeServico = viaturas.filter((v) => baixada(v) && !idsIncluidos.has(v.id))
-  const pronto = incluidas.length > 0 && (responsaveis.length > 0 || auxiliares.length > 0) && (limpeza.ok || limpeza.obs?.trim())
+  const pronto = incluidas.length > 0 && (responsaveis.length > 0 || auxiliares.length > 0)
 
   // Um relatório por dia: o texto soma as VTR já enviadas hoje às desta rodada
   const dia = juntarEnvios(enviadasHoje, { incluidas: [...idsIncluidos], registros: regsIncluidos, responsaveis, auxiliares })
   const jaEnviadas = viaturas.filter((v) => dia.registros[v.id] && !idsIncluidos.has(v.id))
   const doDia = viaturas.filter((v) => dia.registros[v.id])
   const idsDoDia = new Set(doDia.map((v) => v.id))
+  // Limpeza: vem do checklist de cada VTR (interna e externa)
+  const limpeza = limpezaGeral(doDia, dia.registros, hoje)
   const texto = montarRelatorio({
     data: hoje,
     viaturas: doDia,
@@ -243,40 +243,6 @@ export default function Revisao() {
             ))}
           </div>
         )}
-
-        <h2 className="secao">Limpeza geral</h2>
-        <div className="bloco">
-          <div className="item">
-            <div className="linha">
-              <div className="icone-item">
-                <Icone nome="Sparkles" />
-              </div>
-              <div className="rotulo">Limpeza dentro do padrão</div>
-              <button
-                className={`redondo alerta ${limpeza.ok === false ? 'marcado' : ''}`}
-                onClick={() => setLimpeza({ ...limpeza, ok: false })}
-                aria-pressed={limpeza.ok === false}
-                aria-label="Necessita limpeza"
-              >
-                <Icone nome="TriangleAlert" />
-              </button>
-              <button
-                className={`redondo tique ${limpeza.ok ? 'marcado' : ''}`}
-                onClick={() => setLimpeza({ ok: true, obs: '' })}
-                aria-pressed={limpeza.ok}
-                aria-label="Limpeza dentro do padrão"
-              >
-                <Icone nome="Check" tamanho={24} strokeWidth={3} />
-              </button>
-            </div>
-          </div>
-          {limpeza.ok === false && (
-            <div className="obs exigida" style={{ borderTop: '1px solid var(--linha)' }}>
-              <label htmlFor="limpeza">O que precisa de limpeza?</label>
-              <textarea id="limpeza" value={limpeza.obs} onChange={(e) => setLimpeza({ ok: false, obs: e.target.value })} />
-            </div>
-          )}
-        </div>
 
         {/* Assinaturas: Responsável (1º ano /2), Supervisor (1º ano /1) e Gestor (3º ano) */}
         <h2 className="secao">{rotuloVaga('auxiliares')} do dia</h2>

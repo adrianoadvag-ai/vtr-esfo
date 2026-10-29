@@ -165,6 +165,32 @@ export const ITENS = [
     nivel: 'atencao',
     compacto: true,
   },
+  // Limpeza: conferida em cada VTR. Não vira pendência (resolve-se lavando/limpando);
+  // no relatório, sai numa linha só quando interna e externa estão S/A, e o fim do relatório resume a frota.
+  {
+    id: 'limpezaInt',
+    nome: 'Limpeza interna',
+    detalhe: 'Bancos, assoalho, painel, lixo',
+    icone: 'Sparkles',
+    rel: 'Limpeza interna',
+    okTexto: 'S/A',
+    alts: ['Bancos sujos', 'Assoalho / tapetes sujos', 'Lixo no interior', 'Painel / vidros internos sujos'],
+    nivel: 'info',
+    grupo: 'limpeza',
+    semPendencia: true,
+  },
+  {
+    id: 'limpezaExt',
+    nome: 'Limpeza externa',
+    detalhe: 'Lataria, vidros, rodas',
+    icone: 'CarFront',
+    rel: 'Limpeza externa',
+    okTexto: 'S/A',
+    alts: ['Lataria suja', 'Vidros sujos', 'Rodas / para-lamas com barro'],
+    nivel: 'info',
+    grupo: 'limpeza',
+    semPendencia: true,
+  },
   // Conferência semanal (segunda-feira): condição de pneus e pastilhas, palhetas e filtro do A/C, como na planilha
   {
     id: 'condPneus',

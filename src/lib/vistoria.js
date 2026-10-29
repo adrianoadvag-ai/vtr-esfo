@@ -239,6 +239,13 @@ export function montarRelatorio({ data, viaturas, registros, limpeza, responsave
       const t = juntar(semAlt.map((x) => x.rel.toLowerCase()))
       L.push(`* ${t[0].toUpperCase()}${t.slice(1)}: S/A`)
     }
+    // Limpeza: uma linha só quando interna e externa estão S/A
+    // (vistorias enviadas antes de a limpeza entrar no checklist não têm a linha)
+    const limp = itensDa(v, data).filter((x) => x.grupo === 'limpeza' && r.itens?.[x.id]?.estado)
+    const limpAlt = limp.filter((x) => r.itens?.[x.id]?.estado === 'alt')
+    for (const x of limpAlt) linha(x.id)
+    if (limp.length && !limpAlt.length) L.push('* Limpeza (interna e externa): S/A')
+    else if (limpAlt.length && limpAlt.length < limp.length) for (const x of limp.filter((i) => !limpAlt.includes(i))) linha(x.id)
     // Conferência semanal (segunda-feira)
     for (const x of itensDa(v, data).filter((i) => i.semanal)) linha(x.id)
     for (const e of r.extras || []) if (e.texto?.trim()) L.push(`* Outra pendência: ${e.texto.trim()}`)
@@ -247,11 +254,8 @@ export function montarRelatorio({ data, viaturas, registros, limpeza, responsave
   })
 
   L.push('')
-  L.push(
-    limpeza?.ok === false
-      ? `Condições gerais de limpeza: necessita limpeza${limpeza.obs ? ` (${limpeza.obs})` : ''}.`
-      : 'Condições gerais de limpeza: Limpeza realizada dentro do padrão.',
-  )
+  const lg = limpezaGeral(lista, registros, data, limpeza)
+  L.push(lg.ok ? 'Condições gerais de limpeza: Limpeza realizada dentro do padrão.' : `Condições gerais de limpeza: necessita limpeza (${lg.obs}).`)
   // Assinaturas: Responsável (1º ano /2), Supervisor (1º ano /1) e Gestor (3º ano)
   const assinar = (campo, nomes) => {
     if (!nomes.length) return
@@ -263,6 +267,30 @@ export function montarRelatorio({ data, viaturas, registros, limpeza, responsave
   assinar('responsaveis', responsaveis)
   assinar('supervisor', supervisor ? [supervisor] : [])
   return L.join('\n')
+}
+
+// Limpeza geral do relatório, a partir da limpeza conferida em cada VTR.
+// `anterior` ({ ok, obs }) só vale para vistorias antigas, feitas antes de a limpeza entrar no checklist.
+export function limpezaGeral(viaturas, registros, data, anterior) {
+  const sujas = []
+  let conferida = false
+  for (const v of viaturas) {
+    const r = registros[v.id] || {}
+    if (r.naoVistoriada) continue
+    const itens = itensDa(v, data).filter((x) => x.grupo === 'limpeza')
+    const alt = itens.filter((x) => r.itens?.[x.id]?.estado === 'alt')
+    if (itens.some((x) => r.itens?.[x.id]?.estado)) conferida = true
+    if (!alt.length) continue
+    const partes = alt.map((x) => {
+      const s = r.itens[x.id]
+      const o = s.alts?.length ? s.alts.join(', ').toLowerCase() : 'com alteração'
+      return `${x.nome.replace('Limpeza ', '')}: ${o}${s.nota?.trim() ? ` - ${s.nota.trim()}` : ''}`
+    })
+    sujas.push(`${v.prefixo}: ${partes.join('; ')}`)
+  }
+  if (sujas.length) return { ok: false, obs: sujas.join(' | ') }
+  if (!conferida && anterior?.ok === false) return { ok: false, obs: anterior.obs || 'sem detalhes' }
+  return { ok: true, obs: '' }
 }
 
 function juntar(arr) {
